@@ -18,6 +18,7 @@ const LINKS = [
   { to: "/treasury", label: "Treasury", end: false },
   { to: "/system", label: "System", end: false },
   { to: "/settings", label: "Settings", end: false },
+  { to: "/live-gate", label: "Live gate", end: false },
   { to: "/paper-swaps", label: "Paper swaps", end: false },
 ] as const;
 

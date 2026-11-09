@@ -3241,6 +3241,217 @@
         "title": "SourceEventResponse",
         "type": "object"
       },
+      "SubmissionCondition": {
+        "additionalProperties": false,
+        "description": "One live-gate condition. A true `met` still cannot submit from this API.",
+        "properties": {
+          "met": {
+            "title": "Met",
+            "type": "boolean"
+          },
+          "name": {
+            "enum": [
+              "mode_live",
+              "live_enabled",
+              "submit_orders",
+              "confirm_phrase",
+              "submit_flag",
+              "account_match",
+              "account_active",
+              "kill_switch_off"
+            ],
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "met"
+        ],
+        "title": "SubmissionCondition",
+        "type": "object"
+      },
+      "SubmissionEvidenceResponse": {
+        "additionalProperties": false,
+        "description": "The eight live-gate conditions, plus the fact that this process cannot submit.",
+        "properties": {
+          "account_status": {
+            "const": "not_read",
+            "title": "Account Status",
+            "type": "string"
+          },
+          "api_reaches_engine": {
+            "const": false,
+            "title": "Api Reaches Engine",
+            "type": "boolean"
+          },
+          "broker_called": {
+            "const": false,
+            "title": "Broker Called",
+            "type": "boolean"
+          },
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/SubmissionCondition"
+            },
+            "maxItems": 8,
+            "minItems": 8,
+            "title": "Conditions",
+            "type": "array"
+          },
+          "conditions_met": {
+            "maximum": 8.0,
+            "minimum": 0.0,
+            "title": "Conditions Met",
+            "type": "integer"
+          },
+          "config_kill_switch": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Kill Switch"
+          },
+          "config_live_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Live Enabled"
+          },
+          "config_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "paper",
+                  "live"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Mode"
+          },
+          "config_submit_orders": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Submit Orders"
+          },
+          "config_valid": {
+            "title": "Config Valid",
+            "type": "boolean"
+          },
+          "confirm_phrase_echoed": {
+            "const": false,
+            "title": "Confirm Phrase Echoed",
+            "type": "boolean"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "expected_account_echoed": {
+            "const": false,
+            "title": "Expected Account Echoed",
+            "type": "boolean"
+          },
+          "expected_account_set": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Account Set"
+          },
+          "ledger_kill_switch": {
+            "const": "not_read",
+            "title": "Ledger Kill Switch",
+            "type": "string"
+          },
+          "live_submission_possible": {
+            "const": false,
+            "title": "Live Submission Possible",
+            "type": "boolean"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_route": {
+            "const": "absent",
+            "title": "Order Route",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "paper_submission_from_api": {
+            "const": false,
+            "title": "Paper Submission From Api",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "local_config",
+            "title": "Source",
+            "type": "string"
+          },
+          "submit_flag": {
+            "const": false,
+            "title": "Submit Flag",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "config_valid",
+          "config_mode",
+          "config_live_enabled",
+          "config_submit_orders",
+          "config_kill_switch",
+          "expected_account_set",
+          "conditions",
+          "conditions_met",
+          "account_status",
+          "ledger_kill_switch",
+          "submit_flag",
+          "api_reaches_engine",
+          "broker_called",
+          "paper_submission_from_api",
+          "live_submission_possible",
+          "expected_account_echoed",
+          "confirm_phrase_echoed",
+          "execution_permitted",
+          "order_submitted",
+          "order_route",
+          "source",
+          "note"
+        ],
+        "title": "SubmissionEvidenceResponse",
+        "type": "object"
+      },
       "SystemStatusResponse": {
         "properties": {
           "agents_can_trade": {
@@ -4955,6 +5166,28 @@
           }
         },
         "summary": "System Status",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/submission": {
+      "get": {
+        "description": "Report the live gate. This route cannot turn a condition on or submit an order.",
+        "operationId": "submission_evidence_api_v1_system_submission_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionEvidenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Submission Evidence",
         "tags": [
           "system"
         ]

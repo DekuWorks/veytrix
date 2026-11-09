@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { AgencyPage } from "./pages/AgencyPage";
 import { AuditPage } from "./pages/AuditPage";
 import { EventsPage } from "./pages/EventsPage";
+import { LiveGatePage } from "./pages/LiveGatePage";
 import { MarketPage } from "./pages/MarketPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { PaperSwapsPage } from "./pages/PaperSwapsPage";
@@ -37,6 +38,7 @@ export function AppRoutes() {
         <Route path="/treasury" element={<TreasuryPage />} />
         <Route path="/system" element={<SystemPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/live-gate" element={<LiveGatePage />} />
         <Route path="/paper-swaps" element={<PaperSwapsPage />} />
         <Route
           path="*"

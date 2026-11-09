@@ -928,6 +928,78 @@ class ToolCheckRequest(BaseModel):
         return self
 
 
+class SubmissionCondition(BaseModel):
+    """One live-gate condition. A true `met` still cannot submit from this API."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: Literal[
+        "mode_live",
+        "live_enabled",
+        "submit_orders",
+        "confirm_phrase",
+        "submit_flag",
+        "account_match",
+        "account_active",
+        "kill_switch_off",
+    ]
+    met: bool
+
+
+class SubmissionEvidenceResponse(BaseModel):
+    """The eight live-gate conditions, plus the fact that this process cannot submit."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    config_valid: bool
+    config_mode: Literal["paper", "live"] | None
+    config_live_enabled: bool | None
+    config_submit_orders: bool | None
+    config_kill_switch: bool | None
+    expected_account_set: bool | None
+    conditions: list[SubmissionCondition] = Field(min_length=8, max_length=8)
+    conditions_met: int = Field(ge=0, le=8)
+    account_status: Literal["not_read"]
+    ledger_kill_switch: Literal["not_read"]
+    submit_flag: Literal[False]
+    api_reaches_engine: Literal[False]
+    broker_called: Literal[False]
+    paper_submission_from_api: Literal[False]
+    live_submission_possible: Literal[False]
+    expected_account_echoed: Literal[False]
+    confirm_phrase_echoed: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    order_route: Literal["absent"]
+    source: Literal["local_config"]
+    note: str = Field(min_length=1, max_length=400)
+
+    @model_validator(mode="after")
+    def conditions_stay_in_order(self) -> SubmissionEvidenceResponse:
+        names = [item.name for item in self.conditions]
+        expected = [
+            "mode_live",
+            "live_enabled",
+            "submit_orders",
+            "confirm_phrase",
+            "submit_flag",
+            "account_match",
+            "account_active",
+            "kill_switch_off",
+        ]
+        if names != expected:
+            raise ValueError("Live-gate conditions are incomplete.")
+        if self.conditions_met != sum(item.met for item in self.conditions):
+            raise ValueError("conditions_met does not match the list.")
+        if any(
+            item.met
+            for item in self.conditions
+            if item.name in ("submit_flag", "account_match", "account_active", "kill_switch_off")
+        ):
+            raise ValueError("This API cannot meet the broker or submit conditions.")
+        return self
+
+
 class Mac01ScheduleResponse(BaseModel):
     """The published MAC-01 clock. This process does not start it or read a calendar."""
 

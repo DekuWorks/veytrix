@@ -16,9 +16,16 @@ from veytrix_api.schemas import (
     DiagnosticsResponse,
     HealthResponse,
     ReadyResponse,
+    SubmissionCondition,
+    SubmissionEvidenceResponse,
     SystemStatusResponse,
     SystemStatusUnavailable,
     VersionInfo,
+)
+from veytrix_api.submission import (
+    condition_results,
+    confirm_phrase_matches,
+    load_submission_config,
 )
 
 router = APIRouter(tags=["system"])
@@ -79,6 +86,48 @@ def system_status(
         agents_registered=len(rows),
         agents_can_trade=False,
         sample_data=True,
+    )
+
+
+SUBMISSION_NOTE = (
+    "This process cannot pass --submit and does not read the broker account or the ledger "
+    "kill switch. The confirmation phrase and the account number are not echoed. "
+    "Not investment advice."
+)
+
+
+@router.get("/system/submission", response_model=SubmissionEvidenceResponse)
+def submission_evidence() -> SubmissionEvidenceResponse:
+    """Report the live gate. This route cannot turn a condition on or submit an order."""
+
+    config = load_submission_config()
+    conditions = [
+        SubmissionCondition(name=name, met=met)
+        for name, met in condition_results(config, confirm_matches=confirm_phrase_matches())
+    ]
+    return SubmissionEvidenceResponse(
+        config_valid=config is not None,
+        config_mode=config.mode if config else None,
+        config_live_enabled=config.live_enabled if config else None,
+        config_submit_orders=config.submit_orders if config else None,
+        config_kill_switch=config.kill_switch if config else None,
+        expected_account_set=bool(config.expected_account_number) if config else None,
+        conditions=conditions,
+        conditions_met=sum(item.met for item in conditions),
+        account_status="not_read",
+        ledger_kill_switch="not_read",
+        submit_flag=False,
+        api_reaches_engine=False,
+        broker_called=False,
+        paper_submission_from_api=False,
+        live_submission_possible=False,
+        expected_account_echoed=False,
+        confirm_phrase_echoed=False,
+        execution_permitted=False,
+        order_submitted=False,
+        order_route="absent",
+        source="local_config",
+        note=SUBMISSION_NOTE,
     )
 
 

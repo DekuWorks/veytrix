@@ -501,6 +501,41 @@ export type Mac01ScheduleResponse = {
   note: string;
 };
 
+export type SubmissionConditionName =
+  | "mode_live"
+  | "live_enabled"
+  | "submit_orders"
+  | "confirm_phrase"
+  | "submit_flag"
+  | "account_match"
+  | "account_active"
+  | "kill_switch_off";
+
+export type SubmissionEvidenceResponse = {
+  config_valid: boolean;
+  config_mode: "paper" | "live" | null;
+  config_live_enabled: boolean | null;
+  config_submit_orders: boolean | null;
+  config_kill_switch: boolean | null;
+  expected_account_set: boolean | null;
+  conditions: { name: SubmissionConditionName; met: boolean }[];
+  conditions_met: number;
+  account_status: "not_read";
+  ledger_kill_switch: "not_read";
+  submit_flag: false;
+  api_reaches_engine: false;
+  broker_called: false;
+  paper_submission_from_api: false;
+  live_submission_possible: false;
+  expected_account_echoed: false;
+  confirm_phrase_echoed: false;
+  execution_permitted: false;
+  order_submitted: false;
+  order_route: "absent";
+  source: "local_config";
+  note: string;
+};
+
 export type SupervisorToolsResponse = {
   source: "local_catalogue";
   model: "not_configured";
