@@ -1,0 +1,52 @@
+# Host ports are published on 127.0.0.1 only.
+# The API process listens on every container interface so Docker can publish it.
+# POSTGRES_PASSWORD defaults to the obvious local placeholder. It is not a production secret.
+
+name: veytrix
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: veytrix
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-only}
+      POSTGRES_DB: veytrix
+    command: ["postgres", "-c", "timezone=UTC"]
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veytrix -d veytrix"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - veytrix-postgres:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    environment:
+      VEYTRIX_ENV: local
+      VEYTRIX_ENABLE_LIVE_BROKER: "0"
+      DATABASE_URL: postgresql+psycopg://veytrix:${POSTGRES_PASSWORD:-local-dev-only}@postgres:5432/veytrix
+      VEYTRIX_LOG_LEVEL: INFO
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        VITE_API_BASE_URL: http://127.0.0.1:8000
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - api
+
+volumes:
+  veytrix-postgres:

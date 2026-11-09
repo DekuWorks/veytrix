@@ -1,0 +1,13 @@
+---
+description: Local Python service conventions for the Veytrix API, risk, and sample data.
+globs: services/**/*.py,tests/**/*.py
+alwaysApply: false
+---
+
+# Python services
+
+- Target Python 3.12 or newer. Use `Decimal` for money and fractions. Do not use `float` for either.
+- Keep market data generation, risk maths, and HTTP routes in their own packages.
+- New routes belong under `/api/v1` and need an OpenAPI snapshot update via `python scripts/export_openapi.py`.
+- Do not log secrets, database URLs, or request bodies.
+- Alembic upgrades stay local. Do not seed prices into Postgres.

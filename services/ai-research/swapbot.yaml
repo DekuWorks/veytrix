@@ -1,0 +1,82 @@
+# Simulated paper-swap config. Checked in. No private keys.
+# Each chain names the environment variable that holds its testnet RPC URL.
+# mainnet_rpc_url is recorded so the loader can refuse it. It is never requested.
+#
+# Addresses checked on 8 November 2026:
+#   https://docs.uniswap.org/contracts/v3/reference/deployments/ethereum-deployments
+#   https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments
+#   https://developers.circle.com/stablecoins/usdc-contract-addresses
+#   https://docs.base.org/get-started/connect-to-base
+#   https://solana.com/docs/references/clusters
+# Amounts are quoted strings so they parse as Decimal, never float.
+
+max_slippage_bps: 50
+
+chains:
+  solana:
+    kind: solana
+    network: solana-devnet
+    chain_id: devnet
+    rpc_env_var: SOLANA_DEVNET_RPC_URL
+    mainnet_rpc_url: "https://api.mainnet.solana.com"
+    mainnet_chain_id: mainnet-beta
+    native_symbol: SOL
+    # 5000 lamports, the base signature fee. Jupiter devnet quotes are not used.
+    fee_estimate_native: "0.000005"
+    reference_pair: SOL-USD
+    starting_balances:
+      SOL: "100"
+      USDC: "1000"
+    tokens:
+      SOL:
+        address: "So11111111111111111111111111111111111111112"
+        decimals: 9
+      USDC:
+        address: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+        decimals: 6
+
+  ethereum:
+    kind: evm
+    network: sepolia
+    chain_id: 11155111
+    rpc_env_var: ETHEREUM_SEPOLIA_RPC_URL
+    mainnet_rpc_url: "https://cloudflare-eth.com"
+    mainnet_chain_id: 1
+    native_symbol: ETH
+    quoter: "0xEd1f6473345F45b75F8179591dd5bA1888cf2FB3" # QuoterV2
+    weth_symbol: WETH
+    fee_tier: 3000
+    fallback_gas_units: 200000
+    starting_balances:
+      ETH: "1"
+      USDC: "1000"
+    tokens:
+      WETH:
+        address: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14"
+        decimals: 18
+      USDC:
+        address: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+        decimals: 6
+
+  base:
+    kind: evm
+    network: base-sepolia
+    chain_id: 84532
+    rpc_env_var: BASE_SEPOLIA_RPC_URL
+    mainnet_rpc_url: "https://mainnet.base.org"
+    mainnet_chain_id: 8453
+    native_symbol: ETH
+    quoter: "0xC5290058841028F1614F3A6F0F5816cAd0df5E27" # QuoterV2
+    weth_symbol: WETH
+    fee_tier: 3000
+    fallback_gas_units: 200000
+    starting_balances:
+      ETH: "1"
+      USDC: "1000"
+    tokens:
+      WETH:
+        address: "0x4200000000000000000000000000000000000006"
+        decimals: 18
+      USDC:
+        address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+        decimals: 6

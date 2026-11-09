@@ -1,0 +1,6 @@
+# Single-owner private repository.
+# This clone has no git remote and no commits, so a GitHub login is not recorded.
+# When a private remote exists, replace the example below with that owner's login.
+# Do not add a public remote. Do not invent a login here.
+#
+# * @owner-login

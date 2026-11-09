@@ -1,0 +1,29 @@
+# Issue board
+
+Local board for the 8 November 2026 audit. Not a GitHub project: this clone has no remote and no commits. Order is dependency order. Complexity is a rough size (S, M, L), not a promise. Owner means the person who must decide; implementation waits on that decision when the status is blocked.
+
+The registry pass filled verification for row `01b`. A later local pass filled row `02a` and the Agency part of row `08`. Row `02c` is the read-only audit log and the desk page. All three are awaiting Codex. None of them closes a phase gate.
+
+| ID | Phase | Title | Status | Owner | Depends on | Size | Verification |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 00 | 00 | Audit, architecture notes, checklist, templates | Partial | implementation | none | M | `docs/architecture/current-state.md`, baseline screenshots, secret scan. Codex not run. CI never run on a commit. |
+| 01 | 01 | Supabase project, Auth, RLS | Blocked | owner | a written yes on organisation, region, cost, and leaving local-only | L | None. Do not reuse `nexgrail` or `gridlock`. Local schema work is row `01b`, not this row. |
+| 01b | 01 | Local private schema, agent registry, append-only audit | Built, awaiting Codex | implementation | 00. Does not unblock Supabase, auth, treasury, or DayPilot | M | Migration `0009_agent_registry` on `127.0.0.1:5433`. `test_agent_registry_migration_is_private_and_cannot_trade`, `test_alembic_upgrade_on_postgres_16`. `bash scripts/check.sh` exited 0 (236 pytest, 188 vitest, secret scan clean). Codex not run. See `docs/reviews/PENDING.md` item 13. |
+| 02a | 02 | Local registry read, size audit row, event shapes | Built, awaiting Codex | implementation | 01b. Does not unblock auth, SQS, or a broker read | M | `GET /api/v1/agents` and `GET /api/v1/system/status` on `127.0.0.1:5433` (nine disabled desks, no trade rights). `test_agents_route_reads_the_local_registry`, `test_size_audit_row_inserts_and_rolls_back`, `test_event_contracts_cover_the_plan_and_are_not_routes`. `bash scripts/check.sh` exited 0 (245 pytest, 191 vitest, secret scan clean). No order route. Codex not run. See `docs/reviews/PENDING.md` item 14. |
+| 02c | 02 | Read-only audit log and desk detail | Built, awaiting Codex | implementation | 02a. Does not unblock auth, SQS, a model, or a broker read | M | `GET /api/v1/audit/log` and `GET /api/v1/agency/desks/SUPERVISOR-01` via the test client on `127.0.0.1:5433`. Alembic head `0009_agent_registry`. `test_audit_log_reads_local_postgres`, `test_desk_detail_reads_the_local_registry`, `test_agents_route_lists_disabled_desks_and_cannot_post`. `bash scripts/check.sh` exited 0 (256 pytest, 196 vitest, secret scan clean). PID 11188 still 404s the new paths. No order route. Codex not run. See `docs/reviews/PENDING.md` item 15. |
+| 02b | 02 | SQS outbox and Secrets Manager | Blocked | owner | AWS budget, which is currently refused | L | None. |
+| 03 | 03 | Alpaca paper read and one authorised paper order | Blocked | owner | regenerated keys, then a separate yes for the first paper submit | L | Broker account id and order id, secrets redacted. Unit tests are not enough. |
+| 04 | 04 | Veytrix Shield | Not started | implementation | 03 for buying-power checks; policy approval from the owner | L | Red-team tests. Not started. |
+| 05 | 05 | MAC-01 autonomous paper | Blocked | owner | 03 and 04. Code for the `$100` rule already exists. | L | Crossover fixture tests exist. No Alpaca reconciliation. |
+| 06 | 06 | Supervisor and agent registry | Blocked on the model account; desk read is row 02c | owner for the provider; implementation after that | 01 if auth is Supabase; otherwise a reviewed local auth design. Name rows already exist from `01b`. | L | Desk detail is a read with no enable. No "GPT Astra" id. No chat route. |
+| 07a | 07 | Coinbase display (BTC, ETH, SOL) | Built as a display | implementation | none | S | Live tickers HTTP 200 on 8 November 2026. Not an order path. |
+| 07b | 07 | Simulated testnet swaps | Partial | implementation | another worker owns `veytrix_ai` and `tests/test_swapbot*.py` | M | Registry pass did not edit the package. `test_swap_ledger_respects_foreign_keys` and `test_swap_ledger_commits_on_local_postgres` passed inside `scripts/check.sh` (236 pytest, no skips). |
+| 07c | 07 | DAY-01, ETF-01, RESEARCH-01 desks | Not started | implementation | 04, 06 | L | None. |
+| 08 | 08 | Mission Control gaps | Partial, awaiting Codex | implementation | 02a for the desk list; 02c for one desk; 03 for broker cards; keep the current theme | L | Agency list stays read-only. A desk route shows seven denies and has no enable control. Vitest `agency page` (6) and `audit page` (7). The listener on port 8000 was not restarted, so the new paths 404 there. Other plan views are still absent. |
+| 09 | 09 | Private iOS app and distribution | Blocked for distribution; app not started | owner for the Apple account | 01 or another reviewed auth design | L | Device install. Not started. |
+| 10 | 10 | Wednesday DayPilot meeting | Blocked | owner | meeting time, access approval | M | A real calendar event with no duplicate. Not created. |
+| 11 | 11 | Treasury math and payouts | Blocked for any transfer; math not started | owner for money movement | 03 for reconciled P&L; legal review before live funding | L | Decimal tests. No bank transfer. |
+| 12 | 12 | AWS always-on workers | Blocked | owner | reverse the local-only decision and approve a budget | L | None. |
+| 13 | 13 | 30-day paper record and live gate review | Blocked | owner | 03, then 30 days, then a separate live yes | L | `docs/reviews/PENDING.md` item 11. No live order. |
+
+Do not pull a blocked row forward because the row above it looks finished. Row `01` stays blocked. Row `01b` is the local slice from 8 November 2026, and it still needs Codex.

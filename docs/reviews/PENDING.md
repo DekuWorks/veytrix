@@ -1,0 +1,83 @@
+# Pending reviews
+
+Claude Code has not reviewed this repository. Codex has not written or run tests. A Phase 00 inventory on 8 November 2026 (`docs/implementation-checklist.md`) is not that review. Nothing in this file is a finding from Claude or Codex. The checks below are unrun work for a later independent pass.
+
+## 1. Sizing and the order boundary
+
+- Scope: `services/risk/veytrix_risk/sizing.py`, `services/api/veytrix_api/routers/risk.py`, `tests/test_sizing.py`, `tests/test_api.py`
+- Acceptance: the share count is `floor` of the minimum of the risk ratio and the allocation ratio; `float` inputs are rejected; a risk fraction above 0.02 is rejected; shorts are rejected; the response cannot set `execution_permitted` or `order_submitted` to true; the route writes no order.
+
+## 2. Boot posture
+
+- Scope: `services/api/veytrix_api/settings.py`, `services/api/alembic/env.py`, `tests/test_posture.py`
+- Acceptance: live broker mode refuses to boot; a non-local environment refuses to boot; there is no auth-bypass flag; a remote database host refuses to boot; Alembic uses the same check.
+
+## 3. Web accessibility and the synthetic chart
+
+- Scope: `apps/web/src/shell`, `apps/web/src/pages`, `apps/web/src/components/SampleChart.tsx`
+- Acceptance: skip link, visible focus, Escape closes the drawer, `aria-current` on the active link, Research and Audit are real pages, the synthetic SAMPLE banner is present, Coinbase products are labelled as a display, and a failed market request does not render a chart.
+
+## 4. Supply chain and network bind
+
+- Scope: `pyproject.toml`, `apps/web/package.json`, `docker-compose.yml`, `.github/workflows/ci.yml`, `infra/docker`
+- Acceptance: alpaca-py is imported only by `alpaca_trading.py` and `alpaca_data.py`; no Vercel and no AWS credentials; host ports in `docker-compose.yml` are `127.0.0.1`; Lightweight Charts is the Apache-2.0 5.x library; CI can run from a fresh clone without cloud credentials. On this machine, host port 5432 is already taken by `daypilot-db`, and Veytrix Postgres is `127.0.0.1:5433`.
+
+## 5. Schema baseline
+
+- Scope: `services/api/veytrix_api/models.py`, `services/api/alembic/versions/20261107_0001_baseline.py`, `tests/test_schema.py`
+- Acceptance for migration `0001`: the four baseline tables exist, exactly one paper policy is seeded, prices and instruments are not seeded, and the bar uniqueness constraint exists. Head is now `0009_agent_registry`, which was applied on `127.0.0.1:5433`. Review the later migrations on their own, including item 13. `alembic upgrade head` must still succeed on Postgres 16.
+
+## 6. Licence carve-outs
+
+- Scope: `docs/licenses/THIRD_PARTY.md`, `docs/licenses/DATA_SOURCES.md`, `apps/gods-eye/README.md`, `apps/web/src`
+- Acceptance: God's Eye source is absent; the 21st.dev shell source is absent; the chart attribution names Lightweight Charts and not the proprietary Charting Library.
+
+## 7. Swap helper contracts (audit)
+
+- Scope: `contracts/src/MultiHopSwap.sol`, `contracts/src/MultiHopSwap02.sol`, `contracts/test`, `contracts/script/Deploy.s.sol`
+- The paper-swap CLI does not sign or deploy these contracts. They are unaudited reference code.
+- Acceptance: an independent audit with no open high or medium findings; `forge build` and `forge test` pass (they have not been run, because Foundry was not installed); both variants have identical checks apart from the router struct layout; there is no privileged role; allowances return to 0; there is no ETH or token residue; the deploy script refuses non-testnet chains.
+
+## 8. Fork tests against the real routers
+
+- Scope: `contracts/test/Fork.t.sol`
+- Acceptance: the Sepolia fork (SwapRouter02) and mainnet fork (original SwapRouter) tests pass against Uniswap's published deployments; multi-hop, ETH in, and ETH out are covered; nothing is broadcast.
+
+## 9. Simulated paper swaps
+
+- Scope: `services/ai-research/veytrix_ai`, `services/ai-research/swapbot.yaml`, `services/api/alembic/versions/20261108_0008_paper_swaps.py`, `services/api/veytrix_api/routers/paper_swaps.py`, `tests/test_swapbot.py`
+- Acceptance: the CLI cannot sign or broadcast; mainnet chain ids and mainnet RPC URLs are refused; an unknown chain is refused; an insufficient simulated balance is refused; slippage is applied with `Decimal`; receipts are labelled simulated and include the quote source, quoted price, fee estimate, and balances; no config field or module accepts a private key; the kill switch blocks a swap before any market-data call; the API routes are GET only and do not import the CLI. Live stock trading stays behind the MAC-01 gate. A quote against a real RPC has not been run.
+
+## 10. Mainnet review (blocked)
+
+- Scope: any future live chain
+- Acceptance: do not add a mainnet chain id. This build has no signing path and no hot-wallet key. A later design would need a separate review before any broadcast existed. Live stock orders remain the MAC-01 gate in item 11, not this CLI.
+
+## 11. MAC-01 live gate (before the first live order)
+
+- Scope: `services/quant/veytrix_quant/mac01` (`config.py`, `engine.py`, `alpaca_trading.py`, `alpaca_data.py`, `ledger.py`, `__main__.py`), `config/mac-01.yaml`, `services/api/alembic/versions/20261108_0007_mac01_ledger.py`, `tests/test_mac01_*.py`
+- Acceptance: an independent reviewer confirms that live submission is impossible unless every one of the eight conditions in `services/quant/README.md` holds; that each has a failing-first test; that a buy can never exceed $100 notional or push the position above $100; that a sell only closes a held long quantity; that a timeout is looked up and never retried; that alpaca-py retries are off and a request timeout is set; that keys never reach logs, the ledger, or reprs; and that no API route, model, or page can reach `Mac01Engine.run`.
+- Also: run one paper `run --submit` during regular hours and one live dry run against the real account (account-number match only, no order) before the first live `--submit`. Neither has been done; no `.env` with keys exists in this tree.
+
+## 12. MAC-01 deviation: sell is a quantity order, not `close_position`
+
+- Scope: `engine.py`, `alpaca_trading.py`
+- Acceptance: the reviewer agrees that a market DAY sell of the held quantity, with a deterministic `client_order_id`, is a better fit than `TradingClient.close_position`. `close_position` takes no `client_order_id`, so a timed-out close could not be looked up and might be sent twice. If the reviewer disagrees, switch and add the lookup another way.
+
+## 13. Local agent registry (awaiting review)
+
+- Scope: `services/api/alembic/versions/20261108_0009_agent_registry.py`, `services/api/veytrix_api/models.py`, `tests/test_schema.py`
+- Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist ticks as a closed gate.
+- Acceptance: schema `private` is revoked from `PUBLIC`; the nine desks are seeded disabled; no row can submit, sign, transfer, or hold credentials; every permission effect is `deny`; `audit_events` and the run and permission tables reject update, delete, and truncate; `public.agent_registry` is `security_invoker`; RLS on the three private tables hides rows from a non-owner role; existing public tables were not moved. The original pass added no API route. A later pass added `GET /api/v1/agents`; review that under item 14. The reviewer should also say whether a superuser `veytrix` role makes the RLS policies moot until a non-superuser login exists.
+
+## 14. Registry read, size audit, and event shapes (awaiting review)
+
+- Scope: `services/api/veytrix_api/routers/agents.py`, `services/api/veytrix_api/routers/system.py`, `services/api/veytrix_api/routers/risk.py`, `services/api/veytrix_api/audit_log.py`, `services/api/veytrix_api/events.py`, `services/api/veytrix_api/schemas.py`, `apps/web/src/pages/AgencyPage.tsx`, `tests/test_agents_api.py`, `tests/test_events.py`
+- Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist ticks as a closed gate.
+- Acceptance: `GET /api/v1/agents` is the only agents method; a desk that could submit, sign, transfer, or hold credentials is not returned; `POST /api/v1/risk/size` writes one append-only audit row with the correlation id and `order_submitted` false, and writes none when the size is rejected; event models are not routes and cannot describe a live order or an executed transfer; the Agency page has no enable or order control; no order route was added; `services/ai-research/veytrix_ai/**` was not changed.
+
+## 15. Audit log read and desk detail (awaiting review)
+
+- Scope: `services/api/veytrix_api/routers/audit.py`, `services/api/veytrix_api/routers/agency.py`, `services/api/veytrix_api/schemas.py`, `apps/web/src/pages/AuditPage.tsx`, `apps/web/src/pages/AgencyPage.tsx`, `tests/test_audit_log.py`, `tests/test_agents_api.py`
+- Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate.
+- Acceptance: `GET /api/v1/audit/log` is the only method on that path; it returns size-audit rows and nothing else; a payload that claims `order_submitted`, adds an unknown key, or uses another action returns 503 and does not echo the row; `GET /api/v1/agency/desks/{code}` cannot enable a desk; a desk that could submit, or a permission that is not deny, returns 503; `POST` on either path is 405; `/api/v1/agents/{code}` is still absent; no order route was added.

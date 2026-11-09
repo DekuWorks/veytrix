@@ -1,0 +1,14 @@
+---
+description: Accessible local dashboard conventions. Original shell. SAMPLE is synthetic. Coinbase products are a display.
+globs: apps/web/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Web UI
+
+- Keep the obsidian and jade palette, IBM Plex via `@fontsource`, and a visible focus style.
+- The shell needs a skip link, a collapsible sidebar, a drawer below 768px, Escape to close, and `aria-current` on the active item.
+- Market prices come from the API. If the request fails, show an error. Do not invent client-side prices.
+- The synthetic-sample banner and the not-enforced stops warning stay visible.
+- Research and Audit are real pages. Do not disable those links.
+- Do not copy the 21st.dev Dashboard Shell. It was inspected and rejected.

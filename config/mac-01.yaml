@@ -1,0 +1,31 @@
+# MAC-01: AAPL SMA 20/50 crossover on your own Alpaca Trading API account.
+# Not investment advice. Unknown keys and unsafe values fail closed at startup.
+symbol: AAPL
+strategy: sma_crossover
+strategy_version: mac-01.3
+fast_period: 20
+slow_period: 50
+history_trading_days: 100
+timeframe: 1d
+long_only: true
+allow_short_selling: false
+broker: alpaca_trading_api
+
+# paper uses ALPACA_PAPER_* keys and paper money. live uses ALPACA_LIVE_* keys and REAL money.
+mode: paper
+# Live submission needs ALL of: mode: live, live_enabled: true, submit_orders: true,
+# expected_account_number matching your Alpaca account, MAC01_LIVE_CONFIRM in .env,
+# the --submit flag, an unblocked account, and the kill switch off.
+live_enabled: false
+expected_account_number: ""
+# Paper submission needs submit_orders: true here AND the --submit CLI flag.
+submit_orders: false
+
+# Money caps in US dollars, as quoted decimals. Hard ceiling is 100.00.
+max_notional_per_trade: "100.00"
+max_position_notional: "100.00"
+max_orders_per_day: 2
+daily_loss_cutoff_usd: "20.00"
+kill_switch: false
+# iex is the free feed. Use sip only if your Alpaca market data plan includes it.
+data_feed: iex

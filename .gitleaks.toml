@@ -1,0 +1,9 @@
+title = "Veytrix"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Obvious local-only database password. A real key on the same line would also be ignored by this line rule."
+regexTarget = "line"
+regexes = ['''local-dev-only''']

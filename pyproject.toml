@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "veytrix"
+version = "0.1.0"
+description = "Private personal market-research platform. Paper mode only."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "LicenseRef-DekuWorks-All-Rights-Reserved"
+authors = [{ name = "DekuWorks" }]
+dependencies = [
+  "alembic>=1.14",
+  # MAC-01 bot only. Pinned to a minor: its adapter hardens private client internals.
+  "alpaca-py>=0.45,<0.46",
+  "fastapi>=0.115",
+  "psycopg[binary]>=3.2",
+  "pydantic>=2.10",
+  "pydantic-settings>=2.6",
+  "pyyaml>=6.0",
+  "sqlalchemy>=2.0.36",
+  "uvicorn[standard]>=0.32",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.27",
+  "pip-audit>=2.8",
+  "pytest>=8.3",
+  "ruff>=0.8",
+]
+
+[tool.setuptools.packages.find]
+where = ["services/api", "services/market-data", "services/risk", "services/quant", "services/ai-research"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+pythonpath = ["services/api", "services/market-data", "services/risk", "services/quant", "services/ai-research", "scripts"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["services", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"services/api/alembic/env.py" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["veytrix_ai", "veytrix_api", "veytrix_market", "veytrix_quant", "veytrix_risk"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["Depends", "Query", "Path", "fastapi.Depends", "fastapi.Query"]
