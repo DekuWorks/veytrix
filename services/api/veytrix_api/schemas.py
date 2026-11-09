@@ -853,6 +853,26 @@ class TreasuryMonthlySummaryResponse(BaseModel):
     note: str = Field(min_length=1, max_length=500)
 
 
+class ReminderDatesResponse(BaseModel):
+    """Local dates only. There is no field that creates a meeting or a payout."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    period: str = Field(pattern=r"^\d{4}-\d{2}$")
+    accounting_close_on: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    accounting_close_shifted_for_weekend: bool
+    payout_review_on: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    payout_review_shifted_for_weekend: bool
+    meeting_time: Literal["unconfirmed"]
+    daypilot: Literal["absent"]
+    event_created: Literal[False]
+    transfer_submitted: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    source: Literal["local_calendar"]
+    note: str = Field(min_length=1, max_length=400)
+
+
 class ToolSpecResponse(BaseModel):
     """One catalogue row. The route cannot mark it as executing."""
 

@@ -10,6 +10,7 @@ import pytest
 from veytrix_risk.treasury import (
     DISTRIBUTION_CAP,
     TreasuryInputError,
+    close_date,
     project_month,
     review_date,
 )
@@ -98,6 +99,33 @@ def test_review_date_keeps_a_weekday_and_moves_a_weekend() -> None:
     assert sunday is not None
     source, following = sunday
     assert review_date(*source) == following + timedelta(days=1)
+
+
+def test_the_first_stays_on_a_weekday_and_moves_off_a_weekend() -> None:
+    assert close_date(2026, 11) == date(2026, 12, 1)
+    assert close_date(2026, 11).weekday() < 5
+    assert close_date(2026, 11) == close_date(2026, 11)
+
+    saturday = None
+    sunday = None
+    for year in range(2026, 2040):
+        for month in range(1, 13):
+            following_year = year + 1 if month == 12 else year
+            following_month = 1 if month == 12 else month + 1
+            first = date(following_year, following_month, 1)
+            if first.weekday() == 5 and saturday is None:
+                saturday = (year, month, first)
+            if first.weekday() == 6 and sunday is None:
+                sunday = (year, month, first)
+        if saturday is not None and sunday is not None:
+            break
+    assert saturday is not None and sunday is not None
+    year, month, first = saturday
+    assert close_date(year, month) == first + timedelta(days=2)
+    year, month, first = sunday
+    assert close_date(year, month) == first + timedelta(days=1)
+    with pytest.raises(TreasuryInputError):
+        close_date(True, 1)  # type: ignore[arg-type]
 
 
 def test_floats_positive_carryforward_and_negative_costs_are_rejected() -> None:

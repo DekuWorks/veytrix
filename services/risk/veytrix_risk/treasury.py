@@ -17,6 +17,7 @@ CENT = Decimal("0.01")
 DISTRIBUTION_FRACTION = Decimal("0.50")
 DISTRIBUTION_CAP = Decimal("2000.00")
 REVIEW_DAY = 5
+CLOSE_DAY = 1
 _DECIMAL_TEXT = re.compile(r"^-?(?:0|[1-9]\d*)(?:\.\d+)?$")
 
 
@@ -102,9 +103,7 @@ def project_month(
     )
 
 
-def review_date(year: int, month: int) -> date:
-    """The 5th of the following month. Saturday and Sunday move to Monday."""
-
+def _following_month(year: int, month: int) -> tuple[int, int]:
     if isinstance(year, bool) or isinstance(month, bool):
         raise TreasuryInputError("year and month must be integers.")
     if not isinstance(year, int) or not isinstance(month, int):
@@ -112,12 +111,30 @@ def review_date(year: int, month: int) -> date:
     if month < 1 or month > 12:
         raise TreasuryInputError("month must be from 1 to 12.")
     if month == 12:
-        next_year, next_month = year + 1, 1
-    else:
-        next_year, next_month = year, month + 1
-    day = date(next_year, next_month, REVIEW_DAY)
+        return year + 1, 1
+    return year, month + 1
+
+
+def _monday_if_weekend(day: date) -> date:
     if day.weekday() == 5:
         return day + timedelta(days=2)
     if day.weekday() == 6:
         return day + timedelta(days=1)
     return day
+
+
+def review_date(year: int, month: int) -> date:
+    """The 5th of the following month. Saturday and Sunday move to Monday."""
+
+    next_year, next_month = _following_month(year, month)
+    return _monday_if_weekend(date(next_year, next_month, REVIEW_DAY))
+
+
+def close_date(year: int, month: int) -> date:
+    """The 1st of the following month. Saturday and Sunday move to Monday.
+
+    This is a date. It does not create a calendar event.
+    """
+
+    next_year, next_month = _following_month(year, month)
+    return _monday_if_weekend(date(next_year, next_month, CLOSE_DAY))

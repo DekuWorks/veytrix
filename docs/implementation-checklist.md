@@ -6,7 +6,7 @@ Tags: **BUILT** means the behaviour is in the tree and, where it is an external 
 
 Codex was not run. The `codex` command is not on `PATH`. Do not treat this file as an independent security review. `docs/reviews/PENDING.md` still stands.
 
-Phase 01’s cloud items are still blocked. A local schema slice of that phase was applied on 8 November 2026 (migration `0009_agent_registry`). A later local slice of Phase 02 added a read-only registry route, a size-request audit row, event shapes with no publisher, and a read-only Agency page. A further local slice added `GET /api/v1/audit/log` and a desk page that cannot enable trading. A local slice of Phase 11 added a monthly projection. It cannot approve or send a payout. A later local slice added `GET /api/v1/market/health` and a System page. A down ticker has no substitute price, and the page has no control that enables trading. Settings reads the diagnostics and has no editor. A local slice of Phase 04 previews the `$100` AAPL rules and withholds release. A later local slice previews a `$100` book for one desk at a time and still withholds release. There is no lock and no broker read. A local slice of Phase 06 lists supervisor tools and checks a name without running it. The Supervisor page has no chat box. Phases that need keys, a paid account, or a transfer are still blocked.
+Phase 01’s cloud items are still blocked. A local schema slice of that phase was applied on 8 November 2026 (migration `0009_agent_registry`). A later local slice of Phase 02 added a read-only registry route, a size-request audit row, event shapes with no publisher, and a read-only Agency page. A further local slice added `GET /api/v1/audit/log` and a desk page that cannot enable trading. A local slice of Phase 11 added a monthly projection. It cannot approve or send a payout. A later local slice added `GET /api/v1/market/health` and a System page. A down ticker has no substitute price, and the page has no control that enables trading. Settings reads the diagnostics and has no editor. A local slice of Phase 04 previews the `$100` AAPL rules and withholds release. A later local slice previews a `$100` book for one desk at a time and still withholds release. There is no lock and no broker read. A local slice of Phase 06 lists supervisor tools and checks a name without running it. The Supervisor page has no chat box. A local slice of Phase 10 returns the accounting-close and payout-review dates and creates no DayPilot event. Phases that need keys, a paid account, or a transfer are still blocked.
 
 ## Owner decisions where the plan conflicts
 
@@ -162,7 +162,7 @@ Pros of doing this locally: the registry cannot grant an order, a signature, or 
 - [ ] Supervisor agendas, reconciled P&L, drawdown, violations, trades, lessons, assignments. — **NOT STARTED** — Depends on Phase 06 and a real paper record.
 - [ ] DayPilot calendar reminders; Veytrix stores minutes and action items. — **NOT STARTED**
 - [ ] Webhook verification, event ids, retries, DST, idempotency, sync recovery. — **NOT STARTED**
-- [ ] Reminders on the 1st (accounting close) and the 5th (payout review). — **NOT STARTED**
+- [ ] Reminders on the 1st (accounting close) and the 5th (payout review). — **PARTIAL** — `close_date` is the 1st of the next month and `review_date` is the 5th. Saturday and Sunday move to Monday. `GET /api/v1/treasury/reminders` returns both dates with `daypilot` `absent`, `event_created` false, and `meeting_time` `unconfirmed`. No event is created. The Wednesday time is still unconfirmed.
 
 **Gate:** not met. No DayPilot event was created.
 
@@ -225,8 +225,20 @@ Not a phase. None of these are a finished, authenticated route. Do not add the o
 | `POST /api/v1/supervisor/chat` | **BLOCKED** | Needs a model provider. The path is not registered. |
 | `GET /api/v1/treasury/monthly-summary` | **BUILT** as a local projection | Paper MAC-01 fills only, FIFO, before fees. Carryforward is not stored, so the route starts from zero. Live mode, a broken ledger, or a down database returns 503. POST is 405. The approve path is not registered. One restart, PID 85309, returned 200 with `transfer_submitted` false. |
 | `POST /api/v1/treasury/distributions/{id}/approve` | **BLOCKED** | Live transfer gate. Do not build it early. |
-| `GET /api/v1/meetings` | **BLOCKED** | DayPilot time and access. |
+| `GET /api/v1/treasury/reminders` | **BUILT** as local dates | The 1st and the 5th of the next month, moved to Monday when they fall on a weekend. `daypilot` stays `absent`. `event_created` stays false. POST is 405. `GET /api/v1/meetings` is not a route. The process on PID 20331 was not restarted for this path. |
+| `GET /api/v1/meetings` | **BLOCKED** | DayPilot time and access. The path is not registered. |
 | `GET /api/v1/market/health` | **BUILT** as a display | Three public tickers, each `up`, `stale` after 120 seconds, or `down`. A down feed has no price. SAMPLE is not included. POST is 405. `executable` stays false. The process on PID 85309 was not restarted again, so that process still 404s this path. |
+
+## Verification, local reminder dates (8 November 2026)
+
+- No new migration. Head stays `0009_agent_registry`. No `.env` was created. No Alpaca call. The route does not take a database session. `services/ai-research/veytrix_ai/**` was not edited. No order route was added. No DayPilot call was made. The Wednesday meeting time was not invented.
+- For November 2026 the close date is `2026-12-01` and the review date is `2026-12-07`, because the 5th is a Saturday. A second GET matches. A Saturday 1st moves to the following Monday, and a Sunday 1st moves to Monday. POST is 405. A missing query is 422. `POST /api/v1/meetings` is 404. The test client used a database URL on port 1, which is closed, and the GET still returned 200. `event_created` stays false.
+- The listener on PID 20331 was left in place, so it does not serve this path yet. Vite on 5173 was not restarted. `daypilot-db` on 5432 was not touched. Docker was not started.
+- `DATABASE_URL=...@127.0.0.1:5433/veytrix VEYTRIX_ENV=local VEYTRIX_ENABLE_LIVE_BROKER=0 bash scripts/check.sh` exited 0. Ruff passed. Pytest: 297 passed, no skips. Web typecheck passed. Vitest: 209 passed. Vite build passed. Secret scan: `secret scan: no findings`.
+- Named tests: `test_the_first_stays_on_a_weekday_and_moves_off_a_weekend`, `test_review_date_keeps_a_weekday_and_moves_a_weekend`, `test_reminder_dates_are_local_and_create_no_event`, `test_swap_ledger_respects_foreign_keys`, `test_swap_ledger_commits_on_local_postgres`.
+- Independent Codex review: not done. Item 22 in `docs/reviews/PENDING.md` is awaiting review.
+
+Pros: the dates cannot create a meeting or a payout. Cons: nothing is stored, so a restart does not remember that a reminder was shown, and DayPilot still has no event. Confidence: high for the date tests, the closed-port test client, and `scripts/check.sh`.
 
 ## Verification, supervisor tool catalogue (8 November 2026)
 

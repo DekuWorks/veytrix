@@ -2303,6 +2303,93 @@
         "title": "ReadyResponse",
         "type": "object"
       },
+      "ReminderDatesResponse": {
+        "additionalProperties": false,
+        "description": "Local dates only. There is no field that creates a meeting or a payout.",
+        "properties": {
+          "accounting_close_on": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Accounting Close On",
+            "type": "string"
+          },
+          "accounting_close_shifted_for_weekend": {
+            "title": "Accounting Close Shifted For Weekend",
+            "type": "boolean"
+          },
+          "daypilot": {
+            "const": "absent",
+            "title": "Daypilot",
+            "type": "string"
+          },
+          "event_created": {
+            "const": false,
+            "title": "Event Created",
+            "type": "boolean"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "meeting_time": {
+            "const": "unconfirmed",
+            "title": "Meeting Time",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "payout_review_on": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Payout Review On",
+            "type": "string"
+          },
+          "payout_review_shifted_for_weekend": {
+            "title": "Payout Review Shifted For Weekend",
+            "type": "boolean"
+          },
+          "period": {
+            "pattern": "^\\d{4}-\\d{2}$",
+            "title": "Period",
+            "type": "string"
+          },
+          "source": {
+            "const": "local_calendar",
+            "title": "Source",
+            "type": "string"
+          },
+          "transfer_submitted": {
+            "const": false,
+            "title": "Transfer Submitted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "period",
+          "accounting_close_on",
+          "accounting_close_shifted_for_weekend",
+          "payout_review_on",
+          "payout_review_shifted_for_weekend",
+          "meeting_time",
+          "daypilot",
+          "event_created",
+          "transfer_submitted",
+          "execution_permitted",
+          "order_submitted",
+          "source",
+          "note"
+        ],
+        "title": "ReminderDatesResponse",
+        "type": "object"
+      },
       "ResearchNoteCreate": {
         "additionalProperties": false,
         "description": "A private note. This body does not size a position or place an order.",
@@ -4716,6 +4803,62 @@
           }
         },
         "summary": "Monthly Summary",
+        "tags": [
+          "treasury"
+        ]
+      }
+    },
+    "/api/v1/treasury/reminders": {
+      "get": {
+        "description": "Return the next close and review dates. The route creates no event.",
+        "operationId": "reminder_dates_api_v1_treasury_reminders_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "maximum": 2100,
+              "minimum": 2000,
+              "title": "Year",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "month",
+            "required": true,
+            "schema": {
+              "maximum": 12,
+              "minimum": 1,
+              "title": "Month",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDatesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reminder Dates",
         "tags": [
           "treasury"
         ]
