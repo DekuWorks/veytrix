@@ -36,6 +36,12 @@ def test_metadata_matches_the_baseline_tables() -> None:
         "private.agents",
         "private.agent_permissions",
         "private.agent_runs",
+        "private.conversations",
+        "private.conversation_members",
+        "private.messages",
+        "private.message_events",
+        "private.agent_presence",
+        "private.conversation_summaries",
     }
     instruments = Base.metadata.tables["instruments"]
     assert {
@@ -543,8 +549,14 @@ def test_alembic_upgrade_on_postgres_16(monkeypatch: pytest.MonkeyPatch) -> None
     assert public_agents == 0
     assert {name: (row_security, force) for name, row_security, force in rls} == {
         "agent_permissions": (True, True),
+        "agent_presence": (True, True),
         "agent_runs": (True, True),
         "agents": (True, True),
+        "conversation_members": (True, True),
+        "conversation_summaries": (True, True),
+        "conversations": (True, True),
+        "message_events": (True, True),
+        "messages": (True, True),
     }
     assert view_options is not None
     assert "security_invoker=true" in (view_options[0] or [])

@@ -8,6 +8,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     CheckConstraint,
     Date,
@@ -669,6 +670,183 @@ class AgentRunRow(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     summary: Mapped[str] = mapped_column(String(500), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class ConversationRow(Base):
+    """A conversation between the user and desks, or between desks. Not an order path."""
+
+    __tablename__ = "conversations"
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('direct', 'group', 'discussion', 'boardroom')", name="ck_conversations_kind"
+        ),
+        CheckConstraint(
+            "status IN ('open', 'paused', 'closed', 'archived')", name="ck_conversations_status"
+        ),
+        CheckConstraint("created_by IN ('human', 'system')", name="ck_conversations_creator"),
+        CheckConstraint("max_rounds BETWEEN 0 AND 5", name="ck_conversations_rounds"),
+        CheckConstraint("max_messages BETWEEN 1 AND 500", name="ck_conversations_budget"),
+        CheckConstraint("char_length(title) BETWEEN 1 AND 120", name="ck_conversations_title"),
+        {"schema": "private"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    topic: Mapped[str] = mapped_column(String(300), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
+    pinned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_by: Mapped[str] = mapped_column(String(16), nullable=False)
+    max_rounds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_messages: Mapped[int] = mapped_column(Integer, nullable=False, default=200)
+    owner_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    agenda: Mapped[list | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ConversationMemberRow(Base):
+    __tablename__ = "conversation_members"
+    __table_args__ = (
+        CheckConstraint("member_kind IN ('human', 'agent')", name="ck_members_kind"),
+        CheckConstraint(
+            "role IN ('participant', 'moderator', 'owner', 'observer')", name="ck_members_role"
+        ),
+        {"schema": "private"},
+    )
+
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("private.conversations.id", name="fk_members_conversation"),
+        primary_key=True,
+    )
+    member_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    member_kind: Mapped[str] = mapped_column(String(8), nullable=False)
+    role: Mapped[str] = mapped_column(String(12), nullable=False)
+    last_read_seq: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class MessageRow(Base):
+    """One message. Append-only: a trigger in migration 0011 rejects update and delete."""
+
+    __tablename__ = "messages"
+    __table_args__ = (
+        UniqueConstraint("conversation_id", "seq", name="uq_messages_conversation_seq"),
+        CheckConstraint(
+            "sender_kind IN ('human', 'agent', 'system', 'tool')", name="ck_messages_sender_kind"
+        ),
+        CheckConstraint(
+            "origin IN ('human', 'scripted', 'model_generated', 'tool_verified', 'simulated')",
+            name="ck_messages_origin",
+        ),
+        CheckConstraint("char_length(content) BETWEEN 1 AND 4000", name="ck_messages_content"),
+        {"schema": "private"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("private.conversations.id", name="fk_messages_conversation"),
+        nullable=False,
+    )
+    seq: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    thread_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    sender_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    sender_kind: Mapped[str] = mapped_column(String(8), nullable=False)
+    recipient_ids: Mapped[list] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    origin: Mapped[str] = mapped_column(String(16), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    task_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    decision_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    tool_call_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    client_message_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="delivered")
+    visibility: Mapped[str] = mapped_column(String(16), nullable=False, default="conversation")
+    citations: Mapped[list] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=False
+    )
+    meta: Mapped[dict] = mapped_column(JSON().with_variant(JSONB, "postgresql"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class MessageEventRow(Base):
+    """Append-only lifecycle event for a conversation or message."""
+
+    __tablename__ = "message_events"
+    __table_args__ = {"schema": "private"}
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("private.conversations.id", name="fk_events_conversation"),
+        nullable=False,
+    )
+    message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    actor: Mapped[str] = mapped_column(String(32), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON().with_variant(JSONB, "postgresql"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class AgentPresenceRow(Base):
+    __tablename__ = "agent_presence"
+    __table_args__ = (
+        CheckConstraint(
+            "state IN ('idle', 'listening', 'composing', 'speaking', 'meeting')",
+            name="ck_presence_state",
+        ),
+        {"schema": "private"},
+    )
+
+    agent_code: Mapped[str] = mapped_column(String(32), primary_key=True)
+    state: Mapped[str] = mapped_column(String(24), nullable=False)
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class ConversationSummaryRow(Base):
+    __tablename__ = "conversation_summaries"
+    __table_args__ = (
+        CheckConstraint(
+            "origin IN ('scripted', 'model_generated', 'tool_verified', 'simulated')",
+            name="ck_summaries_origin",
+        ),
+        {"schema": "private"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("private.conversations.id", name="fk_summaries_conversation"),
+        nullable=False,
+    )
+    upto_seq: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    origin: Mapped[str] = mapped_column(String(16), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

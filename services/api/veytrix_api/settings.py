@@ -6,7 +6,7 @@ from decimal import Decimal
 from functools import lru_cache
 from urllib.parse import urlparse
 
-from pydantic import AliasChoices, Field, ValidationError
+from pydantic import AliasChoices, Field, SecretStr, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from veytrix_api.ratelimit import LOOPBACK_SUSTAINED_PER_MINUTE
@@ -65,6 +65,42 @@ class Settings(BaseSettings):
     ollama_url: str = Field(
         default="",
         validation_alias=AliasChoices("VEYTRIX_OLLAMA_URL", "ollama_url"),
+    )
+    # Agent communication feature flags. `live_execution` is deliberately not a setting.
+    flag_agent_chat: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("VEYTRIX_FLAG_AGENT_CHAT", "flag_agent_chat"),
+    )
+    flag_group_chat: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("VEYTRIX_FLAG_GROUP_CHAT", "flag_group_chat"),
+    )
+    flag_autonomous_discussions: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "VEYTRIX_FLAG_AUTONOMOUS_DISCUSSIONS", "flag_autonomous_discussions"
+        ),
+    )
+    flag_voice_chat: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("VEYTRIX_FLAG_VOICE_CHAT", "flag_voice_chat"),
+    )
+    comms_messages_per_minute: int = Field(
+        default=30,
+        ge=1,
+        le=600,
+        validation_alias=AliasChoices(
+            "VEYTRIX_COMMS_MESSAGES_PER_MINUTE", "comms_messages_per_minute"
+        ),
+    )
+    # Server-side Realtime doorbell. Both unset means Realtime is not configured.
+    realtime_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("VEYTRIX_REALTIME_URL", "realtime_url"),
+    )
+    realtime_server_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("VEYTRIX_REALTIME_SERVER_KEY", "realtime_server_key"),
     )
 
 
