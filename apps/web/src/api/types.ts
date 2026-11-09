@@ -402,6 +402,47 @@ export type AuditLogListResponse = {
   order_submitted: false;
 };
 
+export type SystemStatusResponse = {
+  status: "ok";
+  service: "veytrix-api";
+  env: "local";
+  trading_mode: "paper";
+  live_broker: "disabled";
+  auth: "not_configured";
+  database: "up";
+  execution_permitted: false;
+  order_submitted: false;
+  order_route: "absent";
+  agents_registered: number;
+  agents_can_trade: false;
+  sample_data: true;
+};
+
+export type MarketFeedHealth = {
+  symbol: CoinbaseProduct;
+  status: "up" | "stale" | "down";
+  source_id: "coinbase-exchange";
+  synthetic: false;
+  retrieved_at: string | null;
+  trade_time: string | null;
+  age_seconds: number | null;
+  price: string | null;
+  note: string;
+};
+
+export type MarketHealthResponse = {
+  status: "ok" | "degraded" | "unavailable";
+  source: "coinbase-exchange";
+  stale_after_seconds: 120;
+  feeds: [MarketFeedHealth, MarketFeedHealth, MarketFeedHealth];
+  sample_included: false;
+  executable: false;
+  execution_permitted: false;
+  order_submitted: false;
+  order_route: "absent";
+  note: string;
+};
+
 export type TreasuryMonthlySummary = {
   period: string;
   period_closed: false;

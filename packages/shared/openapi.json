@@ -1535,6 +1535,183 @@
         "title": "Mac01StatusResponse",
         "type": "object"
       },
+      "MarketFeedHealth": {
+        "additionalProperties": false,
+        "description": "One public ticker. A down feed has no price.",
+        "properties": {
+          "age_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Seconds"
+          },
+          "note": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "retrieved_at": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retrieved At"
+          },
+          "source_id": {
+            "const": "coinbase-exchange",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "up",
+              "stale",
+              "down"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "symbol": {
+            "enum": [
+              "BTC-USD",
+              "ETH-USD",
+              "SOL-USD"
+            ],
+            "title": "Symbol",
+            "type": "string"
+          },
+          "synthetic": {
+            "const": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          },
+          "trade_time": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trade Time"
+          }
+        },
+        "required": [
+          "symbol",
+          "status",
+          "source_id",
+          "synthetic",
+          "note"
+        ],
+        "title": "MarketFeedHealth",
+        "type": "object"
+      },
+      "MarketHealthResponse": {
+        "additionalProperties": false,
+        "description": "Display health for the three Coinbase products. Not an order path.",
+        "properties": {
+          "executable": {
+            "const": false,
+            "title": "Executable",
+            "type": "boolean"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "feeds": {
+            "items": {
+              "$ref": "#/components/schemas/MarketFeedHealth"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Feeds",
+            "type": "array"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_route": {
+            "const": "absent",
+            "title": "Order Route",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "sample_included": {
+            "const": false,
+            "title": "Sample Included",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "coinbase-exchange",
+            "title": "Source",
+            "type": "string"
+          },
+          "stale_after_seconds": {
+            "const": 120,
+            "title": "Stale After Seconds",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "source",
+          "stale_after_seconds",
+          "feeds",
+          "sample_included",
+          "executable",
+          "execution_permitted",
+          "order_submitted",
+          "order_route",
+          "note"
+        ],
+        "title": "MarketHealthResponse",
+        "type": "object"
+      },
       "PaperPositionCreate": {
         "additionalProperties": false,
         "description": "A size the caller already calculated. This body does not place an order.",
@@ -3060,6 +3237,28 @@
         "summary": "Health",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/market/health": {
+      "get": {
+        "description": "Report the three public tickers. A failed product does not invent a price.",
+        "operationId": "market_health_api_v1_market_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketHealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Market Health",
+        "tags": [
+          "market"
         ]
       }
     },

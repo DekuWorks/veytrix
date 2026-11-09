@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Literal
 
@@ -13,6 +13,8 @@ from veytrix_api.schemas import (
     BarsResponse,
     InstrumentListResponse,
     InstrumentResponse,
+    MarketFeedHealth,
+    MarketHealthResponse,
     TickerResponse,
 )
 from veytrix_market.coinbase import (
@@ -20,6 +22,7 @@ from veytrix_market.coinbase import (
     MINUTE_CALENDAR_NOTE,
     PRODUCTS,
     SOURCE_ID,
+    ProductId,
     QuoteSeries,
     QuoteUnavailable,
     candles_url,
@@ -33,6 +36,12 @@ from veytrix_market.coinbase import (
     signed_percent,
     ticker_disclaimer,
     volume_text,
+)
+from veytrix_market.health import (
+    STALE_AFTER_SECONDS,
+    age_seconds,
+    classify_feed,
+    overall_status,
 )
 from veytrix_market.sample import SAMPLE_DISCLAIMER, SEED, generate_sample_bars, sample_instrument
 
@@ -265,4 +274,62 @@ def instrument_bars(
     raise HTTPException(
         status_code=404,
         detail="Unknown instrument. Available symbols are BTC-USD, ETH-USD, SOL-USD, and SAMPLE.",
+    )
+
+
+HEALTH_NOTE = (
+    "Public Coinbase tickers for display on this machine. "
+    "A down feed has no substitute price. SAMPLE is not included. No order is sent."
+)
+_DOWN_NOTE = "Coinbase ticker is unavailable. No substitute price was generated."
+_FRESH_NOTE = "Last Coinbase print is within 120 seconds."
+_STALE_NOTE = "Last Coinbase print is older than 120 seconds. No newer price was invented."
+
+
+def utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def _feed(symbol: ProductId, now: datetime) -> MarketFeedHealth:
+    try:
+        ticker = get_ticker(symbol)
+    except QuoteUnavailable:
+        return MarketFeedHealth(
+            symbol=symbol,
+            status="down",
+            source_id=SOURCE_ID,
+            synthetic=False,
+            note=_DOWN_NOTE,
+        )
+    status = classify_feed(ticker.retrieved_at, now)
+    return MarketFeedHealth(
+        symbol=symbol,
+        status=status,
+        source_id=SOURCE_ID,
+        synthetic=False,
+        retrieved_at=_stamp(ticker.retrieved_at),
+        trade_time=ticker.trade_time,
+        age_seconds=age_seconds(ticker.retrieved_at, now),
+        price=money(ticker.price),
+        note=_FRESH_NOTE if status == "up" else _STALE_NOTE,
+    )
+
+
+@router.get("/health", response_model=MarketHealthResponse)
+def market_health() -> MarketHealthResponse:
+    """Report the three public tickers. A failed product does not invent a price."""
+
+    now = utc_now()
+    feeds = [_feed(symbol, now) for symbol in PRODUCTS]
+    return MarketHealthResponse(
+        status=overall_status([feed.status for feed in feeds]),
+        source=SOURCE_ID,
+        stale_after_seconds=STALE_AFTER_SECONDS,
+        feeds=feeds,
+        sample_included=False,
+        executable=False,
+        execution_permitted=False,
+        order_submitted=False,
+        order_route="absent",
+        note=HEALTH_NOTE,
     )

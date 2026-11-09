@@ -121,6 +121,72 @@ class TickerResponse(BaseModel):
     disclaimer: str
 
 
+class MarketFeedHealth(BaseModel):
+    """One public ticker. A down feed has no price."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    symbol: ProductId
+    status: Literal["up", "stale", "down"]
+    source_id: Literal["coinbase-exchange"]
+    synthetic: Literal[False]
+    retrieved_at: str | None = Field(
+        default=None, pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"
+    )
+    trade_time: str | None = Field(default=None, min_length=1, max_length=64)
+    age_seconds: int | None = Field(default=None, ge=0)
+    price: str | None = Field(default=None, pattern=r"^(?:0|[1-9]\d*)(?:\.\d+)?$")
+    note: str = Field(min_length=1, max_length=240)
+
+    @model_validator(mode="after")
+    def price_matches_status(self) -> MarketFeedHealth:
+        if self.status == "down":
+            leaked = (
+                self.price is not None
+                or self.retrieved_at is not None
+                or self.age_seconds is not None
+            )
+            if leaked:
+                raise ValueError("A down feed has no price and no timestamp.")
+            return self
+        if self.price is None or self.retrieved_at is None or self.age_seconds is None:
+            raise ValueError("An up or stale feed includes its last print.")
+        return self
+
+
+class MarketHealthResponse(BaseModel):
+    """Display health for the three Coinbase products. Not an order path."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["ok", "degraded", "unavailable"]
+    source: Literal["coinbase-exchange"]
+    stale_after_seconds: Literal[120]
+    feeds: list[MarketFeedHealth] = Field(min_length=3, max_length=3)
+    sample_included: Literal[False]
+    executable: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    order_route: Literal["absent"]
+    note: str = Field(min_length=1, max_length=400)
+
+    @model_validator(mode="after")
+    def status_matches_feeds(self) -> MarketHealthResponse:
+        symbols = [feed.symbol for feed in self.feeds]
+        if symbols != ["BTC-USD", "ETH-USD", "SOL-USD"]:
+            raise ValueError("Feeds stay in the display order.")
+        statuses = [feed.status for feed in self.feeds]
+        if all(status == "up" for status in statuses):
+            expected = "ok"
+        elif all(status == "down" for status in statuses):
+            expected = "unavailable"
+        else:
+            expected = "degraded"
+        if self.status != expected:
+            raise ValueError("Overall status does not match the feeds.")
+        return self
+
+
 class SizeRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

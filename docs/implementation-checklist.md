@@ -6,7 +6,7 @@ Tags: **BUILT** means the behaviour is in the tree and, where it is an external 
 
 Codex was not run. The `codex` command is not on `PATH`. Do not treat this file as an independent security review. `docs/reviews/PENDING.md` still stands.
 
-Phase 01’s cloud items are still blocked. A local schema slice of that phase was applied on 8 November 2026 (migration `0009_agent_registry`). A later local slice of Phase 02 added a read-only registry route, a size-request audit row, event shapes with no publisher, and a read-only Agency page. A further local slice added `GET /api/v1/audit/log` and a desk page that cannot enable trading. A local slice of Phase 11 added a monthly projection. It cannot approve or send a payout. Phases that need keys, a paid account, or a transfer are still blocked.
+Phase 01’s cloud items are still blocked. A local schema slice of that phase was applied on 8 November 2026 (migration `0009_agent_registry`). A later local slice of Phase 02 added a read-only registry route, a size-request audit row, event shapes with no publisher, and a read-only Agency page. A further local slice added `GET /api/v1/audit/log` and a desk page that cannot enable trading. A local slice of Phase 11 added a monthly projection. It cannot approve or send a payout. A later local slice added `GET /api/v1/market/health` and a System page. A down ticker has no substitute price, and the page has no control that enables trading. Phases that need keys, a paid account, or a transfer are still blocked.
 
 ## Owner decisions where the plan conflicts
 
@@ -139,7 +139,7 @@ Pros of doing this locally: the registry cannot grant an order, a signature, or 
 ## Phase 08 — Mission Control web
 
 - [ ] Keep the dark obsidian and jade system. Improve with 21st.dev components where the licence allows. — **PARTIAL** — Theme is in place and was left alone. The 21st.dev shell stays rejected.
-- [ ] Views listed in the plan (Overview through Settings). — **PARTIAL** — Overview, Agency, Market, Quant, Strategy, Events, Risk, Portfolio, Research, Audit, Treasury, and Paper swaps exist. Agency lists disabled desks and opens one desk. That page cannot enable a desk or send an order. The Audit page reads the size journal and the size-audit log. The Treasury page reads the monthly projection and has no approve or payout control. Supervisor Chat, Paper Broker, Orders and Fills as broker views, Signals as their own page, Crypto, DeFi as labelled simulation beyond Paper swaps, DayPilot, System Health, and Settings do not.
+- [ ] Views listed in the plan (Overview through Settings). — **PARTIAL** — Overview, Agency, Market, Quant, Strategy, Events, Risk, Portfolio, Research, Audit, Treasury, System, and Paper swaps exist. Agency lists disabled desks and opens one desk. That page cannot enable a desk or send an order. The Audit page reads the size journal and the size-audit log. The Treasury page reads the monthly projection and has no approve or payout control. The System page reads local posture and the Coinbase feed health. It has no enable, save, or order control. Supervisor Chat, Paper Broker, Orders and Fills as broker views, Signals as their own page, Crypto, DeFi as labelled simulation beyond Paper swaps, DayPilot, and Settings do not.
 - [ ] TradingView Lightweight Charts, with the licence checked. — **BUILT** — `lightweight-charts` 5.2.1, Apache-2.0, attributed in the shell. Not the proprietary Charting Library.
 - [ ] Separate broker balances, simulated portfolios, and demo figures. Show source, time, and stale-feed warnings. — **PARTIAL** — Labels exist on Coinbase, SAMPLE, paper positions, and simulated swaps. There is no broker-balance card.
 - [ ] Emergency pause, per-agent enable, policy approval, and an explicit paper-order confirmation. — **PARTIAL** — Strategy page can pause, resume, and engage the MAC-01 kill switch. It cannot submit an order. No global pause and no policy-approval UI.
@@ -219,10 +219,22 @@ Not a phase. None of these are a finished, authenticated route. Do not add the o
 | `GET /api/v1/audit/log` | **BUILT** as a read | Size-audit rows only. GET only. An unsafe payload returns 503. PID 11188 returned 404. It was not restarted. |
 | `GET /api/v1/agency/desks/{code}` | **BUILT** as a read | One desk and seven denies. No enable method. Same process gap: 404 on PID 11188. |
 | `POST /api/v1/supervisor/chat` | **BLOCKED** | Needs a model provider. |
-| `GET /api/v1/treasury/monthly-summary` | **BUILT** as a local projection | Paper MAC-01 fills only, FIFO, before fees. Carryforward is not stored, so the route starts from zero. Live mode, a broken ledger, or a down database returns 503. POST is 405. The approve path is not registered. The process on port 8000 was not restarted. |
+| `GET /api/v1/treasury/monthly-summary` | **BUILT** as a local projection | Paper MAC-01 fills only, FIFO, before fees. Carryforward is not stored, so the route starts from zero. Live mode, a broken ledger, or a down database returns 503. POST is 405. The approve path is not registered. One restart, PID 85309, returned 200 with `transfer_submitted` false. |
 | `POST /api/v1/treasury/distributions/{id}/approve` | **BLOCKED** | Live transfer gate. Do not build it early. |
 | `GET /api/v1/meetings` | **BLOCKED** | DayPilot time and access. |
-| `GET /api/v1/market/health` | **PARTIAL** | Coinbase failures are surfaced per request. There is no market-health aggregate. |
+| `GET /api/v1/market/health` | **BUILT** as a display | Three public tickers, each `up`, `stale` after 120 seconds, or `down`. A down feed has no price. SAMPLE is not included. POST is 405. `executable` stays false. The process on PID 85309 was not restarted again, so that process still 404s this path. |
+
+## Verification, market health and System page (8 November 2026)
+
+- No new migration. Head stays `0009_agent_registry`. No `.env` was created. No Alpaca call. `services/ai-research/veytrix_ai/**` was not edited. No order route was added.
+- `GET /api/v1/market/health` was read through the test client with stand-in tickers. A fresh BTC print, a down ETH feed, and a stale SOL print returned `degraded`. The ETH price was absent from the body. Every feed down returned `unavailable` and no prices. POST returned 405. A print aged 120 seconds stays `up`; 121 seconds is `stale`.
+- The listener on `127.0.0.1:8000` was restarted once before this slice, as PID 85309, so the treasury path could load. It was not restarted again. `GET /api/v1/treasury/monthly-summary` on that process returned 200 for November 2026, proposed `0.00`, `transfer_submitted` false. `GET /api/v1/agents` returned 200. `GET /api/v1/market/health` on that process returned 404, which is the code from before this slice.
+- Vite on 5173 was not restarted. In the browser, `http://127.0.0.1:5173/system` showed environment `local`, database `up`, live broker `disabled`, order route `absent`, 9 desks, and desks can trade `false`. The market section showed the unavailable alert and no substitute price. Treasury showed the November projection, review date `2026-12-07`, transfer submitted `false`, and no payout control. Market still showed a live Coinbase BTC-USD print. Docker was not started. `daypilot-db` on 5432 was not touched.
+- `DATABASE_URL=...@127.0.0.1:5433/veytrix VEYTRIX_ENV=local VEYTRIX_ENABLE_LIVE_BROKER=0 bash scripts/check.sh` exited 0. Ruff passed. Pytest: 269 passed, no skips. Web typecheck passed. Vitest: 203 passed. Vite build passed. Secret scan: `secret scan: no findings`.
+- Named tests: `test_market_health_reports_each_feed_and_omits_a_down_price`, `test_market_health_is_unavailable_when_every_feed_is_down`, `test_a_print_at_the_stale_boundary_stays_up_and_one_second_later_is_stale`, `test_swap_ledger_respects_foreign_keys`, `test_swap_ledger_commits_on_local_postgres`.
+- Independent Codex review: not done. Item 17 in `docs/reviews/PENDING.md` is awaiting review.
+
+Pros: a down feed cannot show a made-up price, and the page has no control. Cons: the process already on port 8000 does not serve `/api/v1/market/health`, and a stale print still shows its last real price with a stale mark. Confidence: high for the formula tests, the test client, `scripts/check.sh`, and the browser posture. Medium for the market section in the browser until that process is replaced, because it still 404s.
 
 ## Verification, monthly projection (8 November 2026)
 

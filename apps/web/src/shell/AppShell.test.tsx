@@ -27,6 +27,7 @@ describe("dashboard shell", () => {
     expect(screen.getByRole("link", { name: "Research" })).toHaveAttribute("href", "/research");
     expect(screen.getByRole("link", { name: "Audit" })).toHaveAttribute("href", "/audit");
     expect(screen.getByRole("link", { name: "Treasury" })).toHaveAttribute("href", "/treasury");
+    expect(screen.getByRole("link", { name: "System" })).toHaveAttribute("href", "/system");
     expect(screen.queryByRole("button", { name: /not built/i })).not.toBeInTheDocument();
   });
 
