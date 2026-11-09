@@ -238,6 +238,64 @@ class ShieldPreviewRequest(BaseModel):
     leverage: DecimalText
 
 
+class OutstandingReservation(BaseModel):
+    """One caller-supplied row. This model does not write it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    agent: str = Field(min_length=1, max_length=32)
+    notional: DecimalText
+    idempotency_key: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+
+
+class ReservationPreviewRequest(BaseModel):
+    """A hypothetical reservation. This body cannot submit an order."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    agent: str = Field(min_length=1, max_length=32)
+    notional: DecimalText
+    idempotency_key: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+    outstanding: list[OutstandingReservation] = Field(default_factory=list, max_length=9)
+
+
+class ReservationPreviewResponse(BaseModel):
+    """The local book check. Nothing is reserved and release stays withheld."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    policy_version: Literal["local-2026-11-08"]
+    rule_result: Literal["pass", "fail"]
+    reasons: list[str] = Field(max_length=3)
+    requested: str = Field(pattern=r"^(?:0|[1-9]\d*)(?:\.\d+)?$")
+    reserved_before: str = Field(pattern=r"^(?:0|[1-9]\d*)(?:\.\d+)?$")
+    reserved_after: str = Field(pattern=r"^(?:0|[1-9]\d*)(?:\.\d+)?$")
+    book_cap: Literal["100.00"]
+    release: Literal["withheld"]
+    persisted: Literal[False]
+    lock: Literal["absent"]
+    buying_power_checked: Literal[False]
+    broker_reconciled: Literal[False]
+    owner_approved: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    note: str = Field(min_length=1, max_length=400)
+
+    @model_validator(mode="after")
+    def reasons_match_result(self) -> ReservationPreviewResponse:
+        known = ("agent", "idempotency", "book")
+        if any(reason not in known for reason in self.reasons):
+            raise ValueError("Unknown reservation reason.")
+        ordered = [reason for reason in known if reason in self.reasons]
+        if self.reasons != ordered:
+            raise ValueError("Reservation reasons are out of order.")
+        if self.rule_result == "pass" and self.reasons:
+            raise ValueError("A passing preview has no reasons.")
+        if self.rule_result == "fail" and not self.reasons:
+            raise ValueError("A failing preview names a reason.")
+        return self
+
+
 class ShieldPreviewResponse(BaseModel):
     """The local rule result. Release stays withheld."""
 

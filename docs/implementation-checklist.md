@@ -6,7 +6,7 @@ Tags: **BUILT** means the behaviour is in the tree and, where it is an external 
 
 Codex was not run. The `codex` command is not on `PATH`. Do not treat this file as an independent security review. `docs/reviews/PENDING.md` still stands.
 
-Phase 01’s cloud items are still blocked. A local schema slice of that phase was applied on 8 November 2026 (migration `0009_agent_registry`). A later local slice of Phase 02 added a read-only registry route, a size-request audit row, event shapes with no publisher, and a read-only Agency page. A further local slice added `GET /api/v1/audit/log` and a desk page that cannot enable trading. A local slice of Phase 11 added a monthly projection. It cannot approve or send a payout. A later local slice added `GET /api/v1/market/health` and a System page. A down ticker has no substitute price, and the page has no control that enables trading. Settings reads the diagnostics and has no editor. A local slice of Phase 04 previews the `$100` AAPL rules and withholds release. Phases that need keys, a paid account, or a transfer are still blocked.
+Phase 01’s cloud items are still blocked. A local schema slice of that phase was applied on 8 November 2026 (migration `0009_agent_registry`). A later local slice of Phase 02 added a read-only registry route, a size-request audit row, event shapes with no publisher, and a read-only Agency page. A further local slice added `GET /api/v1/audit/log` and a desk page that cannot enable trading. A local slice of Phase 11 added a monthly projection. It cannot approve or send a payout. A later local slice added `GET /api/v1/market/health` and a System page. A down ticker has no substitute price, and the page has no control that enables trading. Settings reads the diagnostics and has no editor. A local slice of Phase 04 previews the `$100` AAPL rules and withholds release. A later local slice previews a `$100` book for one desk at a time and still withholds release. There is no lock and no broker read. Phases that need keys, a paid account, or a transfer are still blocked.
 
 ## Owner decisions where the plan conflicts
 
@@ -93,12 +93,12 @@ Pros of doing this locally: the registry cannot grant an order, a signature, or 
 ## Phase 04 — Independent Veytrix Shield
 
 - [ ] Versioned policies: allowlists, budgets, buying power, sizing, daily order cap, concentration, stale data, spread, loss limits, no leverage or shorts. — **PARTIAL** — MAC-01 has $100 caps, 2 orders a day, long only, and a daily loss cutoff in config. The sizing route caps risk fraction at 0.02. `preview_order` checks AAPL, long only, no leverage, a quote age of 120 seconds, a `$100` notional, a `$100` position, and 2 orders a day. It does not read buying power. There is no versioned Shield service beyond that one local policy. Sizing stops are stored and not enforced.
-- [ ] Capital reservation and cross-agent locking, reconciled to broker buying power. — **NOT STARTED**
+- [ ] Capital reservation and cross-agent locking, reconciled to broker buying power. — **PARTIAL** — `preview_reservation` rounds a caller-supplied book to cents and stops at `$100`. The same idempotency key is not added twice. A second key for the same desk fails. Two callers who each omit the other's row can both pass, because `lock` stays `absent`. Buying power is not read and nothing is written. `POST /api/v1/risk/reservations/preview` keeps `release` `withheld`. This is not a broker reconciliation.
 - [ ] Global pause and per-agent pause. Risk failure blocks new orders. Cancellation and liquidation policy defined without assuming stop-order prices. — **PARTIAL** — MAC-01 pause and kill switch, and the swap kill file, exist. They are not a global Shield.
 - [ ] Owner approval for material policy or strategy-version changes, enforced on the server. — **NOT STARTED** — YAML edits are not an approval workflow. The preview sets `owner_approved` false and has no approve route.
 - [ ] Tests for gaps, holidays, rejects, partial fills, outages, stale feeds, races, replays, and conflicting strategies. — **PARTIAL** — The preview tests cover a repeated call, a short, leverage, the wrong symbol, a stale quote, the `$100` caps, a third order, and a withheld pass. They are not the broker red-team set. MAC-01 unit tests exist separately.
 
-**Gate:** not met. The preview cannot read buying power and cannot release an order.
+**Gate:** not met. Neither preview reads buying power, and neither can release an order. The reservation preview does not lock a desk.
 
 ## Phase 05 — MAC-01
 
@@ -215,7 +215,8 @@ Not a phase. None of these are a finished, authenticated route. Do not add the o
 | `POST /api/v1/strategies/{id}/activate-paper` | **BLOCKED** | Same authorisation. CLI `submit_orders` is the only switch today, and it is false. |
 | `POST /api/v1/strategies/{id}/pause` | **PARTIAL** | `POST /api/v1/strategies/mac-01/pause` exists. It is not generic and it is not authenticated. |
 | `POST /api/v1/risk/emergency-stop` | **PARTIAL** | MAC-01 kill-switch engage exists. It does not cancel a resting Alpaca order. |
-| `POST /api/v1/risk/shield/preview` | **BUILT** as a local check | AAPL, long only, no leverage, 120-second quote, `$100` notional, `$100` position, 2 orders a day. A pass still has `release` `withheld` and `execution_permitted` false. It does not read the database or a broker. GET is 405. The process on PID 85309 was not restarted again, so that process 404s this path. |
+| `POST /api/v1/risk/shield/preview` | **BUILT** as a local check | AAPL, long only, no leverage, 120-second quote, `$100` notional, `$100` position, 2 orders a day. A pass still has `release` `withheld` and `execution_permitted` false. It does not read the database or a broker. GET is 405. PID 85309 is gone. The listener on PID 20331 returned 422 for an empty body, which means the path is registered. A valid body was not sent in that probe. |
+| `POST /api/v1/risk/reservations/preview` | **BUILT** as a local check | Caller-supplied outstanding rows, `$100` book, one key per desk. A pass still has `release` `withheld`, `persisted` false, and `lock` `absent`. GET is 405. It does not read the database or a broker. The process on PID 20331 was not restarted for this path. |
 | `GET /api/v1/agents` | **BUILT** as a read | Nine disabled desks, trading rights denied, GET only. A row that could trade returns 503. No auth. Awaiting Codex. A live GET on PID 11188 returned 200 this pass. |
 | `GET /api/v1/audit/log` | **BUILT** as a read | Size-audit rows only. GET only. An unsafe payload returns 503. PID 11188 returned 404. It was not restarted. |
 | `GET /api/v1/agency/desks/{code}` | **BUILT** as a read | One desk and seven denies. No enable method. Same process gap: 404 on PID 11188. |
@@ -224,6 +225,17 @@ Not a phase. None of these are a finished, authenticated route. Do not add the o
 | `POST /api/v1/treasury/distributions/{id}/approve` | **BLOCKED** | Live transfer gate. Do not build it early. |
 | `GET /api/v1/meetings` | **BLOCKED** | DayPilot time and access. |
 | `GET /api/v1/market/health` | **BUILT** as a display | Three public tickers, each `up`, `stale` after 120 seconds, or `down`. A down feed has no price. SAMPLE is not included. POST is 405. `executable` stays false. The process on PID 85309 was not restarted again, so that process still 404s this path. |
+
+## Verification, local reservation preview (8 November 2026)
+
+- No new migration. Head stays `0009_agent_registry`. No `.env` was created. No Alpaca call. The route does not take a database session. `services/ai-research/veytrix_ai/**` was not edited. No order route was added, and no page posts the preview.
+- A `$40.00` request for STOCK-01 against a `$60.00` DAY-01 row passes and returns `release` `withheld`, `persisted` false, and `lock` `absent`. The same body a second time matches. Repeating the DAY-01 key does not raise the book from `$60.00`. `$40.01` on top of `$60.00` fails `book` and leaves the book at `$60.00`. An unknown desk, a reused key, and an over-book request fail together. Two previews that do not list each other both pass. A JSON number is 422. An extra `buying_power` field is 422. GET is 405. The test client used a database URL on port 1, which is closed, and the preview still returned 200. The route does not call `size_position`.
+- The listener on PID 20331 was left in place. `GET /api/v1/market/health`, `GET /api/v1/treasury/monthly-summary`, and `GET /api/v1/agents` returned 200 on that process. `POST /api/v1/risk/shield/preview` with an empty body returned 422. PID 85309 was not listening. Vite on 5173 was not restarted. `daypilot-db` on 5432 was not touched. Docker was not started.
+- `DATABASE_URL=...@127.0.0.1:5433/veytrix VEYTRIX_ENV=local VEYTRIX_ENABLE_LIVE_BROKER=0 bash scripts/check.sh` exited 0. Ruff passed. Pytest: 286 passed, no skips. Web typecheck passed. Vitest: 206 passed. Vite build passed. Secret scan: `secret scan: no findings`.
+- Named tests: `test_forty_dollars_passes_and_still_reserves_nothing`, `test_the_same_key_is_not_added_twice`, `test_a_second_desk_stops_at_one_hundred`, `test_two_unseen_previews_both_pass_because_there_is_no_lock`, `test_unknown_desk_reused_key_and_over_book_fail_together`, `test_reservation_preview_passes_and_withholds_release`, `test_reservation_preview_rejects_a_number_and_an_over_book`, `test_swap_ledger_respects_foreign_keys`, `test_swap_ledger_commits_on_local_postgres`.
+- Independent Codex review: not done. Item 20 in `docs/reviews/PENDING.md` is awaiting review.
+
+Pros: a passing preview still cannot submit, and the route does not need the database. Cons: there is no lock, so two callers who do not see each other can both pass, and the book is not broker buying power. Confidence: high for the arithmetic tests, the closed-port test client, and `scripts/check.sh`.
 
 ## Verification, local shield preview (8 November 2026)
 

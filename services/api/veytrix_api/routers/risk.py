@@ -14,11 +14,14 @@ from veytrix_api.db import get_db
 from veytrix_api.deps import get_policy
 from veytrix_api.models import PaperSizeJournalRow
 from veytrix_api.schemas import (
+    ReservationPreviewRequest,
+    ReservationPreviewResponse,
     ShieldPreviewRequest,
     ShieldPreviewResponse,
     SizeRequest,
     SizeResponse,
 )
+from veytrix_risk.reservation import ReservationInputError, preview_reservation
 from veytrix_risk.shield import ShieldInputError, preview_order
 from veytrix_risk.sizing import RiskPolicy, SizingError, size_position
 
@@ -139,4 +142,50 @@ def shield_preview(body: ShieldPreviewRequest) -> ShieldPreviewResponse:
         execution_permitted=False,
         order_submitted=False,
         note=SHIELD_NOTE,
+    )
+
+
+RESERVATION_NOTE = (
+    "Local preview of a $100 book. Buying power was not read, nothing was reserved, "
+    "there is no lock, and this response cannot submit an order. Release stays withheld."
+)
+
+
+@router.post("/reservations/preview", response_model=ReservationPreviewResponse)
+def reservation_preview(body: ReservationPreviewRequest) -> ReservationPreviewResponse:
+    """Check a hypothetical reservation. The route does not read a broker or write a row."""
+
+    try:
+        decision = preview_reservation(
+            agent=body.agent,
+            notional=body.notional,
+            idempotency_key=body.idempotency_key,
+            outstanding=[
+                {
+                    "agent": row.agent,
+                    "notional": row.notional,
+                    "idempotency_key": row.idempotency_key,
+                }
+                for row in body.outstanding
+            ],
+        )
+    except ReservationInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return ReservationPreviewResponse(
+        policy_version="local-2026-11-08",
+        rule_result=decision.rule_result,
+        reasons=list(decision.reasons),
+        requested=format(decision.requested, "f"),
+        reserved_before=format(decision.reserved_before, "f"),
+        reserved_after=format(decision.reserved_after, "f"),
+        book_cap="100.00",
+        release=decision.release,
+        persisted=False,
+        lock="absent",
+        buying_power_checked=False,
+        broker_reconciled=False,
+        owner_approved=False,
+        execution_permitted=False,
+        order_submitted=False,
+        note=RESERVATION_NOTE,
     )

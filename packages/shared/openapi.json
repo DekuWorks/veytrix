@@ -1712,6 +1712,34 @@
         "title": "MarketHealthResponse",
         "type": "object"
       },
+      "OutstandingReservation": {
+        "additionalProperties": false,
+        "description": "One caller-supplied row. This model does not write it.",
+        "properties": {
+          "agent": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Agent",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "notional": {
+            "title": "Notional",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent",
+          "notional",
+          "idempotency_key"
+        ],
+        "title": "OutstandingReservation",
+        "type": "object"
+      },
       "PaperPositionCreate": {
         "additionalProperties": false,
         "description": "A size the caller already calculated. This body does not place an order.",
@@ -2342,6 +2370,155 @@
           "created_at"
         ],
         "title": "ResearchNoteResponse",
+        "type": "object"
+      },
+      "ReservationPreviewRequest": {
+        "additionalProperties": false,
+        "description": "A hypothetical reservation. This body cannot submit an order.",
+        "properties": {
+          "agent": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Agent",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "notional": {
+            "title": "Notional",
+            "type": "string"
+          },
+          "outstanding": {
+            "items": {
+              "$ref": "#/components/schemas/OutstandingReservation"
+            },
+            "maxItems": 9,
+            "title": "Outstanding",
+            "type": "array"
+          }
+        },
+        "required": [
+          "agent",
+          "notional",
+          "idempotency_key"
+        ],
+        "title": "ReservationPreviewRequest",
+        "type": "object"
+      },
+      "ReservationPreviewResponse": {
+        "additionalProperties": false,
+        "description": "The local book check. Nothing is reserved and release stays withheld.",
+        "properties": {
+          "book_cap": {
+            "const": "100.00",
+            "title": "Book Cap",
+            "type": "string"
+          },
+          "broker_reconciled": {
+            "const": false,
+            "title": "Broker Reconciled",
+            "type": "boolean"
+          },
+          "buying_power_checked": {
+            "const": false,
+            "title": "Buying Power Checked",
+            "type": "boolean"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "lock": {
+            "const": "absent",
+            "title": "Lock",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "owner_approved": {
+            "const": false,
+            "title": "Owner Approved",
+            "type": "boolean"
+          },
+          "persisted": {
+            "const": false,
+            "title": "Persisted",
+            "type": "boolean"
+          },
+          "policy_version": {
+            "const": "local-2026-11-08",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "Reasons",
+            "type": "array"
+          },
+          "release": {
+            "const": "withheld",
+            "title": "Release",
+            "type": "string"
+          },
+          "requested": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Requested",
+            "type": "string"
+          },
+          "reserved_after": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Reserved After",
+            "type": "string"
+          },
+          "reserved_before": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Reserved Before",
+            "type": "string"
+          },
+          "rule_result": {
+            "enum": [
+              "pass",
+              "fail"
+            ],
+            "title": "Rule Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policy_version",
+          "rule_result",
+          "reasons",
+          "requested",
+          "reserved_before",
+          "reserved_after",
+          "book_cap",
+          "release",
+          "persisted",
+          "lock",
+          "buying_power_checked",
+          "broker_reconciled",
+          "owner_approved",
+          "execution_permitted",
+          "order_submitted",
+          "note"
+        ],
+        "title": "ReservationPreviewResponse",
         "type": "object"
       },
       "ShieldPreviewRequest": {
@@ -3923,6 +4100,48 @@
         "summary": "Delete Source Event",
         "tags": [
           "research"
+        ]
+      }
+    },
+    "/api/v1/risk/reservations/preview": {
+      "post": {
+        "description": "Check a hypothetical reservation. The route does not read a broker or write a row.",
+        "operationId": "reservation_preview_api_v1_risk_reservations_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservationPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reservation Preview",
+        "tags": [
+          "risk"
         ]
       }
     },
