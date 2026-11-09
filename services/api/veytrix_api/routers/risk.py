@@ -13,7 +13,13 @@ from veytrix_api.audit_log import record_size
 from veytrix_api.db import get_db
 from veytrix_api.deps import get_policy
 from veytrix_api.models import PaperSizeJournalRow
-from veytrix_api.schemas import SizeRequest, SizeResponse
+from veytrix_api.schemas import (
+    ShieldPreviewRequest,
+    ShieldPreviewResponse,
+    SizeRequest,
+    SizeResponse,
+)
+from veytrix_risk.shield import ShieldInputError, preview_order
 from veytrix_risk.sizing import RiskPolicy, SizingError, size_position
 
 router = APIRouter(prefix="/risk", tags=["risk"])
@@ -91,3 +97,46 @@ def size_endpoint(
         db.rollback()
         raise HTTPException(status_code=503, detail=JOURNAL_UNAVAILABLE) from exc
     return response
+
+
+SHIELD_NOTE = (
+    "Local preview of the $100 AAPL rules. Buying power was not read, nothing was reserved, "
+    "and this response cannot submit an order. Release stays withheld."
+)
+
+
+@router.post("/shield/preview", response_model=ShieldPreviewResponse)
+def shield_preview(body: ShieldPreviewRequest) -> ShieldPreviewResponse:
+    """Check a hypothetical buy. The route does not read a broker or write a row."""
+
+    try:
+        decision = preview_order(
+            symbol=body.symbol,
+            side=body.side,
+            limit_price=body.limit_price,
+            quantity=body.quantity,
+            position_notional=body.position_notional,
+            orders_today=body.orders_today,
+            quote_age_seconds=body.quote_age_seconds,
+            leverage=body.leverage,
+        )
+    except ShieldInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return ShieldPreviewResponse(
+        policy_version="local-2026-11-08",
+        rule_result=decision.rule_result,
+        reasons=list(decision.reasons),
+        notional=format(decision.notional, "f"),
+        position_after=format(decision.position_after, "f"),
+        max_notional="100.00",
+        max_position_notional="100.00",
+        max_orders_per_day=2,
+        quote_max_age_seconds=120,
+        release=decision.release,
+        buying_power_checked=False,
+        owner_approved=False,
+        broker_reconciled=False,
+        execution_permitted=False,
+        order_submitted=False,
+        note=SHIELD_NOTE,
+    )

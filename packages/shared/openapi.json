@@ -2344,6 +2344,178 @@
         "title": "ResearchNoteResponse",
         "type": "object"
       },
+      "ShieldPreviewRequest": {
+        "additionalProperties": false,
+        "description": "A hypothetical buy. This body cannot submit an order.",
+        "properties": {
+          "leverage": {
+            "title": "Leverage",
+            "type": "string"
+          },
+          "limit_price": {
+            "title": "Limit Price",
+            "type": "string"
+          },
+          "orders_today": {
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Orders Today",
+            "type": "integer"
+          },
+          "position_notional": {
+            "title": "Position Notional",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "string"
+          },
+          "quote_age_seconds": {
+            "maximum": 8640000.0,
+            "minimum": 0.0,
+            "title": "Quote Age Seconds",
+            "type": "integer"
+          },
+          "side": {
+            "enum": [
+              "long",
+              "short"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "symbol": {
+            "pattern": "^[A-Z][A-Z0-9.-]{0,15}$",
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "side",
+          "limit_price",
+          "quantity",
+          "position_notional",
+          "orders_today",
+          "quote_age_seconds",
+          "leverage"
+        ],
+        "title": "ShieldPreviewRequest",
+        "type": "object"
+      },
+      "ShieldPreviewResponse": {
+        "additionalProperties": false,
+        "description": "The local rule result. Release stays withheld.",
+        "properties": {
+          "broker_reconciled": {
+            "const": false,
+            "title": "Broker Reconciled",
+            "type": "boolean"
+          },
+          "buying_power_checked": {
+            "const": false,
+            "title": "Buying Power Checked",
+            "type": "boolean"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "max_notional": {
+            "const": "100.00",
+            "title": "Max Notional",
+            "type": "string"
+          },
+          "max_orders_per_day": {
+            "const": 2,
+            "title": "Max Orders Per Day",
+            "type": "integer"
+          },
+          "max_position_notional": {
+            "const": "100.00",
+            "title": "Max Position Notional",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "notional": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Notional",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "owner_approved": {
+            "const": false,
+            "title": "Owner Approved",
+            "type": "boolean"
+          },
+          "policy_version": {
+            "const": "local-2026-11-08",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "position_after": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Position After",
+            "type": "string"
+          },
+          "quote_max_age_seconds": {
+            "const": 120,
+            "title": "Quote Max Age Seconds",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 7,
+            "title": "Reasons",
+            "type": "array"
+          },
+          "release": {
+            "const": "withheld",
+            "title": "Release",
+            "type": "string"
+          },
+          "rule_result": {
+            "enum": [
+              "pass",
+              "fail"
+            ],
+            "title": "Rule Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policy_version",
+          "rule_result",
+          "reasons",
+          "notional",
+          "position_after",
+          "max_notional",
+          "max_position_notional",
+          "max_orders_per_day",
+          "quote_max_age_seconds",
+          "release",
+          "buying_power_checked",
+          "owner_approved",
+          "broker_reconciled",
+          "execution_permitted",
+          "order_submitted",
+          "note"
+        ],
+        "title": "ShieldPreviewResponse",
+        "type": "object"
+      },
       "SizeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -3751,6 +3923,48 @@
         "summary": "Delete Source Event",
         "tags": [
           "research"
+        ]
+      }
+    },
+    "/api/v1/risk/shield/preview": {
+      "post": {
+        "description": "Check a hypothetical buy. The route does not read a broker or write a row.",
+        "operationId": "shield_preview_api_v1_risk_shield_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShieldPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShieldPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Shield Preview",
+        "tags": [
+          "risk"
         ]
       }
     },

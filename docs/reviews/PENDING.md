@@ -99,3 +99,9 @@ Claude Code has not reviewed this repository. Codex has not written or run tests
 - Scope: `apps/web/src/pages/SettingsPage.tsx`, `apps/web/src/App.tsx`, `apps/web/src/shell/AppShell.tsx`
 - Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate.
 - Acceptance: the page reads `GET /api/v1/diagnostics` and nothing else; it renders no text field, switch, or save control; a payload that sets `execution_permitted` true is not shown; a failed read does not invent a live switch; no API route was added.
+
+## 19. Local shield preview (awaiting review)
+
+- Scope: `services/risk/veytrix_risk/shield.py`, `services/api/veytrix_api/routers/risk.py`, `services/api/veytrix_api/schemas.py`, `tests/test_shield.py`, `tests/test_shield_api.py`
+- Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate.
+- Acceptance: `POST /api/v1/risk/shield/preview` is the only method on that path; a `$100.00` AAPL buy can pass the local rule and still return `release` `withheld`, `buying_power_checked` false, `owner_approved` false, and `execution_permitted` false; a short, leverage other than 1, a symbol other than AAPL, a quote older than 120 seconds, a notional above `$100`, a position that would finish above `$100`, and a third order today fail together; a quote aged 120 seconds still passes; a JSON number is 422; the route does not need the database; GET is 405; no order id is returned; no order route was added; `services/ai-research/veytrix_ai/**` was not changed.

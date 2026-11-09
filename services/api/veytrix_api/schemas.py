@@ -223,6 +223,66 @@ class SizeResponse(BaseModel):
     weekly_stop_enforced: Literal[False]
 
 
+class ShieldPreviewRequest(BaseModel):
+    """A hypothetical buy. This body cannot submit an order."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    symbol: str = Field(pattern=r"^[A-Z][A-Z0-9.-]{0,15}$")
+    side: Literal["long", "short"]
+    limit_price: DecimalText
+    quantity: DecimalText
+    position_notional: DecimalText
+    orders_today: int = Field(ge=0, le=10000)
+    quote_age_seconds: int = Field(ge=0, le=8640000)
+    leverage: DecimalText
+
+
+class ShieldPreviewResponse(BaseModel):
+    """The local rule result. Release stays withheld."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    policy_version: Literal["local-2026-11-08"]
+    rule_result: Literal["pass", "fail"]
+    reasons: list[str] = Field(max_length=7)
+    notional: str = Field(pattern=r"^(?:0|[1-9]\d*)(?:\.\d+)?$")
+    position_after: str = Field(pattern=r"^(?:0|[1-9]\d*)(?:\.\d+)?$")
+    max_notional: Literal["100.00"]
+    max_position_notional: Literal["100.00"]
+    max_orders_per_day: Literal[2]
+    quote_max_age_seconds: Literal[120]
+    release: Literal["withheld"]
+    buying_power_checked: Literal[False]
+    owner_approved: Literal[False]
+    broker_reconciled: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    note: str = Field(min_length=1, max_length=400)
+
+    @model_validator(mode="after")
+    def reasons_match_result(self) -> ShieldPreviewResponse:
+        known = (
+            "short",
+            "leverage",
+            "symbol",
+            "stale",
+            "notional",
+            "position",
+            "daily_orders",
+        )
+        if any(reason not in known for reason in self.reasons):
+            raise ValueError("Unknown shield reason.")
+        ordered = [reason for reason in known if reason in self.reasons]
+        if self.reasons != ordered:
+            raise ValueError("Shield reasons are out of order.")
+        if self.rule_result == "pass" and self.reasons:
+            raise ValueError("A passing preview has no reasons.")
+        if self.rule_result == "fail" and not self.reasons:
+            raise ValueError("A failing preview names a reason.")
+        return self
+
+
 def _finite_decimal(value: str, label: str) -> Decimal:
     try:
         parsed = Decimal(value)
