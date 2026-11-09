@@ -128,8 +128,19 @@ function formatClock(date: Date): string {
   return `${get("weekday")}, ${get("month")} ${get("day")}, ${get("year")} ${get("hour")}:${get("minute")} ${get("dayPeriod")} ${get("timeZoneName")}`;
 }
 
+const SIDEBAR_KEY = "veytrix.sanctum.sidebar";
+
+function readSidebarCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(SIDEBAR_KEY) === "collapsed";
+  } catch {
+    return false;
+  }
+}
+
 function FeedList({ lines }: { lines: ActivityLine[] }) {
   return (
+  const [navCollapsed, setNavCollapsed] = useState(readSidebarCollapsed);
     <ul className="sx-feed">
       {lines.map((line) => (
         <li key={line.id}>
@@ -144,6 +155,14 @@ function FeedList({ lines }: { lines: ActivityLine[] }) {
 
 export function SanctumPage() {
   const [rail, setRail] = useState<RailId>("sky");
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_KEY, navCollapsed ? "collapsed" : "expanded");
+    } catch {
+      // Storage can be blocked. The choice still applies for this visit.
+    }
+  }, [navCollapsed]);
   const [shot, setShot] = useState<Shot>(SHOTS.sky);
   const [camera, setCamera] = useState<CameraName>("sky");
   const [selected, setSelected] = useState<AgentCode>("SUPERVISOR-01");
@@ -332,17 +351,41 @@ export function SanctumPage() {
   }
 
   return (
-    <div className="sanctum">
+    <div className={navCollapsed ? "sanctum is-nav-collapsed" : "sanctum"}>
       <a className="skip-link" href="#sanctum-floor">
         Skip to floor
       </a>
       <header className="sx-top">
-        <Link to="/" className="sx-brand">
-          <span className="sx-mark" aria-hidden="true">
-            V
-          </span>
-          VEYTRIX
-        </Link>
+        <div className="sx-brand-capsule">
+          <Link to="/" className="sx-brand">
+            <span className="sx-mark" aria-hidden="true">
+              V
+            </span>
+            VEYTRIX
+          </Link>
+          <button
+            type="button"
+            className="sx-collapse"
+            aria-expanded={!navCollapsed}
+            aria-controls="sanctum-views"
+            aria-label={navCollapsed ? "Expand sidebar" : "Minimise sidebar"}
+            onClick={() => setNavCollapsed((value) => !value)}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d={navCollapsed ? "m9 6 6 6-6 6" : "m15 6-6 6 6 6"} />
+            </svg>
+          </button>
+        </div>
         <nav aria-label="Sanctum" className="sx-nav">
           {NAV.map((item) => (
             <NavLink key={item.to} to={item.to}>
@@ -364,8 +407,8 @@ export function SanctumPage() {
         </div>
       </header>
 
-      <div className="sx-body">
-        <nav aria-label="Sanctum views" className="sx-rail">
+      <div className={navCollapsed ? "sx-body is-nav-collapsed" : "sx-body"}>
+        <nav id="sanctum-views" aria-label="Sanctum views" className="sx-rail" hidden={navCollapsed}>
           <div className="sx-kicker">
             <Icon name="home" />
             Sanctum
