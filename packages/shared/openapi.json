@@ -2947,6 +2947,77 @@
         "title": "ReservationPreviewResponse",
         "type": "object"
       },
+      "RiskEventLogResponse": {
+        "additionalProperties": false,
+        "description": "Size-audit rows, plus the previews that are not written. Nothing here submits.",
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogEntry"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "persisted_action": {
+            "const": "risk.size.recorded",
+            "title": "Persisted Action",
+            "type": "string"
+          },
+          "reservation_persisted": {
+            "const": false,
+            "title": "Reservation Persisted",
+            "type": "boolean"
+          },
+          "shield_persisted": {
+            "const": false,
+            "title": "Shield Persisted",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "local_audit_log",
+            "title": "Source",
+            "type": "string"
+          },
+          "unlogged": {
+            "items": {
+              "$ref": "#/components/schemas/UnloggedRiskKind"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Unlogged",
+            "type": "array"
+          }
+        },
+        "required": [
+          "events",
+          "unlogged",
+          "persisted_action",
+          "shield_persisted",
+          "reservation_persisted",
+          "execution_permitted",
+          "order_submitted",
+          "source",
+          "note"
+        ],
+        "title": "RiskEventLogResponse",
+        "type": "object"
+      },
       "ShieldPreviewRequest": {
         "additionalProperties": false,
         "description": "A hypothetical buy. This body cannot submit an order.",
@@ -4208,6 +4279,31 @@
         "title": "TreasuryMonthlySummaryResponse",
         "type": "object"
       },
+      "UnloggedRiskKind": {
+        "additionalProperties": false,
+        "description": "A decision this API calculates and does not store.",
+        "properties": {
+          "kind": {
+            "enum": [
+              "shield_preview",
+              "reservation_preview"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "persisted": {
+            "const": false,
+            "title": "Persisted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "persisted"
+        ],
+        "title": "UnloggedRiskKind",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -4957,6 +5053,28 @@
         "summary": "Delete Source Event",
         "tags": [
           "research"
+        ]
+      }
+    },
+    "/api/v1/risk/log": {
+      "get": {
+        "description": "Read size-audit rows. Previews stay unlogged, and this route writes nothing.",
+        "operationId": "risk_events_api_v1_risk_log_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskEventLogResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Risk Events",
+        "tags": [
+          "risk"
         ]
       }
     },

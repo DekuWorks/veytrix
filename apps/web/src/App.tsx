@@ -10,8 +10,9 @@ import { PortfolioPage } from "./pages/PortfolioPage";
 import { QuantPage } from "./pages/QuantPage";
 import { ReconciliationPage } from "./pages/ReconciliationPage";
 import { ResearchPage } from "./pages/ResearchPage";
-import { SchedulePage } from "./pages/SchedulePage";
+import { RiskLogPage } from "./pages/RiskLogPage";
 import { RiskPage } from "./pages/RiskPage";
+import { SchedulePage } from "./pages/SchedulePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SupervisorPage } from "./pages/SupervisorPage";
 import { StrategyPage } from "./pages/StrategyPage";
@@ -33,6 +34,7 @@ export function AppRoutes() {
         <Route path="/scheduler" element={<SchedulePage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/risk" element={<RiskPage />} />
+        <Route path="/risk-log" element={<RiskLogPage />} />
         <Route path="/portfolio" element={<PortfolioPage />} />
         <Route path="/reconciliation" element={<ReconciliationPage />} />
         <Route path="/research" element={<ResearchPage />} />

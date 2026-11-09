@@ -1149,3 +1149,37 @@ class ToolCheckResponse(BaseModel):
         if self.decision == "deny" and not self.reasons:
             raise ValueError("A denied check names a reason.")
         return self
+
+
+class UnloggedRiskKind(BaseModel):
+    """A decision this API calculates and does not store."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["shield_preview", "reservation_preview"]
+    persisted: Literal[False]
+
+
+class RiskEventLogResponse(BaseModel):
+    """Size-audit rows, plus the previews that are not written. Nothing here submits."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    events: list[AuditLogEntry]
+    unlogged: list[UnloggedRiskKind] = Field(min_length=2, max_length=2)
+    persisted_action: Literal["risk.size.recorded"]
+    shield_persisted: Literal[False]
+    reservation_persisted: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    source: Literal["local_audit_log"]
+    note: str = Field(min_length=1, max_length=400)
+
+    @model_validator(mode="after")
+    def previews_stay_unlogged(self) -> RiskEventLogResponse:
+        kinds = [item.kind for item in self.unlogged]
+        if kinds != ["shield_preview", "reservation_preview"]:
+            raise ValueError("Unlogged risk kinds are incomplete.")
+        if any(item.persisted for item in self.unlogged):
+            raise ValueError("A preview cannot be marked stored.")
+        return self

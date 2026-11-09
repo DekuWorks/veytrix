@@ -7,19 +7,23 @@ from decimal import Decimal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from veytrix_api.audit_log import record_size
 from veytrix_api.db import get_db
 from veytrix_api.deps import get_policy
-from veytrix_api.models import PaperSizeJournalRow
+from veytrix_api.models import AuditEvent, PaperSizeJournalRow
+from veytrix_api.routers.audit import AUDIT_LIMIT, _audit_entry
 from veytrix_api.schemas import (
     ReservationPreviewRequest,
     ReservationPreviewResponse,
+    RiskEventLogResponse,
     ShieldPreviewRequest,
     ShieldPreviewResponse,
     SizeRequest,
     SizeResponse,
+    UnloggedRiskKind,
 )
 from veytrix_risk.reservation import ReservationInputError, preview_reservation
 from veytrix_risk.shield import ShieldInputError, preview_order
@@ -188,4 +192,42 @@ def reservation_preview(body: ReservationPreviewRequest) -> ReservationPreviewRe
         execution_permitted=False,
         order_submitted=False,
         note=RESERVATION_NOTE,
+    )
+
+
+RISK_LOG_NOTE = (
+    "Only a stored size is listed. Shield and reservation previews are not written. "
+    "This log cannot submit an order."
+)
+RISK_LOG_UNAVAILABLE = "Risk event log is unavailable."
+
+
+@router.get("/log", response_model=RiskEventLogResponse)
+def risk_events(db: Session = Depends(get_db)) -> RiskEventLogResponse:
+    """Read size-audit rows. Previews stay unlogged, and this route writes nothing."""
+
+    try:
+        rows = list(
+            db.scalars(
+                select(AuditEvent)
+                .order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc())
+                .limit(AUDIT_LIMIT)
+            )
+        )
+        events = [_audit_entry(row) for row in rows]
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=RISK_LOG_UNAVAILABLE) from exc
+    return RiskEventLogResponse(
+        events=events,
+        unlogged=[
+            UnloggedRiskKind(kind="shield_preview", persisted=False),
+            UnloggedRiskKind(kind="reservation_preview", persisted=False),
+        ],
+        persisted_action="risk.size.recorded",
+        shield_persisted=False,
+        reservation_persisted=False,
+        execution_permitted=False,
+        order_submitted=False,
+        source="local_audit_log",
+        note=RISK_LOG_NOTE,
     )

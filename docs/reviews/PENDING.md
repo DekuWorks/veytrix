@@ -141,3 +141,9 @@ Claude Code has not reviewed this repository. Codex has not written or run tests
 - Scope: `services/api/veytrix_api/routers/reconciliation.py`, `services/api/veytrix_api/schemas.py`, `apps/web/src/pages/ReconciliationPage.tsx`, `tests/test_reconciliation_api.py`
 - Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate. This is not an Alpaca reconciliation.
 - Acceptance: `GET /api/v1/ledger/reconciliation` is the only method on that path; `broker_read` stays `absent`; `reconciled`, `alpaca_called`, and every row's `matched` stay false; `broker_status` stays `not_read` even when a broker id is stored; an unknown status or a failed session returns 503 and no rows; the terminal status set matches the MAC-01 ledger; POST is 405; `GET /api/v1/broker/paper/account` is not a route; the page has no reconcile control and hides a payload that says the book is reconciled; no order route was added; `services/ai-research/veytrix_ai/**` was not changed.
+
+## 26. Risk event log (awaiting review)
+
+- Scope: `services/api/veytrix_api/routers/risk.py`, `services/api/veytrix_api/schemas.py`, `apps/web/src/pages/RiskLogPage.tsx`, `tests/test_risk_events_api.py`
+- Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate.
+- Acceptance: `GET /api/v1/risk/log` is the only method on that path; it returns size-audit rows and nothing else; shield and reservation previews are named and `persisted` stays false; a payload that claims `order_submitted` returns 503 and does not echo the row; the route writes no row; POST is 405; no path ends in `/events`; the page has no submit control and hides a preview marked stored; no order route was added; `services/ai-research/veytrix_ai/**` was not changed.

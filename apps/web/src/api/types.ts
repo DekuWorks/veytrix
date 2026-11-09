@@ -564,6 +564,28 @@ export type ReconciliationResponse = {
   note: string;
 };
 
+export type RiskEventLogResponse = {
+  events: {
+    id: string;
+    created_at: string;
+    correlation_id: string;
+    action: "risk.size.recorded";
+    symbol: string;
+    shares: number;
+    binding_constraint: "risk" | "allocation" | "both" | "none";
+    execution_permitted: false;
+    order_submitted: false;
+  }[];
+  unlogged: { kind: "shield_preview" | "reservation_preview"; persisted: false }[];
+  persisted_action: "risk.size.recorded";
+  shield_persisted: false;
+  reservation_persisted: false;
+  execution_permitted: false;
+  order_submitted: false;
+  source: "local_audit_log";
+  note: string;
+};
+
 export type SupervisorToolsResponse = {
   source: "local_catalogue";
   model: "not_configured";
