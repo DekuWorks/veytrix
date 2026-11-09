@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Annotated, Literal
@@ -850,3 +851,88 @@ class TreasuryMonthlySummaryResponse(BaseModel):
     transfer_submitted: Literal[False]
     source: Literal["local_projection"]
     note: str = Field(min_length=1, max_length=500)
+
+
+class ToolSpecResponse(BaseModel):
+    """One catalogue row. The route cannot mark it as executing."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(pattern=r"^[a-z][a-z0-9_]{1,64}$")
+    effect: Literal["read", "deny"]
+    executes: Literal[False]
+
+
+class ToolCatalogueResponse(BaseModel):
+    """The local supervisor catalogue. Chat is absent and nothing executes."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source: Literal["local_catalogue"]
+    model: Literal["not_configured"]
+    chat: Literal["absent"]
+    tools: list[ToolSpecResponse] = Field(min_length=1, max_length=32)
+    executed: Literal[False]
+    invokes_model: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    note: str = Field(min_length=1, max_length=400)
+
+    @model_validator(mode="after")
+    def names_are_unique(self) -> ToolCatalogueResponse:
+        names = [tool.name for tool in self.tools]
+        if len(names) != len(set(names)):
+            raise ValueError("Tool names must be unique.")
+        if "submit_order" not in names or "size_position" not in names:
+            raise ValueError("The deny list is incomplete.")
+        return self
+
+
+class ToolCheckRequest(BaseModel):
+    """A hypothetical tool call. This body cannot run the tool."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tool_name: str = Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")
+    arguments: dict[str, str] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def arguments_stay_small(self) -> ToolCheckRequest:
+        if len(self.arguments) > 4:
+            raise ValueError("arguments has too many fields.")
+        for key, item in self.arguments.items():
+            if re.fullmatch(r"^[a-z][a-z0-9_]{0,31}$", key) is None:
+                raise ValueError("argument name is not allowed.")
+            if len(item) > 80:
+                raise ValueError("argument value is too long.")
+        return self
+
+
+class ToolCheckResponse(BaseModel):
+    """The local decision. `executed` stays false even when the decision is accept."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tool_name: str = Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")
+    decision: Literal["accept", "deny"]
+    reasons: list[str] = Field(max_length=3)
+    effect: Literal["read", "deny", "unknown"]
+    executed: Literal[False]
+    invokes_model: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    note: str = Field(min_length=1, max_length=400)
+
+    @model_validator(mode="after")
+    def reasons_match_decision(self) -> ToolCheckResponse:
+        known = ("injection", "tool", "schema")
+        if any(reason not in known for reason in self.reasons):
+            raise ValueError("Unknown tool reason.")
+        ordered = [reason for reason in known if reason in self.reasons]
+        if self.reasons != ordered:
+            raise ValueError("Tool reasons are out of order.")
+        if self.decision == "accept" and (self.reasons or self.effect != "read"):
+            raise ValueError("An accepted check is a read with no reasons.")
+        if self.decision == "deny" and not self.reasons:
+            raise ValueError("A denied check names a reason.")
+        return self

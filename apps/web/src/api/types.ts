@@ -471,3 +471,21 @@ export type TreasuryMonthlySummary = {
   source: "local_projection";
   note: string;
 };
+
+export type SupervisorTool = {
+  name: string;
+  effect: "read" | "deny";
+  executes: false;
+};
+
+export type SupervisorToolsResponse = {
+  source: "local_catalogue";
+  model: "not_configured";
+  chat: "absent";
+  tools: SupervisorTool[];
+  executed: false;
+  invokes_model: false;
+  execution_permitted: false;
+  order_submitted: false;
+  note: string;
+};

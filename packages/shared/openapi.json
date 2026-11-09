@@ -3207,6 +3207,204 @@
         "title": "TickerResponse",
         "type": "object"
       },
+      "ToolCatalogueResponse": {
+        "additionalProperties": false,
+        "description": "The local supervisor catalogue. Chat is absent and nothing executes.",
+        "properties": {
+          "chat": {
+            "const": "absent",
+            "title": "Chat",
+            "type": "string"
+          },
+          "executed": {
+            "const": false,
+            "title": "Executed",
+            "type": "boolean"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "invokes_model": {
+            "const": false,
+            "title": "Invokes Model",
+            "type": "boolean"
+          },
+          "model": {
+            "const": "not_configured",
+            "title": "Model",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "local_catalogue",
+            "title": "Source",
+            "type": "string"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/ToolSpecResponse"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Tools",
+            "type": "array"
+          }
+        },
+        "required": [
+          "source",
+          "model",
+          "chat",
+          "tools",
+          "executed",
+          "invokes_model",
+          "execution_permitted",
+          "order_submitted",
+          "note"
+        ],
+        "title": "ToolCatalogueResponse",
+        "type": "object"
+      },
+      "ToolCheckRequest": {
+        "additionalProperties": false,
+        "description": "A hypothetical tool call. This body cannot run the tool.",
+        "properties": {
+          "arguments": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Arguments",
+            "type": "object"
+          },
+          "tool_name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Tool Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool_name"
+        ],
+        "title": "ToolCheckRequest",
+        "type": "object"
+      },
+      "ToolCheckResponse": {
+        "additionalProperties": false,
+        "description": "The local decision. `executed` stays false even when the decision is accept.",
+        "properties": {
+          "decision": {
+            "enum": [
+              "accept",
+              "deny"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "effect": {
+            "enum": [
+              "read",
+              "deny",
+              "unknown"
+            ],
+            "title": "Effect",
+            "type": "string"
+          },
+          "executed": {
+            "const": false,
+            "title": "Executed",
+            "type": "boolean"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "invokes_model": {
+            "const": false,
+            "title": "Invokes Model",
+            "type": "boolean"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "Reasons",
+            "type": "array"
+          },
+          "tool_name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Tool Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool_name",
+          "decision",
+          "reasons",
+          "effect",
+          "executed",
+          "invokes_model",
+          "execution_permitted",
+          "order_submitted",
+          "note"
+        ],
+        "title": "ToolCheckResponse",
+        "type": "object"
+      },
+      "ToolSpecResponse": {
+        "additionalProperties": false,
+        "description": "One catalogue row. The route cannot mark it as executing.",
+        "properties": {
+          "effect": {
+            "enum": [
+              "read",
+              "deny"
+            ],
+            "title": "Effect",
+            "type": "string"
+          },
+          "executes": {
+            "const": false,
+            "title": "Executes",
+            "type": "boolean"
+          },
+          "name": {
+            "pattern": "^[a-z][a-z0-9_]{1,64}$",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "effect",
+          "executes"
+        ],
+        "title": "ToolSpecResponse",
+        "type": "object"
+      },
       "TreasuryMonthlySummaryResponse": {
         "additionalProperties": false,
         "description": "A local projection. There is no field that approves or submits a transfer.",
@@ -4394,6 +4592,70 @@
         "summary": "Status",
         "tags": [
           "strategies"
+        ]
+      }
+    },
+    "/api/v1/supervisor/tools": {
+      "get": {
+        "description": "Return the local catalogue. The route does not call a model or write a row.",
+        "operationId": "list_tools_api_v1_supervisor_tools_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolCatalogueResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Tools",
+        "tags": [
+          "supervisor"
+        ]
+      }
+    },
+    "/api/v1/supervisor/tools/check": {
+      "post": {
+        "description": "Judge one named call. The route does not run it.",
+        "operationId": "check_tool_api_v1_supervisor_tools_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToolCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolCheckResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Tool",
+        "tags": [
+          "supervisor"
         ]
       }
     },

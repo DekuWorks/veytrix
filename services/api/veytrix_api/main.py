@@ -22,6 +22,7 @@ from veytrix_api.routers import (
     research,
     risk,
     strategies,
+    supervisor,
     system,
     treasury,
 )
@@ -63,6 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     router = APIRouter(prefix="/api/v1")
     router.include_router(system.router)
     router.include_router(agents.router)
+    router.include_router(supervisor.router)
     router.include_router(agency.router)
     router.include_router(market.router)
     router.include_router(risk.router)
