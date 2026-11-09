@@ -13,6 +13,7 @@ const LINKS = [
   { to: "/portfolio", label: "Portfolio", end: false },
   { to: "/research", label: "Research", end: false },
   { to: "/audit", label: "Audit", end: false },
+  { to: "/treasury", label: "Treasury", end: false },
   { to: "/paper-swaps", label: "Paper swaps", end: false },
 ] as const;
 

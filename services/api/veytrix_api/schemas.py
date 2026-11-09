@@ -633,3 +633,36 @@ class AuditLogListResponse(BaseModel):
     source: Literal["local_audit_log"] = "local_audit_log"
     execution_permitted: Literal[False] = False
     order_submitted: Literal[False] = False
+
+
+class TreasuryMonthlySummaryResponse(BaseModel):
+    """A local projection. There is no field that approves or submits a transfer."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    period: str = Field(pattern=r"^\d{4}-\d{2}$")
+    period_closed: Literal[False]
+    realised_profit: str = Field(pattern=r"^-?(?:0|[1-9]\d*)(?:\.\d+)?$")
+    costs: str = Field(pattern=r"^(?:0|[1-9]\d*)(?:\.\d+)?$")
+    loss_carryforward: str = Field(pattern=r"^-?(?:0|[1-9]\d*)(?:\.\d+)?$")
+    eligible_profit: str = Field(pattern=r"^-?(?:0|[1-9]\d*)(?:\.\d+)?$")
+    proposed_distribution: str = Field(pattern=r"^(?:0|[1-9]\d*)(?:\.\d+)?$")
+    retained: str = Field(pattern=r"^(?:0|[1-9]\d*)(?:\.\d+)?$")
+    loss_carryforward_out: str = Field(pattern=r"^-?(?:0|[1-9]\d*)(?:\.\d+)?$")
+    distribution_fraction: Literal["0.50"]
+    distribution_cap: Literal["2000.00"]
+    review_day: Literal[5]
+    review_on: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    review_shifted_for_weekend: bool
+    fills_counted: int = Field(ge=0)
+    fees_included: Literal[False]
+    carryforward_stored: Literal[False]
+    broker_reconciled: Literal[False]
+    settled: Literal[False]
+    transfer_status: Literal["not_attempted"]
+    approval_route: Literal["absent"]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    transfer_submitted: Literal[False]
+    source: Literal["local_projection"]
+    note: str = Field(min_length=1, max_length=500)

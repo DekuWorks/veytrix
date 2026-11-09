@@ -23,6 +23,7 @@ from veytrix_api.routers import (
     risk,
     strategies,
     system,
+    treasury,
 )
 from veytrix_api.settings import LOCAL_ORIGINS, Settings, assert_boot_allowed, get_settings
 
@@ -68,6 +69,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     router.include_router(portfolio.router)
     router.include_router(research.router)
     router.include_router(audit.router)
+    router.include_router(treasury.router)
     router.include_router(strategies.router)
     router.include_router(paper_swaps.router)
     app.include_router(router)

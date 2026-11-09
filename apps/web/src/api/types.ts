@@ -401,3 +401,32 @@ export type AuditLogListResponse = {
   execution_permitted: false;
   order_submitted: false;
 };
+
+export type TreasuryMonthlySummary = {
+  period: string;
+  period_closed: false;
+  realised_profit: string;
+  costs: string;
+  loss_carryforward: string;
+  eligible_profit: string;
+  proposed_distribution: string;
+  retained: string;
+  loss_carryforward_out: string;
+  distribution_fraction: "0.50";
+  distribution_cap: "2000.00";
+  review_day: 5;
+  review_on: string;
+  review_shifted_for_weekend: boolean;
+  fills_counted: number;
+  fees_included: false;
+  carryforward_stored: false;
+  broker_reconciled: false;
+  settled: false;
+  transfer_status: "not_attempted";
+  approval_route: "absent";
+  execution_permitted: false;
+  order_submitted: false;
+  transfer_submitted: false;
+  source: "local_projection";
+  note: string;
+};

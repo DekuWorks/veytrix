@@ -6,7 +6,7 @@ Tags: **BUILT** means the behaviour is in the tree and, where it is an external 
 
 Codex was not run. The `codex` command is not on `PATH`. Do not treat this file as an independent security review. `docs/reviews/PENDING.md` still stands.
 
-Phase 01’s cloud items are still blocked. A local schema slice of that phase was applied on 8 November 2026 (migration `0009_agent_registry`). A later local slice of Phase 02 added a read-only registry route, a size-request audit row, event shapes with no publisher, and a read-only Agency page. A further local slice added `GET /api/v1/audit/log` and a desk page that cannot enable trading. Phases that need keys, a paid account, or a transfer are still blocked.
+Phase 01’s cloud items are still blocked. A local schema slice of that phase was applied on 8 November 2026 (migration `0009_agent_registry`). A later local slice of Phase 02 added a read-only registry route, a size-request audit row, event shapes with no publisher, and a read-only Agency page. A further local slice added `GET /api/v1/audit/log` and a desk page that cannot enable trading. A local slice of Phase 11 added a monthly projection. It cannot approve or send a payout. Phases that need keys, a paid account, or a transfer are still blocked.
 
 ## Owner decisions where the plan conflicts
 
@@ -139,7 +139,7 @@ Pros of doing this locally: the registry cannot grant an order, a signature, or 
 ## Phase 08 — Mission Control web
 
 - [ ] Keep the dark obsidian and jade system. Improve with 21st.dev components where the licence allows. — **PARTIAL** — Theme is in place and was left alone. The 21st.dev shell stays rejected.
-- [ ] Views listed in the plan (Overview through Settings). — **PARTIAL** — Overview, Agency, Market, Quant, Strategy, Events, Risk, Portfolio, Research, Audit, and Paper swaps exist. Agency lists disabled desks and opens one desk. That page cannot enable a desk or send an order. The Audit page reads the size journal and the size-audit log. Supervisor Chat, Paper Broker, Orders and Fills as broker views, Signals as their own page, Crypto, DeFi as labelled simulation beyond Paper swaps, Treasury, DayPilot, System Health, and Settings do not.
+- [ ] Views listed in the plan (Overview through Settings). — **PARTIAL** — Overview, Agency, Market, Quant, Strategy, Events, Risk, Portfolio, Research, Audit, Treasury, and Paper swaps exist. Agency lists disabled desks and opens one desk. That page cannot enable a desk or send an order. The Audit page reads the size journal and the size-audit log. The Treasury page reads the monthly projection and has no approve or payout control. Supervisor Chat, Paper Broker, Orders and Fills as broker views, Signals as their own page, Crypto, DeFi as labelled simulation beyond Paper swaps, DayPilot, System Health, and Settings do not.
 - [ ] TradingView Lightweight Charts, with the licence checked. — **BUILT** — `lightweight-charts` 5.2.1, Apache-2.0, attributed in the shell. Not the proprietary Charting Library.
 - [ ] Separate broker balances, simulated portfolios, and demo figures. Show source, time, and stale-feed warnings. — **PARTIAL** — Labels exist on Coinbase, SAMPLE, paper positions, and simulated swaps. There is no broker-balance card.
 - [ ] Emergency pause, per-agent enable, policy approval, and an explicit paper-order confirmation. — **PARTIAL** — Strategy page can pause, resume, and engage the MAC-01 kill switch. It cannot submit an order. No global pause and no policy-approval UI.
@@ -169,14 +169,14 @@ Pros of doing this locally: the registry cannot grant an order, a signature, or 
 ## Phase 11 — Treasury and monthly distributions
 
 - [ ] Broker-reconciled realised P&L, costs, loss carryforward, periods, settled cash, reserves, and an audit trail. Separate deposits, realised, unrealised, and paper balances. — **NOT STARTED** — MAC-01 P&L is FIFO on local fills, before fees, and there are no fills.
-- [ ] Payout policy: 50% of eligible positive net profit, maximum `$2,000` a month, review on the 5th, zero when eligible profit is not positive. — **NOT STARTED**
-- [ ] Decimal formula and a transaction-safe monthly lock. — **NOT STARTED**
+- [ ] Payout policy: 50% of eligible positive net profit, maximum `$2,000` a month, review on the 5th, zero when eligible profit is not positive. — **PARTIAL** — `project_month` does that split on caller-supplied figures and rounds to cents before the split. The review date is the 5th of the next month, or the following Monday when that 5th is a weekend. The result is a projection. It is not paid.
+- [ ] Decimal formula and a transaction-safe monthly lock. — **PARTIAL** — The formula is in `services/risk/veytrix_risk/treasury.py`. The lock is absent. There is no payout row to protect, and the approve route was not added.
 - [ ] Treasury prepares a proposal; you approve the transfer. Use a real broker ACH or wire, or a manual withdrawal if the broker has none. — **BLOCKED** — Needs a verified broker withdrawal path and your authorisation. Do not invent a bank transfer.
 - [ ] Minimum bank-link metadata. No routing numbers in prompts, browser logs, or exposed tables. — **NOT STARTED** — Nothing is stored, which is the safe current state.
-- [ ] Tests for double payout, failed transfers, weekends, negative months, carryforward, and settlement. — **NOT STARTED**
+- [ ] Tests for double payout, failed transfers, weekends, negative months, carryforward, and settlement. — **PARTIAL** — The projection tests cover a repeated call, a negative month, carryforward into a later month, the `$2,000` cap, a Saturday and a Sunday review date, and a summary that stays unsettled with `transfer_status` `not_attempted`. No transfer is attempted, so a failed bank payment is not something this slice can show.
 - [ ] Before live funding, a professional review of trust, SSI, Medicaid, tax, and account ownership. — **BLOCKED** — That review has not been commissioned. The software cap is not a benefits test.
 
-**Gate:** not met. Paper-mode payouts are not even projections yet. No bank transfer exists.
+**Gate:** not met. The monthly figure is a local projection, not a broker reconciliation and not a payout. No bank transfer exists.
 
 ## Phase 12 — AWS production
 
@@ -219,10 +219,22 @@ Not a phase. None of these are a finished, authenticated route. Do not add the o
 | `GET /api/v1/audit/log` | **BUILT** as a read | Size-audit rows only. GET only. An unsafe payload returns 503. PID 11188 returned 404. It was not restarted. |
 | `GET /api/v1/agency/desks/{code}` | **BUILT** as a read | One desk and seven denies. No enable method. Same process gap: 404 on PID 11188. |
 | `POST /api/v1/supervisor/chat` | **BLOCKED** | Needs a model provider. |
-| `GET /api/v1/treasury/monthly-summary` | **NOT STARTED** | |
+| `GET /api/v1/treasury/monthly-summary` | **BUILT** as a local projection | Paper MAC-01 fills only, FIFO, before fees. Carryforward is not stored, so the route starts from zero. Live mode, a broken ledger, or a down database returns 503. POST is 405. The approve path is not registered. The process on port 8000 was not restarted. |
 | `POST /api/v1/treasury/distributions/{id}/approve` | **BLOCKED** | Live transfer gate. Do not build it early. |
 | `GET /api/v1/meetings` | **BLOCKED** | DayPilot time and access. |
 | `GET /api/v1/market/health` | **PARTIAL** | Coinbase failures are surfaced per request. There is no market-health aggregate. |
+
+## Verification, monthly projection (8 November 2026)
+
+- No new migration. Head stays `0009_agent_registry`. No `.env` was created. No Alpaca call. The approve route was not added. `services/ai-research/veytrix_ai/**` was not edited.
+- `project_month` rounds inputs to cents, proposes half of positive eligible profit, caps that proposal at `$2,000.00`, and returns zero when eligible profit is not positive. A second call with the same inputs returns the same projection. A loss is the outgoing carryforward. The route does not store that carryforward, so `GET /api/v1/treasury/monthly-summary` always starts from zero.
+- The test client read that GET against a stand-in ledger: a paper round trip of 10 proposed 5.00, a live fill in the same list was ignored, a losing round trip proposed 0.00, an empty ledger proposed 0.00, and a sell without a buy returned 503. POST returned 405. `POST /api/v1/treasury/distributions/1/approve` returned 404. Two GETs matched and the stand-in recorded no commit.
+- The listener on `127.0.0.1:8000` was not restarted. `GET /api/v1/health` returned 200. `GET /api/v1/treasury/monthly-summary` returned 404 on that process. Vite on 5173 was not restarted. In the browser, `http://127.0.0.1:5173/treasury` showed the unavailable alert and no payout control. Market still showed a live Coinbase BTC-USD print. Docker was not started.
+- `DATABASE_URL=...@127.0.0.1:5433/veytrix VEYTRIX_ENV=local VEYTRIX_ENABLE_LIVE_BROKER=0 bash scripts/check.sh` exited 0. Ruff passed. Pytest: 266 passed, no skips. Web typecheck passed. Vitest: 199 passed. Vite build passed. Secret scan: `secret scan: no findings`.
+- Named tests: `test_half_of_a_positive_month_is_proposed_and_capped`, `test_a_second_call_does_not_add_another_payout`, `test_negative_months_carry_forward_and_a_later_month_can_clear_them`, `test_review_date_keeps_a_weekday_and_moves_a_weekend`, `test_monthly_summary_projects_paper_fills_and_cannot_post`, `test_a_negative_paper_month_proposes_nothing`, `test_swap_ledger_respects_foreign_keys`, `test_swap_ledger_commits_on_local_postgres`.
+- Independent Codex review: not done. Item 16 in `docs/reviews/PENDING.md` is awaiting review.
+
+Pros: the page and the route have no approve control, and a summary that claims a transfer was submitted is not rendered. Cons: carryforward is not stored, fees are not in the ledger, the figure is not broker-reconciled, and the API process already on port 8000 does not serve the new path. Confidence: high for the formula tests, the test client, and `scripts/check.sh`. Medium for the browser until the running API is replaced, because that process still 404s the new path.
 
 ## Verification, audit log and desk detail (8 November 2026)
 

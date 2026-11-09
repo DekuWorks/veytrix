@@ -2681,6 +2681,172 @@
         "title": "TickerResponse",
         "type": "object"
       },
+      "TreasuryMonthlySummaryResponse": {
+        "additionalProperties": false,
+        "description": "A local projection. There is no field that approves or submits a transfer.",
+        "properties": {
+          "approval_route": {
+            "const": "absent",
+            "title": "Approval Route",
+            "type": "string"
+          },
+          "broker_reconciled": {
+            "const": false,
+            "title": "Broker Reconciled",
+            "type": "boolean"
+          },
+          "carryforward_stored": {
+            "const": false,
+            "title": "Carryforward Stored",
+            "type": "boolean"
+          },
+          "costs": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Costs",
+            "type": "string"
+          },
+          "distribution_cap": {
+            "const": "2000.00",
+            "title": "Distribution Cap",
+            "type": "string"
+          },
+          "distribution_fraction": {
+            "const": "0.50",
+            "title": "Distribution Fraction",
+            "type": "string"
+          },
+          "eligible_profit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Eligible Profit",
+            "type": "string"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "fees_included": {
+            "const": false,
+            "title": "Fees Included",
+            "type": "boolean"
+          },
+          "fills_counted": {
+            "minimum": 0.0,
+            "title": "Fills Counted",
+            "type": "integer"
+          },
+          "loss_carryforward": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Loss Carryforward",
+            "type": "string"
+          },
+          "loss_carryforward_out": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Loss Carryforward Out",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "period": {
+            "pattern": "^\\d{4}-\\d{2}$",
+            "title": "Period",
+            "type": "string"
+          },
+          "period_closed": {
+            "const": false,
+            "title": "Period Closed",
+            "type": "boolean"
+          },
+          "proposed_distribution": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Proposed Distribution",
+            "type": "string"
+          },
+          "realised_profit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Realised Profit",
+            "type": "string"
+          },
+          "retained": {
+            "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "title": "Retained",
+            "type": "string"
+          },
+          "review_day": {
+            "const": 5,
+            "title": "Review Day",
+            "type": "integer"
+          },
+          "review_on": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Review On",
+            "type": "string"
+          },
+          "review_shifted_for_weekend": {
+            "title": "Review Shifted For Weekend",
+            "type": "boolean"
+          },
+          "settled": {
+            "const": false,
+            "title": "Settled",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "local_projection",
+            "title": "Source",
+            "type": "string"
+          },
+          "transfer_status": {
+            "const": "not_attempted",
+            "title": "Transfer Status",
+            "type": "string"
+          },
+          "transfer_submitted": {
+            "const": false,
+            "title": "Transfer Submitted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "period",
+          "period_closed",
+          "realised_profit",
+          "costs",
+          "loss_carryforward",
+          "eligible_profit",
+          "proposed_distribution",
+          "retained",
+          "loss_carryforward_out",
+          "distribution_fraction",
+          "distribution_cap",
+          "review_day",
+          "review_on",
+          "review_shifted_for_weekend",
+          "fills_counted",
+          "fees_included",
+          "carryforward_stored",
+          "broker_reconciled",
+          "settled",
+          "transfer_status",
+          "approval_route",
+          "execution_permitted",
+          "order_submitted",
+          "transfer_submitted",
+          "source",
+          "note"
+        ],
+        "title": "TreasuryMonthlySummaryResponse",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -3636,6 +3802,28 @@
         "summary": "System Status",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/treasury/monthly-summary": {
+      "get": {
+        "description": "Project the open New York month. Live mode and a broken ledger return 503.",
+        "operationId": "monthly_summary_api_v1_treasury_monthly_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreasuryMonthlySummaryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Monthly Summary",
+        "tags": [
+          "treasury"
         ]
       }
     }
