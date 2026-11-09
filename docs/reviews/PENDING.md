@@ -93,3 +93,9 @@ Claude Code has not reviewed this repository. Codex has not written or run tests
 - Scope: `services/market-data/veytrix_market/health.py`, `services/api/veytrix_api/routers/market.py`, `services/api/veytrix_api/schemas.py`, `apps/web/src/pages/SystemPage.tsx`, `tests/test_market_health.py`
 - Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate.
 - Acceptance: `GET /api/v1/market/health` is the only method on that path; the three products stay in display order; a print older than 120 seconds is `stale` and a print at 120 seconds is still `up`; a down feed has a null price, timestamp, and age; the overall status is `ok` only when every feed is up, and `unavailable` only when every feed is down; `executable`, `execution_permitted`, and `order_submitted` stay false; SAMPLE is not a feed; the System page hides a posture that says a desk can trade and hides a feed list that says an order was submitted; a failed market read does not remove the local posture; no order route was added.
+
+## 18. Settings page (awaiting review)
+
+- Scope: `apps/web/src/pages/SettingsPage.tsx`, `apps/web/src/App.tsx`, `apps/web/src/shell/AppShell.tsx`
+- Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate.
+- Acceptance: the page reads `GET /api/v1/diagnostics` and nothing else; it renders no text field, switch, or save control; a payload that sets `execution_permitted` true is not shown; a failed read does not invent a live switch; no API route was added.

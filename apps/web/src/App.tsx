@@ -9,6 +9,7 @@ import { PortfolioPage } from "./pages/PortfolioPage";
 import { QuantPage } from "./pages/QuantPage";
 import { ResearchPage } from "./pages/ResearchPage";
 import { RiskPage } from "./pages/RiskPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { StrategyPage } from "./pages/StrategyPage";
 import { SystemPage } from "./pages/SystemPage";
 import { TreasuryPage } from "./pages/TreasuryPage";
@@ -31,6 +32,7 @@ export function AppRoutes() {
         <Route path="/audit" element={<AuditPage />} />
         <Route path="/treasury" element={<TreasuryPage />} />
         <Route path="/system" element={<SystemPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="/paper-swaps" element={<PaperSwapsPage />} />
         <Route
           path="*"

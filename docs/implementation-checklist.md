@@ -139,7 +139,7 @@ Pros of doing this locally: the registry cannot grant an order, a signature, or 
 ## Phase 08 — Mission Control web
 
 - [ ] Keep the dark obsidian and jade system. Improve with 21st.dev components where the licence allows. — **PARTIAL** — Theme is in place and was left alone. The 21st.dev shell stays rejected.
-- [ ] Views listed in the plan (Overview through Settings). — **PARTIAL** — Overview, Agency, Market, Quant, Strategy, Events, Risk, Portfolio, Research, Audit, Treasury, System, and Paper swaps exist. Agency lists disabled desks and opens one desk. That page cannot enable a desk or send an order. The Audit page reads the size journal and the size-audit log. The Treasury page reads the monthly projection and has no approve or payout control. The System page reads local posture and the Coinbase feed health. It has no enable, save, or order control. Supervisor Chat, Paper Broker, Orders and Fills as broker views, Signals as their own page, Crypto, DeFi as labelled simulation beyond Paper swaps, DayPilot, and Settings do not.
+- [ ] Views listed in the plan (Overview through Settings). — **PARTIAL** — Overview, Agency, Market, Quant, Strategy, Events, Risk, Portfolio, Research, Audit, Treasury, System, and Paper swaps exist. Agency lists disabled desks and opens one desk. That page cannot enable a desk or send an order. The Audit page reads the size journal and the size-audit log. The Treasury page reads the monthly projection and has no approve or payout control. The System page reads local posture and the Coinbase feed health. It has no enable, save, or order control. Settings reads the diagnostics and has no editor, no key field, and no live switch. Supervisor Chat, Paper Broker, Orders and Fills as broker views, Signals as their own page, Crypto, DeFi as labelled simulation beyond Paper swaps, and DayPilot do not.
 - [ ] TradingView Lightweight Charts, with the licence checked. — **BUILT** — `lightweight-charts` 5.2.1, Apache-2.0, attributed in the shell. Not the proprietary Charting Library.
 - [ ] Separate broker balances, simulated portfolios, and demo figures. Show source, time, and stale-feed warnings. — **PARTIAL** — Labels exist on Coinbase, SAMPLE, paper positions, and simulated swaps. There is no broker-balance card.
 - [ ] Emergency pause, per-agent enable, policy approval, and an explicit paper-order confirmation. — **PARTIAL** — Strategy page can pause, resume, and engage the MAC-01 kill switch. It cannot submit an order. No global pause and no policy-approval UI.
@@ -223,6 +223,17 @@ Not a phase. None of these are a finished, authenticated route. Do not add the o
 | `POST /api/v1/treasury/distributions/{id}/approve` | **BLOCKED** | Live transfer gate. Do not build it early. |
 | `GET /api/v1/meetings` | **BLOCKED** | DayPilot time and access. |
 | `GET /api/v1/market/health` | **BUILT** as a display | Three public tickers, each `up`, `stale` after 120 seconds, or `down`. A down feed has no price. SAMPLE is not included. POST is 405. `executable` stays false. The process on PID 85309 was not restarted again, so that process still 404s this path. |
+
+## Verification, settings page (8 November 2026)
+
+- No new route and no new migration. No `.env` was created. No Alpaca call. The page reads `GET /api/v1/diagnostics`, which already existed.
+- Vitest covers a fixed posture, a failed read, and a payload that claims execution is permitted. That payload is not rendered. The page has no text field and no switch.
+- Vite on 5173 was not restarted. In the browser, `http://127.0.0.1:5173/settings` showed environment `local`, trading mode `paper`, live broker `disabled`, authentication `not_configured`, CSRF `not_implemented`, rate limit `process_local`, stops enforced `false`, execution permitted `false`, and API version `0.1.0`. The page had no input and no switch. The API process was not restarted.
+- `DATABASE_URL=...@127.0.0.1:5433/veytrix VEYTRIX_ENV=local VEYTRIX_ENABLE_LIVE_BROKER=0 bash scripts/check.sh` exited 0. Ruff passed. Pytest: 269 passed, no skips. Web typecheck passed. Vitest: 206 passed. Vite build passed. Secret scan: `secret scan: no findings`.
+- Named tests: the three cases in `apps/web/src/pages/SettingsPage.test.tsx`. `test_swap_ledger_respects_foreign_keys` and `test_swap_ledger_commits_on_local_postgres` still ran inside the full check.
+- Independent Codex review: not done. Item 18 in `docs/reviews/PENDING.md` is awaiting review.
+
+Pros: the page cannot turn live trading on, because it has no control and it hides a payload that says execution is permitted. Cons: it repeats facts the Overview already reads, and it is not an authentication design. Confidence: high for the Vitest cases, `scripts/check.sh`, and the browser read.
 
 ## Verification, market health and System page (8 November 2026)
 
