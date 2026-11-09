@@ -546,7 +546,28 @@ def test_discussion_is_bounded_persisted_and_labelled(client: TestClient) -> Non
     assert [m["seq"] for m in messages] == sorted(m["seq"] for m in messages)
 
 
-def test_a_single_source_claim_draws_an_objection_and_no_consensus(client: TestClient) -> None:
+@pytest.fixture()
+def mac01_ran(db: Session):
+    """Pretend one MAC-01 run was recorded, so the state row counts as evidence."""
+
+    db.execute(text("UPDATE mac01_state SET last_run_at = now(), last_run_status = 'recorded'"))
+    db.commit()
+    yield
+    db.execute(text("UPDATE mac01_state SET last_run_at = NULL, last_run_status = NULL"))
+    db.commit()
+
+
+def test_an_empty_ledger_is_thin_evidence_not_support(client: TestClient) -> None:
+    body = run_discussion_api(client, "AAPL SMA crossover signals", rounds=2)
+    claims = [m for m in body["messages"] if m["kind"] == "claim"]
+    assert claims and all(m["meta"]["position"] == "thin" for m in claims)
+    assert not [m for m in body["messages"] if m["kind"] == "objection"]
+    assert [m for m in body["messages"] if m["kind"] == "assignment"]
+
+
+def test_a_single_source_claim_draws_an_objection_and_no_consensus(
+    client: TestClient, mac01_ran: None
+) -> None:
     body = run_discussion_api(client, "AAPL SMA crossover signals", rounds=2)
     objections = [m for m in body["messages"] if m["kind"] == "objection"]
     claims = {m["message_id"]: m for m in body["messages"] if m["kind"] == "claim"}
@@ -621,7 +642,9 @@ def test_user_can_ask_questions_in_a_finished_discussion(client: TestClient) -> 
     assert any(m["sender_id"] == "STOCK-01" for m in reply["messages"])
 
 
-def test_why_did_you_disagree_quotes_the_recorded_objection(client: TestClient) -> None:
+def test_why_did_you_disagree_quotes_the_recorded_objection(
+    client: TestClient, mac01_ran: None
+) -> None:
     body = run_discussion_api(client, "AAPL SMA crossover signals", rounds=2)
     objection = next(m for m in body["messages"] if m["kind"] == "objection")
     chat = direct(client, objection["sender_id"])

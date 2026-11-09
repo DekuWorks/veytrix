@@ -166,3 +166,9 @@ Claude Code has not reviewed this repository. Codex has not written or run tests
 - Status: implemented on 9 November 2026. Codex is not installed and has not reviewed it. Do not treat this note as a closed gate. Production readiness is not met: no verified agent events, no auth, no deployment. Supabase was not provisioned.
 - Acceptance: `/sanctum` is one Phaser floor for the ten registry desks; sky, floor, pan, zoom, centre, meeting, and trading cameras do not submit an order; NPC pose comes from `GET /api/v1/agents` and stays idle while the desks are disabled and trading is denied; verified trading stays "none verified" unless a row says broker-confirmed; the local note box does not call a model; the service-role key is not read by the page; there is no order, enable, sign, withdraw, or Topstep control.
 
+## 31. Agent communication (awaiting review)
+
+- Scope: `services/api/veytrix_api/comms/`, `services/api/veytrix_api/routers/comms.py`, `services/api/alembic/versions/20261109_0011_agent_comms.py`, `apps/web/src/comms/`, `apps/web/src/sanctum/ui/Chat*.tsx`, `ConversationMonitor.tsx`, `SkyFloor.tsx`, `tests/test_comms_*.py`
+- Status: implemented on 9 November 2026 by Claude. Not independently reviewed. No language model is configured; every discussion turn is `simulated`. Supabase Realtime was not provisioned and the doorbell was tested with a fake transport only.
+- Acceptance: all ten desks answer and persist; no `comms` module imports MAC-01, alpaca, or `veytrix_ai`, or constructs an order row; no route name contains order, trade, or execute; `live_execution` is a constant false; `filled` appears only with a broker order id and a filled quantity; a repeated message stops a discussion; consensus needs an objection round and two distinct trusted sources; untrusted text never counts as a source; messages and events reject update and delete; the Realtime payload carries no message text.
+

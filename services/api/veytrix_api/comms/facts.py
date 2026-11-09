@@ -268,6 +268,8 @@ def mac01_facts(db: Session) -> list[Fact]:
                     "mac01_ledger",
                     "mac01_state/1",
                     as_of=_stamp(state.updated_at),
+                    # The singleton row exists from the migration. It is evidence only after a run.
+                    has_data=state.last_run_at is not None,
                 )
             )
         signals = db.scalar(select(func.count()).select_from(Mac01SignalRow)) or 0

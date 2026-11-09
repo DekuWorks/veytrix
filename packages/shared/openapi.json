@@ -415,6 +415,325 @@
         "title": "BarsResponse",
         "type": "object"
       },
+      "Citation": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "label": {
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          },
+          "ref": {
+            "maxLength": 96,
+            "title": "Ref",
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 48,
+            "title": "Source",
+            "type": "string"
+          },
+          "untrusted": {
+            "default": false,
+            "title": "Untrusted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "source",
+          "ref",
+          "label"
+        ],
+        "title": "Citation",
+        "type": "object"
+      },
+      "ConversationEnvelope": {
+        "properties": {
+          "conversation": {
+            "$ref": "#/components/schemas/ConversationOut"
+          },
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "conversation"
+        ],
+        "title": "ConversationEnvelope",
+        "type": "object"
+      },
+      "ConversationListResponse": {
+        "properties": {
+          "conversations": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationOut"
+            },
+            "title": "Conversations",
+            "type": "array"
+          },
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "local_database",
+            "default": "local_database",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversations"
+        ],
+        "title": "ConversationListResponse",
+        "type": "object"
+      },
+      "ConversationOut": {
+        "properties": {
+          "agenda": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agenda"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "enum": [
+              "human",
+              "system"
+            ],
+            "title": "Created By",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "direct",
+              "group",
+              "discussion",
+              "boardroom"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_message": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MessageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_messages": {
+            "title": "Max Messages",
+            "type": "integer"
+          },
+          "max_rounds": {
+            "title": "Max Rounds",
+            "type": "integer"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MemberOut"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "message_count": {
+            "title": "Message Count",
+            "type": "integer"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          },
+          "pinned": {
+            "title": "Pinned",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "paused",
+              "closed",
+              "archived"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          },
+          "unread": {
+            "title": "Unread",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "kind",
+          "title",
+          "topic",
+          "status",
+          "pinned",
+          "created_by",
+          "owner_id",
+          "max_rounds",
+          "max_messages",
+          "created_at",
+          "updated_at",
+          "closed_at",
+          "message_count",
+          "unread",
+          "members"
+        ],
+        "title": "ConversationOut",
+        "type": "object"
+      },
+      "CreateConversation": {
+        "properties": {
+          "agent_code": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Code"
+          },
+          "kind": {
+            "enum": [
+              "direct",
+              "group",
+              "discussion",
+              "boardroom"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "participants": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 10,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Participants"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "CreateConversation",
+        "type": "object"
+      },
       "DeniedTool": {
         "additionalProperties": false,
         "description": "One registry permission. The effect cannot be anything except deny.",
@@ -654,6 +973,103 @@
           "versions"
         ],
         "title": "DiagnosticsResponse",
+        "type": "object"
+      },
+      "FeedResponse": {
+        "properties": {
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageOut"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "realtime": {
+            "enum": [
+              "not_configured",
+              "configured"
+            ],
+            "title": "Realtime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "messages",
+          "realtime"
+        ],
+        "title": "FeedResponse",
+        "type": "object"
+      },
+      "FlagsResponse": {
+        "properties": {
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "flags": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Flags",
+            "type": "object"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "model": {
+            "const": "not_configured",
+            "default": "not_configured",
+            "title": "Model",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "realtime": {
+            "enum": [
+              "not_configured",
+              "configured"
+            ],
+            "title": "Realtime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "flags",
+          "realtime",
+          "note"
+        ],
+        "title": "FlagsResponse",
         "type": "object"
       },
       "FuturesPostureResponse": {
@@ -2106,6 +2522,328 @@
         "title": "MarketHealthResponse",
         "type": "object"
       },
+      "MemberOut": {
+        "properties": {
+          "last_read_seq": {
+            "title": "Last Read Seq",
+            "type": "integer"
+          },
+          "member_id": {
+            "title": "Member Id",
+            "type": "string"
+          },
+          "member_kind": {
+            "enum": [
+              "human",
+              "agent"
+            ],
+            "title": "Member Kind",
+            "type": "string"
+          },
+          "member_name": {
+            "title": "Member Name",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "member_id",
+          "member_name",
+          "member_kind",
+          "role",
+          "last_read_seq"
+        ],
+        "title": "MemberOut",
+        "type": "object"
+      },
+      "MessageListResponse": {
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageOut"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "next_after_seq": {
+            "title": "Next After Seq",
+            "type": "integer"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "messages",
+          "has_more",
+          "next_after_seq"
+        ],
+        "title": "MessageListResponse",
+        "type": "object"
+      },
+      "MessageOut": {
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "correlation_id": {
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "decision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Id"
+          },
+          "kind": {
+            "enum": [
+              "chat",
+              "reply",
+              "question",
+              "clarification",
+              "claim",
+              "objection",
+              "evidence",
+              "risk_assessment",
+              "recommendation",
+              "summary",
+              "status",
+              "notice",
+              "assignment",
+              "refusal"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          },
+          "meta": {
+            "additionalProperties": true,
+            "title": "Meta",
+            "type": "object"
+          },
+          "origin": {
+            "enum": [
+              "human",
+              "scripted",
+              "model_generated",
+              "tool_verified",
+              "simulated"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
+          "origin_label": {
+            "title": "Origin Label",
+            "type": "string"
+          },
+          "recipient_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recipient Ids",
+            "type": "array"
+          },
+          "sender_id": {
+            "title": "Sender Id",
+            "type": "string"
+          },
+          "sender_kind": {
+            "enum": [
+              "human",
+              "agent",
+              "system",
+              "tool"
+            ],
+            "title": "Sender Kind",
+            "type": "string"
+          },
+          "sender_name": {
+            "title": "Sender Name",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "delivered",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "thread_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thread Id"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "tool_call_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Call Id"
+          },
+          "visibility": {
+            "enum": [
+              "conversation",
+              "private"
+            ],
+            "title": "Visibility",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "conversation_id",
+          "seq",
+          "thread_id",
+          "sender_id",
+          "sender_name",
+          "sender_kind",
+          "recipient_ids",
+          "kind",
+          "origin",
+          "origin_label",
+          "timestamp",
+          "correlation_id",
+          "task_id",
+          "decision_id",
+          "tool_call_id",
+          "content",
+          "status",
+          "visibility",
+          "citations",
+          "meta"
+        ],
+        "title": "MessageOut",
+        "type": "object"
+      },
+      "Moderate": {
+        "properties": {
+          "action": {
+            "enum": [
+              "close",
+              "pause",
+              "resume",
+              "redirect",
+              "assign_owner",
+              "request_evidence"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "agent_code": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Code"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "Moderate",
+        "type": "object"
+      },
       "OutstandingReservation": {
         "additionalProperties": false,
         "description": "One caller-supplied row. This model does not write it.",
@@ -2772,6 +3510,61 @@
         "title": "PaperSwapPostureResponse",
         "type": "object"
       },
+      "PatchConversation": {
+        "properties": {
+          "archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived"
+          },
+          "pinned": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "PatchConversation",
+        "type": "object"
+      },
+      "ReadMark": {
+        "properties": {
+          "seq": {
+            "minimum": 0.0,
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq"
+        ],
+        "title": "ReadMark",
+        "type": "object"
+      },
       "ReadyResponse": {
         "properties": {
           "database": {
@@ -3361,6 +4154,220 @@
         "title": "RiskEventLogResponse",
         "type": "object"
       },
+      "RosterEntry": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "desk": {
+            "title": "Desk",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "presence": {
+            "title": "Presence",
+            "type": "string"
+          },
+          "registry_id": {
+            "title": "Registry Id",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "tools_denied": {
+            "title": "Tools Denied",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "registry_id",
+          "name",
+          "role",
+          "desk",
+          "summary",
+          "tools_denied",
+          "presence"
+        ],
+        "title": "RosterEntry",
+        "type": "object"
+      },
+      "RosterResponse": {
+        "properties": {
+          "desks": {
+            "items": {
+              "$ref": "#/components/schemas/RosterEntry"
+            },
+            "title": "Desks",
+            "type": "array"
+          },
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "local_roster",
+            "default": "local_roster",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "desks"
+        ],
+        "title": "RosterResponse",
+        "type": "object"
+      },
+      "SendMessage": {
+        "properties": {
+          "client_message_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Message Id"
+          },
+          "content": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "enum": [
+                  "beginner",
+                  "intermediate",
+                  "advanced"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "thread_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thread Id"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "title": "SendMessage",
+        "type": "object"
+      },
+      "SendResult": {
+        "properties": {
+          "conversation": {
+            "$ref": "#/components/schemas/ConversationOut"
+          },
+          "duplicate": {
+            "default": false,
+            "title": "Duplicate",
+            "type": "boolean"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "held": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Held"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageOut"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "realtime": {
+            "default": "not_configured",
+            "enum": [
+              "not_configured",
+              "published",
+              "failed"
+            ],
+            "title": "Realtime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation",
+          "messages"
+        ],
+        "title": "SendResult",
+        "type": "object"
+      },
       "ShieldPreviewRequest": {
         "additionalProperties": false,
         "description": "A hypothetical buy. This body cannot submit an order.",
@@ -3840,6 +4847,67 @@
           "recorded_at"
         ],
         "title": "SourceEventResponse",
+        "type": "object"
+      },
+      "StartDiscussion": {
+        "properties": {
+          "agenda": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agenda"
+          },
+          "kind": {
+            "default": "discussion",
+            "enum": [
+              "discussion",
+              "boardroom"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "participants": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 10,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Participants"
+          },
+          "rounds": {
+            "default": 2,
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Rounds",
+            "type": "integer"
+          },
+          "topic": {
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "title": "StartDiscussion",
         "type": "object"
       },
       "SubmissionCondition": {
@@ -4622,6 +5690,26 @@
         "title": "TreasuryMonthlySummaryResponse",
         "type": "object"
       },
+      "TriggerBody": {
+        "properties": {
+          "task": {
+            "enum": [
+              "reconcile",
+              "risk_check",
+              "position_size",
+              "sma_crossover",
+              "treasury_split"
+            ],
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "title": "TriggerBody",
+        "type": "object"
+      },
       "UnloggedRiskKind": {
         "additionalProperties": false,
         "description": "A decision this API calculates and does not store.",
@@ -4818,6 +5906,609 @@
         "summary": "List Size Journal",
         "tags": [
           "audit"
+        ]
+      }
+    },
+    "/api/v1/comms/conversations": {
+      "get": {
+        "operationId": "list_conversations_api_v1_comms_conversations_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Archived",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Conversations",
+        "tags": [
+          "comms"
+        ]
+      },
+      "post": {
+        "operationId": "create_conversation_api_v1_comms_conversations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConversation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Conversation",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/conversations/{conversation_id}": {
+      "get": {
+        "operationId": "get_conversation_api_v1_comms_conversations__conversation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Conversation",
+        "tags": [
+          "comms"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_conversation_api_v1_comms_conversations__conversation_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchConversation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Conversation",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/conversations/{conversation_id}/messages": {
+      "get": {
+        "operationId": "list_messages_api_v1_comms_conversations__conversation_id__messages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after_seq",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "After Seq",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Messages",
+        "tags": [
+          "comms"
+        ]
+      },
+      "post": {
+        "operationId": "send_message_api_v1_comms_conversations__conversation_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Message",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/conversations/{conversation_id}/moderate": {
+      "post": {
+        "operationId": "moderate_api_v1_comms_conversations__conversation_id__moderate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Moderate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Moderate",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/conversations/{conversation_id}/read": {
+      "post": {
+        "operationId": "mark_read_api_v1_comms_conversations__conversation_id__read_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadMark"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mark Read",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/discussions": {
+      "post": {
+        "operationId": "start_discussion_api_v1_comms_discussions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartDiscussion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Discussion",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/feed": {
+      "get": {
+        "operationId": "feed_api_v1_comms_feed_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Feed",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/flags": {
+      "get": {
+        "operationId": "flags_api_v1_comms_flags_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Flags",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/roster": {
+      "get": {
+        "operationId": "roster_route_api_v1_comms_roster_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Roster Route",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/triggers": {
+      "post": {
+        "description": "Task-driven discussion. Off unless the autonomous_discussions flag is on.",
+        "operationId": "trigger_discussion_api_v1_comms_triggers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Trigger Discussion",
+        "tags": [
+          "comms"
         ]
       }
     },
