@@ -2,7 +2,7 @@
 
 Phase 0 of `VEYTRIX_MASTER_CURSOR_TASKS.md` v1.0. Date: 9 November 2026.
 
-No secret value was read or printed to write this file. Presence was checked with a shell test that reports only `SET` or `unset`. On this machine, in the shell used for the audit, every variable below was `unset`, and there is no `.env` file at the repository root or in `apps/web`. `tests/test_phase0_inventory.py` fails if code reads a variable this table does not list.
+No secret value was read or printed to write this file. Presence was checked with a shell test that reports only `SET` or `unset`. On this machine, in the shell used for the audit, every variable below was `unset`, and there is no `.env` file at the repository root or in `apps/web`. `tests/test_phase0_inventory.py` fails if code reads a variable this table does not list. The scan covers Python under `services/`, `apps/web/src`, `rpc_env_var` entries in YAML, Compose `${}` references, and Foundry `vm.env*` reads in `contracts/**/*.sol`. It skips `contracts/lib`, `contracts/out`, `contracts/cache`, and `contracts/broadcast`: the first is vendored third-party code that is gitignored, and the rest are build or run artefacts. None is Veytrix source.
 
 ## Inventory
 
@@ -28,9 +28,13 @@ Class: **config** is safe to share, **secret** must never be committed or logged
 | `VITE_SUPABASE_ANON_KEY` | `SanctumPage.tsx` | config | unset | Public anon key only. `realtime.ts` refuses a service-role key. |
 | `POSTGRES_PASSWORD` | `docker-compose.yml` | secret | `local-dev-only` | Placeholder for loopback Compose only. |
 | `SWAPBOT_RPC_URL` | Comment in `contracts/script/Deploy.s.sol` | secret | unset | Foundry dry run only. Not run. Contracts are not deployed. |
+| `SWAPBOT_PRIVATE_KEY` | `contracts/script/Deploy.s.sol` (`vm.envUint`; documented near line 14, read near line 43) | secret | unset | A testnet deployer key for the Foundry deploy script only. **This build does not deploy those contracts.** The paper-swap CLI accepts no private key and refuses to run if any variable ending in `PRIVATE_KEY` holds a value (`veytrix_ai/guards.py`, `tests/test_swapbot.py::test_private_key_is_refused_and_not_echoed`), and that includes this one. Never set it in a shell that runs the CLI. No value belongs in this repository or in a doc. |
+| `SWAPBOT_VARIANT` | `contracts/script/Deploy.s.sol` (`vm.envOr`) | config | `swaprouter02` | Picks the helper variant for the deploy script. Any other value than `swaprouter02` or `swaprouter` reverts, and `swaprouter` is also refused on Sepolia. Not run in this build. |
+| `SEPOLIA_RPC_URL` | `contracts/test/Fork.t.sol` (`vm.envOr`), `contracts/README.md` | secret | unset, tests skip | RPC URL for a local Sepolia fork test. Nothing is broadcast. Provider URLs often embed an API key. |
+| `MAINNET_RPC_URL` | `contracts/test/Fork.t.sol` (`vm.envOr`) | secret | unset, tests skip | RPC URL for a local mainnet fork test of the original router. Read-only fork, nothing is broadcast. Provider URLs often embed an API key. Not used by any Veytrix runtime. |
 | `CI` | `tests/` | config | `true` in GitHub Actions | Lets the schema tests use port 5432 in CI only. |
 
-The swapbot also refuses to start when any variable ending in `PRIVATE_KEY`, `MNEMONIC`, or `SEED_PHRASE` holds a value (`veytrix_ai/guards.py`). Those are refusal patterns, not inputs.
+The swapbot also refuses to start when any variable ending in `PRIVATE_KEY`, `MNEMONIC`, or `SEED_PHRASE` holds a value (`veytrix_ai/guards.py`). Those are refusal patterns, not inputs. `SWAPBOT_PRIVATE_KEY` above is one such name: it exists only for the unused Foundry script, and setting it makes the CLI refuse.
 
 Not present anywhere in the tree: a model provider key (Anthropic, OpenAI, or other), a WhatsApp or Twilio token, a DayPilot credential, a TradingView webhook secret, a Supabase service-role key, AWS credentials, and any bank or payment credential.
 

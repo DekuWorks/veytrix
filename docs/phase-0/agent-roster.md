@@ -39,8 +39,22 @@ Floor tile and boardroom seat are `x, y` on the Sanctum grid (16 px tiles).
 - Each desk has seven `deny` rows: `submit_order`, `cancel_order`, `sign_transaction`, `broadcast_transaction`, `bank_transfer`, `set_live_mode`, `release_kill_switch`. The permission table allows only `effect = 'deny'`.
 - No desk runs a worker. `agent_runs` is empty unless something writes a row; nothing in the tree does.
 
+## Owner decision, 9 Nov 2026
+
+The owner confirmed one reading and nothing more: **Astra and Dayvid are names for desks that already exist. They are not new agents.** Desk codes are not yet assigned. The owner did not say which existing code is which, so this repository records no pairing.
+
+The task file (`VEYTRIX_MASTER_CURSOR_TASKS.md` v1.0) uses the names in three lines. They are quoted here as role hints only:
+
+- Phase 6: "Give Astra read-only access to audit source-of-truth; store derived analysis separately with lineage and versioning."
+- PR-06: "Astra audit-to-research feedback, citations, learning mode and Wednesday Boardroom prototype."
+- Phase 10: "Implement Dayvid's DayPilot OAuth/service integration with narrow scopes, explicit write approval and duplicate-event prevention."
+
+What the hints do and do not say: Astra is attached to audit and research work, and Dayvid to DayPilot calendar work. Neither line names a code, a registry id, or a desk. Any pairing with a code in the table above is **unconfirmed** and is deliberately not made here. `tests/test_phase0_inventory.py` still fails if a roster row uses either name.
+
+**Still open:** nine versus ten. The task file counts nine initial agents and Atlas (`LIEN-01`) as a later tenth. The repository has ten desks because `FUTURES-01` was added on 9 November 2026. The owner has not answered whether `FUTURES-01` is intended, or whether Atlas is the eleventh. Nothing was renamed, added, or removed.
+
 ## Conflicts with the master task file
 
-1. **Nine versus ten.** The task file says "discover all nine initial agents" and calls Atlas (`LIEN-01`) a proposed tenth agent for about November 2027. The repository already has ten desks: the original nine from migration `0009` and `FUTURES-01` from migration `0010` (9 November 2026). This document treats the original nine as the "initial nine" and records `FUTURES-01` as an existing tenth desk. Atlas would therefore be the eleventh. The owner should confirm. Confidence: high for the counts, low for what the task file author meant.
-2. **Persona names.** The task file mentions "Astra" (Phase 6) and "Dayvid" (Phase 10). Neither name appears in the code, migrations, or web app. The only names are the codes and display names above. `docs/issue-board.md` row 06 says there is no "GPT Astra" id. These names are not mapped to a code here, because mapping them would be a guess. Plausible readings (Astra might be `RESEARCH-01`, Dayvid might be `DAY-01`) need owner confirmation.
+1. **Nine versus ten (open).** The task file says "discover all nine initial agents" and calls Atlas (`LIEN-01`) a proposed tenth agent for about November 2027. The repository already has ten desks: the original nine from migration `0009` and `FUTURES-01` from migration `0010` (9 November 2026). This document treats the original nine as the "initial nine" and records `FUTURES-01` as an existing tenth desk. Atlas would therefore be the eleventh. The owner should confirm. Confidence: high for the counts, low for what the task file author meant.
+2. **Persona names.** Resolved in part by the owner decision above: Astra and Dayvid are existing desks, not new agents. Which code each one is remains **unassigned**. Neither name appears in the code, migrations, or web app, and `docs/issue-board.md` row 06 says there is no "GPT Astra" id. No code is guessed here.
 3. **Atlas / `LIEN-01`.** Absent. The `ck_agents_code` constraint would reject it. Not added.
