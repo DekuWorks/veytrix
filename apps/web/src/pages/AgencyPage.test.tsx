@@ -32,6 +32,7 @@ const agents = [
   desk("DAY-01", "Day desk"),
   desk("DEFI-01", "DeFi desk"),
   desk("ETF-01", "ETF desk"),
+  desk("FUTURES-01", "Futures desk"),
   desk("RESEARCH-01", "Research desk"),
   desk("RISK-01", "Risk desk"),
   desk("STOCK-01", "Stock desk"),
@@ -85,7 +86,7 @@ describe("agency page", () => {
       "/agency/SUPERVISOR-01",
     );
     expect(screen.getByText("TREASURY-01")).toBeInTheDocument();
-    expect(screen.getAllByText("disabled")).toHaveLength(9);
+    expect(screen.getAllByText("disabled")).toHaveLength(agents.length);
     expect(screen.getAllByText("Denied").length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /enable|submit|trade|order/i })).not.toBeInTheDocument();
     expect(vi.mocked(apiGet)).toHaveBeenCalledWith("/api/v1/agents");

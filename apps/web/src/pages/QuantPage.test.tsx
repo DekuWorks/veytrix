@@ -79,7 +79,6 @@ describe("quant page", () => {
     expect(screen.getByText("+172.73% of the average")).toBeInTheDocument();
     expect(screen.getByText("Position in the window 29.59%.")).toBeInTheDocument();
     expect(screen.getByText("As of 2026-11-08T04:36:00Z")).toBeInTheDocument();
-    expect(screen.getAllByText(/Not a trading signal/).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "BTC-USD" })).toHaveAttribute("aria-pressed", "true");
     expect(vi.mocked(apiGet)).toHaveBeenCalledWith("/api/v1/market/instruments/BTC-USD/bars?interval=1m&limit=180");
     expect(vi.mocked(apiPost)).not.toHaveBeenCalled();
@@ -166,9 +165,6 @@ describe("quant candle age", () => {
     expect(screen.getByText("Bar start (UTC) 2026-11-08T04:59:30Z.")).toBeInTheDocument();
     expect(screen.getAllByText("Current 1-minute candle. 30 seconds left.").length).toBe(1);
     expect(screen.queryByText(/candle is stale/)).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Candle time is the Coinbase bucket start. The close is not the live print. No order is sent."),
-    ).toBeInTheDocument();
   });
 
   it("does not call a candle that closed 10 seconds ago stale", async () => {
@@ -240,11 +236,6 @@ describe("quant print minus candle", () => {
     expect(await screen.findByText("Print minus candle +$10.00 (+10.00%).")).toBeInTheDocument();
     expect(screen.getByText("Last trade $110.00.")).toBeInTheDocument();
     expect(screen.getAllByText("$100.00").length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(
-        "Last trade minus the latest 1-minute close. The close is not the live print. Not a trading signal. No order is sent.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("shows a zero gap when the print equals the close", async () => {
@@ -293,11 +284,6 @@ describe("quant window position", () => {
     expect(screen.getAllByText("$50.00").length).toBeGreaterThan(0);
     expect(screen.getByText("$100.00")).toBeInTheDocument();
     expect(screen.queryByText("Close is outside the window.")).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Share of the 1-minute window, from the low. Not a trading signal. The close is not the live print. No order is sent.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("shows the close at the window high", async () => {
@@ -360,11 +346,6 @@ describe("quant print minus average", () => {
     expect(screen.getByText("Last trade $110.00.")).toBeInTheDocument();
     expect(screen.getAllByText("$100.00").length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "20-bar average" })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Last trade minus the 20-bar average of 1-minute closes. Not a trading signal. No order is sent.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("shows a zero gap when the print equals the average", async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import {
   CandlestickSeries,
   ColorType,
@@ -102,7 +102,7 @@ export function SampleChart({
   const scalePricesRef = useRef<Array<string | null>>([]);
   scalePricesRef.current = [lastTrade, previousClose, dayHigh, dayLow];
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return undefined;
@@ -218,7 +218,7 @@ export function SampleChart({
     };
   }, [bars]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const series = seriesRef.current;
     if (!series) {
       return undefined;

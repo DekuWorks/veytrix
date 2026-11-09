@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiGet, apiPost } from "../api/client";
 import type { AuditLogEntry, DiagnosticsResponse, PaperSizeJournalEntry } from "../api/types";
 import { AppRoutes } from "../App";
-import { LIVE_NOTICE, SAMPLE_DISCLAIMER } from "../content";
 
 vi.mock("../api/client", () => ({
   apiGet: vi.fn(),
@@ -95,14 +94,12 @@ describe("audit page", () => {
     expect(screen.getAllByText("false").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Sample series present")).toBeInTheDocument();
     expect(screen.queryByText("Sample series absent")).not.toBeInTheDocument();
-    expect(screen.getAllByText(LIVE_NOTICE).length).toBeGreaterThan(0);
-    expect(screen.getByText(SAMPLE_DISCLAIMER)).toBeInTheDocument();
     expect(screen.getAllByText(/No order is sent/).length).toBeGreaterThan(0);
     expect(screen.getByText("No paper sizes recorded yet.")).toBeInTheDocument();
     expect(screen.getByText("No audit events recorded yet.")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
-        name: "Paper size journal on this machine. Not an order. The stop is not enforced. No order is sent.",
+        name: "Paper size journal on this machine. No order is sent.",
       }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Execution permitted true")).not.toBeInTheDocument();
@@ -128,8 +125,6 @@ describe("audit page", () => {
     expect(screen.queryByText("Sample series present")).not.toBeInTheDocument();
     expect(screen.queryByText("Sample series absent")).not.toBeInTheDocument();
     expect(screen.queryByRole("definition")).not.toBeInTheDocument();
-    expect(screen.getAllByText(LIVE_NOTICE).length).toBeGreaterThan(0);
-    expect(screen.getByText(SAMPLE_DISCLAIMER)).toBeInTheDocument();
     expect(vi.mocked(apiPost)).not.toHaveBeenCalled();
   });
 

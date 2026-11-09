@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiDelete, apiGet } from "../api/client";
 import type { PaperPositionResponse, TickerResponse } from "../api/types";
 import { AppRoutes } from "../App";
-import { STOPS_NOT_ENFORCED } from "../content";
 
 vi.mock("../api/client", () => ({
   apiGet: vi.fn(),
@@ -65,7 +64,6 @@ describe("portfolio page", () => {
     expect(await screen.findByText("No paper positions recorded yet.")).toBeInTheDocument();
     expect(screen.getByText(/not a brokerage position/)).toBeInTheDocument();
     expect(screen.getByText(/No order is sent/)).toBeInTheDocument();
-    expect(screen.getByRole("note")).toHaveTextContent(STOPS_NOT_ENFORCED);
     expect(vi.mocked(apiGet)).toHaveBeenCalledWith("/api/v1/portfolio/positions");
     expect(vi.mocked(apiGet)).not.toHaveBeenCalledWith(expect.stringContaining("/ticker"));
   });
@@ -93,9 +91,6 @@ describe("portfolio page", () => {
     expect(screen.getByText(/Unrealised \+\$1\.68 USD/)).toBeInTheDocument();
     expect(screen.getByText("Mark from the Coinbase print. Not a fill.")).toBeInTheDocument();
     expect(screen.getByText("Distance to stop +$34 (+1.55%).")).toBeInTheDocument();
-    expect(
-      screen.getByText("Distance to stop from the Coinbase print. The stop is not enforced."),
-    ).toBeInTheDocument();
     expect(vi.mocked(apiGet)).toHaveBeenCalledWith("/api/v1/market/instruments/ETH-USD/ticker");
     expect(vi.mocked(apiGet)).not.toHaveBeenCalledWith("/api/v1/risk/size");
 
@@ -121,9 +116,6 @@ describe("portfolio page", () => {
     expect(screen.getByText("Distance to stop is unavailable.")).toBeInTheDocument();
     expect(screen.queryByText(/Print is stale/)).not.toBeInTheDocument();
     expect(screen.queryByText("Exchange time is unreadable.")).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Distance to stop from the Coinbase print. The stop is not enforced."),
-    ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "ETH-USD" })).toBeInTheDocument();
   });
 
@@ -259,13 +251,7 @@ describe("portfolio unrealised percent", () => {
     expect(screen.getByText("Distance to stop +$20 (+22.22%).")).toBeInTheDocument();
     expect(screen.queryByText("2233.58")).not.toBeInTheDocument();
     expect(screen.getByText("100.00")).toBeInTheDocument();
-    expect(
-      screen.getByText("Unrealised from the Coinbase print, as a share of the entry. Not a fill. No order is sent."),
-    ).toBeInTheDocument();
     expect(screen.getByText("Mark from the Coinbase print. Not a fill.")).toBeInTheDocument();
-    expect(
-      screen.getByText("Distance to stop from the Coinbase print. The stop is not enforced."),
-    ).toBeInTheDocument();
   });
 
   it("shows a loss as a percent of the entry", async () => {

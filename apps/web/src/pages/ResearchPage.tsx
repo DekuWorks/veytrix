@@ -7,20 +7,17 @@ import type {
   SourceEventResponse,
 } from "../api/types";
 import { moveAgeMinutes } from "../market/moveAge";
-import { NOTE_AGE_NOTE, noteAgeLine } from "../market/noteAge";
-import { PUBLIC_LAG_NOTE, publicLagLine } from "../market/publicLag";
+import { noteAgeLine } from "../market/noteAge";
+import { publicLagLine } from "../market/publicLag";
 
 const NOTE_AGE_TICK_MS = 15_000;
 
 const STORE_DOWN = "The research note store is unavailable. This note was not saved.";
 const REMOVE_DOWN = "The research note store is unavailable. This note was not removed.";
-const EVENT_HEADER =
-  "Source events stored on this machine. Not news. Not a trading signal. No order is sent.";
+const EVENT_HEADER = "Source events stored on this machine. No order is sent.";
 const EVENT_EMPTY = "No source events recorded yet.";
 const EVENT_STORE_DOWN = "The source event store is unavailable. This event was not saved.";
 const EVENT_REMOVE_DOWN = "The source event store is unavailable. This event was not removed.";
-const RECORD_AGE_NOTE =
-  "Age of this record on this machine. Not news. Not a trading signal. No order is sent.";
 
 function recordAgeLine(recordedAt: string, now: number): string {
   const minutes = moveAgeMinutes(recordedAt, now);
@@ -230,7 +227,7 @@ export function ResearchPage() {
       <div>
         <h1 className="text-2xl font-semibold">Research</h1>
         <p className="mt-2 max-w-3xl text-sm text-muted">
-          Research notes stored on this machine. Not instructions to trade. No order is sent.
+          Research notes stored on this machine. No order is sent.
         </p>
       </div>
       <form aria-label="Research notes" className="grid max-w-xl gap-4" onSubmit={onSubmit}>
@@ -296,7 +293,6 @@ export function ResearchPage() {
               <p className="mt-2 whitespace-pre-wrap text-sm">{note.body}</p>
               <p className="mt-2 text-xs text-muted">Recorded at {note.created_at}.</p>
               <p className="mt-2 text-sm">{noteAgeLine(note.created_at, now)}</p>
-              <p className="text-sm text-warn">{NOTE_AGE_NOTE}</p>
             </li>
           ))}
         </ul>
@@ -391,10 +387,8 @@ export function ResearchPage() {
                 <p className="mt-2 text-sm">Event time {item.event_time}</p>
                 <p className="mt-2 text-sm">First public time {item.first_public_at}</p>
                 <p className="mt-2 text-sm">{publicLagLine(item.event_time, item.first_public_at)}</p>
-                <p className="text-sm text-warn">{PUBLIC_LAG_NOTE}</p>
                 <p className="mt-2 text-xs text-muted">Recorded at {item.recorded_at}.</p>
                 <p className="mt-2 text-sm">{recordAgeLine(item.recorded_at, now)}</p>
-                <p className="text-sm text-warn">{RECORD_AGE_NOTE}</p>
               </li>
             ))}
           </ul>

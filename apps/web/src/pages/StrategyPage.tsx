@@ -9,7 +9,6 @@ import type {
 } from "../api/types";
 import { KpiCard } from "../components/KpiCard";
 import { StrategyChart } from "../components/StrategyChart";
-import { STRATEGY_NOTICE } from "../content";
 
 const BASE = "/api/v1/strategies/mac-01";
 const REFRESH_MS = 30_000;
@@ -104,12 +103,11 @@ export function StrategyPage() {
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">Strategy · MAC-01</h1>
         <p className="text-sm text-muted">AAPL daily SMA 20/50 crossover. Long only, at most $100.</p>
-        <p className="text-sm text-warn">{STRATEGY_NOTICE}</p>
       </header>
 
       {state.status === "loading" ? <p className="text-sm text-muted">Loading MAC-01 status.</p> : null}
       {state.status === "unavailable" ? (
-        <p role="alert" className="text-sm text-warn">
+        <p role="alert" className="text-sm text-danger">
           {state.detail}
         </p>
       ) : null}
@@ -155,13 +153,12 @@ function StrategyBody({
   onKillConfirm,
 }: BodyProps) {
   const { status, signals, orders, performance, chart } = data;
-  const live = status.config_mode === "live";
 
   return (
     <>
       <p
         role="status"
-        className={`rounded-md border p-3 text-sm ${live ? "border-warn text-warn" : "border-line text-muted"}`}
+        className="rounded-md border border-line p-3 text-sm text-muted"
       >
         Mode: {modeLabel(status.config_mode)}. Orders are placed only by the scheduled runner on this
         machine. There is no buy or sell button.
@@ -226,7 +223,7 @@ function StrategyBody({
           {!confirmKill ? (
             <button
               type="button"
-              className="rounded-md border border-warn px-3 py-2 text-sm text-warn"
+              className="rounded-md border border-line px-3 py-2 text-sm"
               disabled={pending || status.kill_switch}
               onClick={onKillRequest}
             >
@@ -236,7 +233,7 @@ function StrategyBody({
             <>
               <button
                 type="button"
-                className="rounded-md border border-warn bg-panel-2 px-3 py-2 text-sm text-warn"
+                className="rounded-md border border-line bg-panel-2 px-3 py-2 text-sm"
                 disabled={pending}
                 onClick={onKillConfirm}
               >
@@ -258,7 +255,7 @@ function StrategyBody({
           order that is already at Alpaca.
         </p>
         {actionError !== null ? (
-          <p role="alert" className="text-sm text-warn">
+          <p role="alert" className="text-sm text-danger">
             {actionError}
           </p>
         ) : null}

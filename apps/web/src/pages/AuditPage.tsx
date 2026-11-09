@@ -8,13 +8,11 @@ import {
   type PaperSizeJournalEntry,
   type PaperSizeJournalListResponse,
 } from "../api/types";
-import { LIVE_NOTICE, SAMPLE_DISCLAIMER } from "../content";
 
-const JOURNAL_HEADER =
-  "Paper size journal on this machine. Not an order. The stop is not enforced. No order is sent.";
+const JOURNAL_HEADER = "Paper size journal on this machine. No order is sent.";
 const JOURNAL_EMPTY = "No paper sizes recorded yet.";
 const JOURNAL_UNAVAILABLE = "Paper size journal is unavailable. No size was invented.";
-const LOG_HEADER = "Local audit log. Not an order. No order is sent.";
+const LOG_HEADER = "Local audit log. No order is sent.";
 const LOG_EMPTY = "No audit events recorded yet.";
 const LOG_UNAVAILABLE = "Audit log is unavailable. No event was invented.";
 const BINDING = ["risk", "allocation", "both", "none"] as const;
@@ -276,10 +274,6 @@ export function AuditPage() {
           </ul>
         ) : null}
       </section>
-      <div className="max-w-3xl space-y-2 text-sm text-warn">
-        <p>{LIVE_NOTICE}</p>
-        <p>{SAMPLE_DISCLAIMER}</p>
-      </div>
     </div>
   );
 }

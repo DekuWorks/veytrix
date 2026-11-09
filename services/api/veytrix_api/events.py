@@ -113,6 +113,7 @@ class AgentRunCompleted(EventContract):
         "CRYPTO-01",
         "DEFI-01",
         "ETF-01",
+        "FUTURES-01",
         "RESEARCH-01",
         "RISK-01",
         "TREASURY-01",

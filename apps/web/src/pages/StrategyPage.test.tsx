@@ -10,7 +10,6 @@ import type {
   Mac01StatusResponse,
 } from "../api/types";
 import { AppRoutes } from "../App";
-import { STRATEGY_NOTICE } from "../content";
 
 const { createChart, setData, createSeriesMarkers } = vi.hoisted(() => {
   const setData = vi.fn();
@@ -191,7 +190,6 @@ describe("StrategyPage", () => {
     await renderPage();
 
     expect(screen.getByRole("heading", { name: "Strategy · MAC-01" })).toBeInTheDocument();
-    expect(screen.getByText(STRATEGY_NOTICE)).toBeInTheDocument();
     expect(screen.getByText(/Mode: Paper · paper money/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Strategy" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("img", { name: /AAPL daily adjusted closes with SMA 20 and SMA 50/ })).toBeInTheDocument();

@@ -2,14 +2,13 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../App";
-import { LIVE_NOTICE } from "../content";
 
 vi.mock("../api/client", () => ({
   apiGet: vi.fn(() => new Promise(() => undefined)),
 }));
 
 describe("dashboard shell", () => {
-  it("exposes the skip link, banner, current page, and unfinished sections", () => {
+  it("exposes the skip link, current page, and unfinished sections", () => {
     render(
       <MemoryRouter initialEntries={["/market"]}>
         <AppRoutes />
@@ -17,7 +16,6 @@ describe("dashboard shell", () => {
     );
 
     expect(screen.getByRole("link", { name: "Skip to content" })).toHaveAttribute("href", "#main");
-    expect(screen.getByRole("status")).toHaveTextContent(LIVE_NOTICE);
     expect(screen.getByRole("link", { name: "Market" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Quant" })).toHaveAttribute("href", "/quant");
     expect(screen.getByRole("link", { name: "Events" })).toHaveAttribute("href", "/events");

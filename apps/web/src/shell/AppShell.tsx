@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import { AUTH_NOTICE, LIVE_NOTICE } from "../content";
+import { AUTH_NOTICE } from "../content";
 
 const LINKS = [
   { to: "/", label: "Overview", end: true },
@@ -22,6 +22,7 @@ const LINKS = [
   { to: "/settings", label: "Settings", end: false },
   { to: "/live-gate", label: "Live gate", end: false },
   { to: "/paper-swaps", label: "Paper swaps", end: false },
+  { to: "/futures", label: "Futures", end: false },
 ] as const;
 
 type AppShellProps = {
@@ -165,12 +166,6 @@ export function AppShell({ children }: AppShellProps) {
             </button>
             <p className="text-sm text-muted">Private research desk · live quotes</p>
           </header>
-          <div
-            className="border-b border-line bg-panel-2 px-4 py-3 text-sm text-warn md:px-6"
-            role="status"
-          >
-            {LIVE_NOTICE}
-          </div>
           <main id="main" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-6 outline-none md:px-6">
             {children}
           </main>

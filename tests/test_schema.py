@@ -351,6 +351,30 @@ def test_agent_registry_migration_is_private_and_cannot_trade() -> None:
     assert "ix_audit_events_created_at" in {index.name for index in audit.indexes}
 
 
+def test_futures_desk_migration_cannot_trade() -> None:
+    text = Path("services/api/alembic/versions/20261109_0010_futures_desk.py").read_text()
+
+    assert 'revision: str = "0010_futures_desk"' in text
+    assert 'down_revision: str | None = "0009_agent_registry"' in text
+    assert "FUTURES-01" in text
+    assert "can_submit_orders" in text
+    assert "'deny'" in text
+    assert "private_key" not in text
+    assert "topstep" not in text.lower() or "Topstep automation is disabled" in text
+    code_check = next(
+        constraint
+        for constraint in Base.metadata.tables["private.agents"].constraints
+        if constraint.name == "ck_agents_code"
+    )
+    rendered = str(code_check.sqltext)
+    assert "FUTURES-01" in rendered
+    assert "can_submit_orders = false" in {
+        str(constraint.sqltext)
+        for constraint in Base.metadata.tables["private.agents"].constraints
+        if constraint.name == "ck_agents_cannot_submit"
+    }
+
+
 def _postgres_reachable(url: str) -> bool:
     if "127.0.0.1" not in url and "localhost" not in url:
         return False
@@ -514,8 +538,8 @@ def test_alembic_upgrade_on_postgres_16(monkeypatch: pytest.MonkeyPatch) -> None
     assert row[3] is False
     assert Decimal(str(row[4])) == Decimal("0.005")
     assert Decimal(str(row[5])) == Decimal("0.10")
-    assert tuple(agency) == (9, True, True, True, True, True, True)
-    assert permission_count == 63
+    assert tuple(agency) == (10, True, True, True, True, True, True)
+    assert permission_count == 70
     assert public_agents == 0
     assert {name: (row_security, force) for name, row_security, force in rls} == {
         "agent_permissions": (True, True),

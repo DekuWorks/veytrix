@@ -27,6 +27,7 @@
               "CRYPTO-01",
               "DEFI-01",
               "ETF-01",
+              "FUTURES-01",
               "RESEARCH-01",
               "RISK-01",
               "TREASURY-01"
@@ -477,6 +478,7 @@
               "CRYPTO-01",
               "DEFI-01",
               "ETF-01",
+              "FUTURES-01",
               "RESEARCH-01",
               "RISK-01",
               "TREASURY-01"
@@ -652,6 +654,103 @@
           "versions"
         ],
         "title": "DiagnosticsResponse",
+        "type": "object"
+      },
+      "FuturesPostureResponse": {
+        "additionalProperties": false,
+        "description": "Local statement that FUTURES-01 cannot trade. No broker is called.",
+        "properties": {
+          "broker_called": {
+            "const": false,
+            "title": "Broker Called",
+            "type": "boolean"
+          },
+          "can_enable": {
+            "const": false,
+            "title": "Can Enable",
+            "type": "boolean"
+          },
+          "desk": {
+            "const": "FUTURES-01",
+            "title": "Desk",
+            "type": "string"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "market_data": {
+            "const": "not_read",
+            "title": "Market Data",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "orders": {
+            "const": "absent",
+            "title": "Orders",
+            "type": "string"
+          },
+          "source": {
+            "const": "local_posture",
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "const": "disabled",
+            "title": "Status",
+            "type": "string"
+          },
+          "symbols": {
+            "items": {
+              "enum": [
+                "MES",
+                "MNQ"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Symbols",
+            "type": "array"
+          },
+          "topstep_account": {
+            "const": "not_connected",
+            "title": "Topstep Account",
+            "type": "string"
+          },
+          "topstep_automation": {
+            "const": "disabled",
+            "title": "Topstep Automation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "desk",
+          "status",
+          "symbols",
+          "topstep_automation",
+          "topstep_account",
+          "orders",
+          "market_data",
+          "can_enable",
+          "execution_permitted",
+          "order_submitted",
+          "broker_called",
+          "source",
+          "note"
+        ],
+        "title": "FuturesPostureResponse",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -4597,6 +4696,28 @@
         "summary": "Diagnostics",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/futures/posture": {
+      "get": {
+        "description": "State that the futures desk cannot trade. No market-data or broker call.",
+        "operationId": "posture_api_v1_futures_posture_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FuturesPostureResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Posture",
+        "tags": [
+          "futures"
         ]
       }
     },

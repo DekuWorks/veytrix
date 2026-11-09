@@ -5,7 +5,6 @@ import { CandlestickSeries, HistogramSeries, LineSeries } from "lightweight-char
 import { apiGet } from "../api/client";
 import type { BarResponse, BarsResponse, TickerResponse } from "../api/types";
 import { AppRoutes } from "../App";
-import { LIVE_NOTICE } from "../content";
 import { averageOfLastCloses } from "../quant/average";
 
 const chartMock = vi.hoisted(() => {
@@ -183,7 +182,6 @@ describe("market page", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent(LIVE_NOTICE);
     const alerts = await screen.findAllByRole("alert");
     expect(alerts.some((node) => /unavailable/i.test(node.textContent ?? ""))).toBe(true);
     expect(screen.queryByRole("img", { name: /candlestick/i })).not.toBeInTheDocument();
@@ -201,7 +199,6 @@ describe("market page", () => {
     expect(screen.getByRole("heading", { name: "BTC-USD · 1 minute" })).toBeInTheDocument();
     expect(screen.getByText("$75,805.98")).toBeInTheDocument();
     expect(screen.getAllByText(/As of 2026-11-08T03:59:08Z/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Not a consolidated quote/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/No order is sent/).length).toBeGreaterThan(0);
     expect(
       screen.getByRole("img", {
@@ -312,9 +309,7 @@ describe("market page", () => {
     expect(screen.getAllByText(/As of 2026-11-08T04:12:00Z/).length).toBeGreaterThan(0);
     expect(screen.getByText("Exchange time 2026-11-08T04:11:59.100000Z")).toBeInTheDocument();
     expect(screen.getByText("$3,180.00")).toBeInTheDocument();
-    expect(screen.getAllByText(/Not a consolidated quote/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/No order is sent/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Not investment advice/).length).toBeGreaterThan(0);
     expect(
       screen.getByRole("img", {
         name: /ETH-USD 1-minute candlestick chart from Coinbase/i,
@@ -322,9 +317,6 @@ describe("market page", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "BTC-USD · 1 minute" })).not.toBeInTheDocument();
     expect(screen.queryByText("$75,764.49")).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Line: 20-bar average of closes\. Not a trading signal\. No order is sent\./),
-    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ETH-USD" })).toHaveAttribute("aria-pressed", "true");
     const paths = vi.mocked(apiGet).mock.calls.map(([path]) => path);
     expect(paths.some((path) => path.includes("/ETH-USD/ticker"))).toBe(true);
@@ -456,21 +448,15 @@ describe("market page", () => {
     );
 
     expect(await screen.findByRole("img", { name: /candlestick/i })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /Volume bars: 1-minute base volume from the Coinbase candle\. Not USD\. Not a trading signal\. No order is sent\./,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Line: 20-bar average of closes\. Not a trading signal\. No order is sent\./),
-    ).toBeInTheDocument();
-    const histogram = chartMock.recorded.find((item) => item.definition === HistogramSeries);
-    const candles = chartMock.recorded.find((item) => item.definition === CandlestickSeries);
-    expect(candles?.data).toHaveLength(5);
-    expect(histogram?.data).toEqual([
-      { time: Date.parse("2026-11-08T04:00:00Z") / 1000, value: 1.5, color: "#3dbe8b" },
-      { time: Date.parse("2026-11-08T04:02:00Z") / 1000, value: 0, color: "#e07a7a" },
-    ]);
+    await waitFor(() => {
+      const histogram = chartMock.recorded.find((item) => item.definition === HistogramSeries);
+      const candles = chartMock.recorded.find((item) => item.definition === CandlestickSeries);
+      expect(candles?.data).toHaveLength(5);
+      expect(histogram?.data).toEqual([
+        { time: Date.parse("2026-11-08T04:00:00Z") / 1000, value: 1.5, color: "#3dbe8b" },
+        { time: Date.parse("2026-11-08T04:02:00Z") / 1000, value: 0, color: "#e07a7a" },
+      ]);
+    });
     expect(chartMock.addSeries).toHaveBeenCalledWith(HistogramSeries, expect.anything(), 1);
     expect(vi.mocked(apiGet).mock.calls.some(([path]) => path.includes("/risk/"))).toBe(false);
   });
@@ -483,11 +469,6 @@ describe("market page", () => {
     );
 
     expect(await screen.findByRole("img", { name: /candlestick/i })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /Horizontal line: the latest Coinbase print\. It is not the candle close\. No order is sent\./,
-      ),
-    ).toBeInTheDocument();
     expect(chartMock.priceLines.filter((line) => line.title === "Last trade")).toEqual([
       expect.objectContaining({ price: 75764.49, title: "Last trade", color: "#7aa2ff" }),
     ]);
@@ -571,11 +552,6 @@ describe("market page", () => {
     );
 
     expect(await screen.findByRole("img", { name: /candlestick/i })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /Second line: the previous daily close\. Not a settlement of today\. No order is sent\./,
-      ),
-    ).toBeInTheDocument();
     expect(chartMock.priceLines.filter((line) => line.title === "Previous close")).toEqual([
       expect.objectContaining({ price: 75000, title: "Previous close", color: "#e36ad4" }),
     ]);
@@ -645,15 +621,19 @@ describe("market page", () => {
     );
 
     expect(await screen.findByRole("img", { name: /BTC-USD 1-minute candlestick chart/i })).toBeInTheDocument();
-    expect(chartMock.priceLines.filter((line) => line.title === "Previous close")).toEqual([
-      expect.objectContaining({ price: 75000, title: "Previous close" }),
-    ]);
+    await waitFor(() => {
+      expect(chartMock.priceLines.filter((line) => line.title === "Previous close")).toEqual([
+        expect.objectContaining({ price: 75000, title: "Previous close" }),
+      ]);
+    });
     fireEvent.click(screen.getByRole("button", { name: "ETH-USD" }));
 
     expect(await screen.findByRole("img", { name: /ETH-USD 1-minute candlestick chart/i })).toBeInTheDocument();
-    expect(chartMock.priceLines.filter((line) => line.title === "Previous close")).toEqual([
-      expect.objectContaining({ price: 2100, title: "Previous close" }),
-    ]);
+    await waitFor(() => {
+      expect(chartMock.priceLines.filter((line) => line.title === "Previous close")).toEqual([
+        expect.objectContaining({ price: 2100, title: "Previous close" }),
+      ]);
+    });
     expect(chartMock.priceLines.some((line) => line.price === 75000)).toBe(false);
     expect(chartMock.priceLines.some((line) => line.price === 2231.82)).toBe(false);
     expect(chartMock.priceLines.filter((line) => line.title === "Last trade")).toEqual([
@@ -694,11 +674,6 @@ describe("market page", () => {
     );
 
     expect(await screen.findByRole("img", { name: /candlestick/i })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /Day high and day low: the in-progress UTC daily candle\. Not a settlement\. No order is sent\./,
-      ),
-    ).toBeInTheDocument();
     expect(chartMock.priceLines.filter((line) => line.title === "Day high")).toEqual([
       expect.objectContaining({ price: 75830.11, title: "Day high", color: "#f97316" }),
     ]);
@@ -1194,9 +1169,6 @@ describe("market bid-ask spread", () => {
 
     expect(await screen.findByText("$100.05")).toBeInTheDocument();
     expect(screen.getByText("Spread $0.10 (10.00 bp).")).toBeInTheDocument();
-    expect(
-      screen.getByText("Bid-ask spread from the Coinbase print. Not a consolidated quote. No order is sent."),
-    ).toBeInTheDocument();
   });
 
   it("keeps the last trade and does not invent a spread when the ask is missing", async () => {
@@ -1245,9 +1217,6 @@ describe("market base volume and last size", () => {
     expect(screen.getByRole("heading", { name: "Last trade size" })).toBeInTheDocument();
     expect(screen.getByText("0.00000011")).toBeInTheDocument();
     expect(screen.getAllByText("BTC").length).toBeGreaterThan(0);
-    expect(
-      screen.getByText("From the Coinbase ticker. Base currency, not USD. Not a consolidated quote. No order is sent."),
-    ).toBeInTheDocument();
     expect(screen.queryByText("$2,022.50285353")).not.toBeInTheDocument();
   });
 
@@ -1303,11 +1272,6 @@ describe("market day position", () => {
     expect(screen.getAllByText("$150.00").length).toBeGreaterThan(0);
     expect(screen.getByText("High $200.00")).toBeInTheDocument();
     expect(screen.getByText("Low $100.00")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Share of the in-progress UTC day range, from the low. Not a trading signal. Not a settlement. No order is sent.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("shows a print above the high without changing that high or low", async () => {
@@ -1415,9 +1379,6 @@ describe("market candle age", () => {
     expect(screen.getByText("Bar start (UTC) 2026-11-08T04:59:30Z.")).toBeInTheDocument();
     expect(screen.getByText("Current 1-minute candle. 30 seconds left.")).toBeInTheDocument();
     expect(screen.queryByText(/candle is stale/)).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Candle time is the Coinbase bucket start. The close is not the live print. No order is sent."),
-    ).toBeInTheDocument();
   });
 
   it("does not call a candle that closed 10 seconds ago stale", async () => {
@@ -1478,11 +1439,6 @@ describe("market print minus candle", () => {
     expect(await screen.findByText("Print minus candle +$10.00 (+10.00%).")).toBeInTheDocument();
     expect(screen.getAllByText("$110.00").length).toBeGreaterThan(0);
     expect(screen.getByText("$100.00")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Last trade minus the latest 1-minute close. The close is not the live print. Not a trading signal. No order is sent.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("shows a zero gap when the print equals the close", async () => {

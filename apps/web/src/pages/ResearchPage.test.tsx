@@ -59,9 +59,8 @@ describe("research notes", () => {
     renderResearch();
 
     expect(await screen.findByText("No research notes recorded yet.")).toBeInTheDocument();
-    expect(screen.getByText(/Not instructions to trade/)).toBeInTheDocument();
     expect(
-      screen.getByText("Research notes stored on this machine. Not instructions to trade. No order is sent."),
+      screen.getByText("Research notes stored on this machine. No order is sent."),
     ).toBeInTheDocument();
     const notes = screen.getByRole("form", { name: "Research notes" });
     fireEvent.change(within(notes).getByRole("textbox", { name: "Title" }), {
@@ -154,10 +153,7 @@ describe("research note age", () => {
     expect(await screen.findByRole("heading", { name: "Desk check" })).toBeInTheDocument();
     expect(screen.getByText("One line on this machine.")).toBeInTheDocument();
     expect(screen.getByText("Note age 2 minutes.")).toBeInTheDocument();
-    expect(
-      screen.getByText("Age of this note on this machine. Not an instruction to trade. No order is sent."),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Not instructions to trade/)).toBeInTheDocument();
+    expect(screen.getByText("Research notes stored on this machine. No order is sent.")).toBeInTheDocument();
     expect(vi.mocked(apiGet)).toHaveBeenCalledTimes(2);
     expect(vi.mocked(apiGet)).toHaveBeenCalledWith("/api/v1/research/notes");
     expect(vi.mocked(apiGet)).toHaveBeenCalledWith("/api/v1/research/source-events");
@@ -210,7 +206,7 @@ describe("source events", () => {
     expect(await screen.findByText("No source events recorded yet.")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
-        name: "Source events stored on this machine. Not news. Not a trading signal. No order is sent.",
+        name: "Source events stored on this machine. No order is sent.",
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add source event" })).toBeInTheDocument();
@@ -231,11 +227,6 @@ describe("source events", () => {
     expect(screen.getByText("Event time 2026-11-08T13:30:00Z")).toBeInTheDocument();
     expect(screen.getByText("First public time 2026-11-08T13:30:05Z")).toBeInTheDocument();
     expect(screen.getByText("Public lag 0 minutes.")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "First public time minus the event time. Not news. Not a trading signal. No order is sent.",
-      ),
-    ).toBeInTheDocument();
     expect(screen.queryByText("No source events recorded yet.")).not.toBeInTheDocument();
     expect(screen.queryByText(/Move age/)).not.toBeInTheDocument();
     expect(vi.mocked(apiPost)).not.toHaveBeenCalled();

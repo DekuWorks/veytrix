@@ -9,12 +9,12 @@ import {
 } from "../api/types";
 import { KpiCard } from "../components/KpiCard";
 import { SampleChart, type ChartBar } from "../components/SampleChart";
-import { TICKER_SIZE_NOTE, formatBaseQuantity } from "../market/baseQuantity";
-import { CANDLE_AGE_NOTE, candleAge } from "../market/candleAge";
-import { DAY_POSITION_NOTE, currentDayBounds, dayPosition, dayPositionLine } from "../market/dayPosition";
-import { PRINT_GAP_NOTE, printGapLine, printMinusClose } from "../market/printGap";
+import { formatBaseQuantity } from "../market/baseQuantity";
+import { candleAge } from "../market/candleAge";
+import { currentDayBounds, dayPosition, dayPositionLine } from "../market/dayPosition";
+import { printGapLine, printMinusClose } from "../market/printGap";
 import { printStatus } from "../market/freshness";
-import { SPREAD_NOTE, spreadLine } from "../market/spread";
+import { spreadLine } from "../market/spread";
 
 const PRICE = /^\d+(?:\.\d+)?$/;
 const TICKER_MS = 2_000;
@@ -401,7 +401,7 @@ export function MarketPage() {
             <p className="font-mono text-xs text-jade-2">Exchange time {ticker.payload.trade_time}</p>
           </div>
           {print !== null && print.state !== "current" ? (
-            <p className="text-sm text-warn">{print.line}</p>
+            <p className="text-sm text-muted">{print.line}</p>
           ) : null}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <KpiCard
@@ -422,12 +422,8 @@ export function MarketPage() {
               detail={baseAsset(ticker.payload.symbol)}
             />
           </div>
-          <p className="text-sm text-warn">{TICKER_SIZE_NOTE}</p>
           <p className="text-sm">{spreadLine(ticker.payload.bid, ticker.payload.ask)}</p>
-          <p className="text-sm text-warn">{SPREAD_NOTE}</p>
           <p className="text-sm">{marketPosition(ticker, daily)}</p>
-          <p className="text-sm text-warn">{DAY_POSITION_NOTE}</p>
-          <p className="text-sm text-warn">{ticker.payload.disclaimer}</p>
         </section>
       ) : null}
 
@@ -441,7 +437,6 @@ export function MarketPage() {
           ) : null}
         </div>
         <p className="text-sm">{candleGap(ticker, minute)}</p>
-        <p className="text-sm text-warn">{PRINT_GAP_NOTE}</p>
         {minute.status === "loading" ? (
           <p className="text-sm text-muted">Loading {product} 1-minute candles.</p>
         ) : null}
@@ -457,7 +452,6 @@ export function MarketPage() {
         ) : null}
         {minute.status === "ready" ? (
           <div className="space-y-4">
-            <p className="text-sm text-warn">{minute.payload.disclaimer}</p>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <KpiCard
                 label="Last 1-minute close"
@@ -474,24 +468,22 @@ export function MarketPage() {
               Bar start (UTC) {minute.payload.bars.at(-1)?.bar_start ?? "—"}.
             </p>
             <p className="text-sm">{candleAge(minute.payload.bars.at(-1)?.bar_start ?? "", Date.now()).line}</p>
-            <p className="text-sm text-warn">{CANDLE_AGE_NOTE}</p>
             {minute.plotted.length > 0 ? (
             <SampleChart
               key={minute.payload.symbol}
               bars={minute.plotted}
-              caption={`${minute.payload.symbol} 1-minute candles on Coinbase. Not a consolidated quote. Not investment advice. No order is sent. As of ${minute.payload.retrieved_at}. Line: 20-bar average of closes. Not a trading signal. No order is sent. Volume bars: 1-minute base volume from the Coinbase candle. Not USD. Not a trading signal. No order is sent. Horizontal line: the latest Coinbase print. It is not the candle close. No order is sent. Second line: the previous daily close. Not a settlement of today. No order is sent. Day high and day low: the in-progress UTC daily candle. Not a settlement. No order is sent.`}
+              caption={`${minute.payload.symbol} 1-minute candles on Coinbase. As of ${minute.payload.retrieved_at}. No order is sent.`}
               lastTrade={ticker.status === "ready" ? ticker.payload.price : null}
               previousClose={previousClose}
               dayHigh={dayHigh}
               dayLow={dayLow}
-              label={`${minute.payload.symbol} 1-minute candlestick chart from Coinbase. Not a consolidated quote. Not investment advice. No order is sent.`}
+              label={`${minute.payload.symbol} 1-minute candlestick chart from Coinbase. No order is sent.`}
             />
             ) : null}
             <div className="max-h-64 overflow-auto rounded-md border border-line">
               <table className="w-full text-left text-sm">
                 <caption className="px-3 py-2 text-left text-muted">
-                  Latest {minute.payload.symbol} 1-minute bars from Coinbase. Not a consolidated quote.
-                  No order is sent.
+                  Latest {minute.payload.symbol} 1-minute bars from Coinbase. No order is sent.
                 </caption>
                 <thead className="sticky top-0 bg-panel-2">
                   <tr>
@@ -540,7 +532,6 @@ export function MarketPage() {
         ) : null}
         {daily.status === "ready" ? (
           <div className="space-y-4">
-            <p className="text-sm text-warn">{daily.payload.disclaimer}</p>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <KpiCard
                 label="Last daily close"
@@ -573,7 +564,7 @@ export function MarketPage() {
               <table className="w-full text-left text-sm">
                 <caption className="px-3 py-2 text-left text-muted">
                   {daily.payload.symbol} daily candles from Coinbase. Change versus the previous daily
-                  close. Not a consolidated quote. Not investment advice. No order is sent.
+                  close. No order is sent.
                 </caption>
                 <thead className="sticky top-0 bg-panel-2">
                   <tr>

@@ -7,11 +7,10 @@ import {
   type SizeResponse,
   type TickerResponse,
 } from "../api/types";
-import { STOPS_NOT_ENFORCED } from "../content";
 import { printStatus } from "../market/freshness";
-import { SPREAD_NOTE, spreadLine } from "../market/spread";
-import { PLANNED_RISK_PERCENT_NOTE, plannedRiskPercentLine } from "../paper/plannedRisk";
-import { STOP_DISTANCE_NOTE, stopDistanceLine } from "../paper/stopDistance";
+import { spreadLine } from "../market/spread";
+import { plannedRiskPercentLine } from "../paper/plannedRisk";
+import { stopDistanceLine } from "../paper/stopDistance";
 
 const PRODUCTS = COINBASE_PRODUCTS;
 const TICKER_MS = 2_000;
@@ -211,9 +210,6 @@ export function RiskPage() {
           edit it. The form calculates a paper share count. No order is sent.
         </p>
       </div>
-      <p id="risk-warning" role="note" className="max-w-3xl rounded-md border border-warn/40 bg-panel p-4 text-sm text-warn">
-        {STOPS_NOT_ENFORCED}
-      </p>
       <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-md border border-line bg-panel p-3">
           <dt className="text-muted">Example per-trade risk</dt>
@@ -232,7 +228,7 @@ export function RiskPage() {
           <dd>10% of equity</dd>
         </div>
       </dl>
-      <form aria-describedby="risk-warning" className="grid max-w-xl gap-4" onSubmit={onSubmit}>
+      <form className="grid max-w-xl gap-4" onSubmit={onSubmit}>
         <fieldset className="flex flex-wrap items-center gap-2 border-0 p-0">
           <legend className="mr-1 text-sm text-muted">Product</legend>
           {PRODUCTS.map((id) => (
@@ -296,12 +292,11 @@ export function RiskPage() {
             </p>
           ) : null}
           {liveStatus !== null && liveStatus.state !== "current" ? (
-            <p className="text-warn">{liveStatus.line}</p>
+            <p className="text-muted">{liveStatus.line}</p>
           ) : null}
           {live ? (
             <div className="basis-full">
               <p>{spreadLine(live.bid, live.ask)}</p>
-              <p className="text-warn">{SPREAD_NOTE}</p>
             </div>
           ) : null}
           <button
@@ -326,7 +321,6 @@ export function RiskPage() {
           />
         </label>
         <p className="text-sm">{stopDistanceLine(entry, stop)}</p>
-        <p className="text-sm text-warn">{STOP_DISTANCE_NOTE}</p>
         <p className="text-sm text-muted">
           The server policy supplies the fractions. A risk fraction above 0.02 is rejected. The
           stop must be below the entry. No order is sent.
@@ -359,7 +353,6 @@ export function RiskPage() {
             <dd className="font-mono">{result.planned_risk_amount}</dd>
           </div>
           <p>{plannedRiskPercentLine(result.planned_risk_amount, result.account_equity)}</p>
-          <p className="text-warn">{PLANNED_RISK_PERCENT_NOTE}</p>
           <div className="flex justify-between gap-4">
             <dt>Notional</dt>
             <dd className="font-mono">{result.notional}</dd>
@@ -373,8 +366,6 @@ export function RiskPage() {
             <dd className="font-mono">false</dd>
           </div>
           <p>No order is sent.</p>
-          {result.warning ? <p className="text-warn">{result.warning}</p> : null}
-          <p className="text-warn">{result.note}</p>
         </dl>
       ) : null}
       {result ? (

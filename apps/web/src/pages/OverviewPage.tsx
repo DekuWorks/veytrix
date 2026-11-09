@@ -12,14 +12,12 @@ import {
   type TickerResponse,
 } from "../api/types";
 import { KpiCard } from "../components/KpiCard";
-import { STOPS_NOT_ENFORCED } from "../content";
-import { TICKER_SIZE_NOTE, lastSizeLine, volumeLine } from "../market/baseQuantity";
-import { DAY_RANGE_NOTE, dayRangeLine, inProgressDayRange } from "../market/dayRange";
-import { DAY_POSITION_NOTE, currentDayBounds, dayPosition, dayPositionLine } from "../market/dayPosition";
+import { lastSizeLine, volumeLine } from "../market/baseQuantity";
+import { dayRangeLine, inProgressDayRange } from "../market/dayRange";
+import { currentDayBounds, dayPosition, dayPositionLine } from "../market/dayPosition";
 import { printStatus } from "../market/freshness";
-import { SPREAD_NOTE, spreadLine } from "../market/spread";
+import { spreadLine } from "../market/spread";
 import {
-  UNREALISED_PERCENT_NOTE,
   distanceToStop,
   formatDifferenceUsd,
   sumSignedDecimals,
@@ -143,7 +141,7 @@ function printDetail(payload: TickerResponse, now: number): string {
   const base = `Bid ${usd(payload.bid)} · ask ${usd(payload.ask)}. Exchange time ${payload.trade_time}.`;
   const status = printStatus(payload.trade_time, now);
   const head = status.state === "current" ? base : `${base} ${status.line}`;
-  return `${head} ${spreadLine(payload.bid, payload.ask)} ${SPREAD_NOTE}`;
+  return `${head} ${spreadLine(payload.bid, payload.ask)}`;
 }
 
 function baseAsset(product: CoinbaseProduct): string {
@@ -399,10 +397,6 @@ export function OverviewPage() {
         <h2 id="live-prints" className="text-lg font-semibold">
           Live prints
         </h2>
-        <p className="mt-2 max-w-3xl text-sm text-warn">
-          Coinbase personal display on this machine. Not a consolidated quote. Not investment advice.
-          No order is sent.
-        </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {COINBASE_PRODUCTS.map((product) => {
             const quote = quotes[product];
@@ -420,12 +414,9 @@ export function OverviewPage() {
                       : "Waiting for the Coinbase print."
                 }
                 activity={ready ? tickerActivity(ready) : undefined}
-                activityCaption={ready ? TICKER_SIZE_NOTE : undefined}
                 note={dailyNote(daily[product])}
                 extra={rangeNote(daily[product])}
-                caption={DAY_RANGE_NOTE}
                 position={positionNote(quote, daily[product])}
-                positionCaption={DAY_POSITION_NOTE}
               />
             );
           })}
@@ -435,9 +426,6 @@ export function OverviewPage() {
         <h2 id="paper-book" className="text-lg font-semibold">
           Paper book
         </h2>
-        <p className="mt-2 max-w-3xl text-sm text-warn">
-          Paper book on this machine. Not a fill. The stop is not enforced. No order is sent.
-        </p>
         {book.status === "loading" ? <p className="mt-3 text-sm text-muted">Loading the paper book.</p> : null}
         {book.status === "unavailable" ? (
           <p className="mt-3 text-sm text-danger" role="alert">
@@ -473,7 +461,6 @@ export function OverviewPage() {
                         Distance to stop {figure.distanceUsd} ({figure.distancePercent}).
                       </p>
                     ) : null}
-                    <p className="text-warn">{UNREALISED_PERCENT_NOTE}</p>
                     {figure?.kind === "loading" ? <p className="text-muted">Unrealised percent is loading.</p> : null}
                     {figure?.kind === "unavailable" ? <p>Unrealised percent is unavailable.</p> : null}
                     {figure?.kind === "ready" ? (
@@ -521,7 +508,6 @@ export function OverviewPage() {
           </dl>
         ) : null}
       </section>
-      <p className="max-w-3xl text-sm text-warn">{STOPS_NOT_ENFORCED}</p>
     </div>
   );
 }

@@ -87,7 +87,7 @@ describe("events page", () => {
     expect(screen.getByText("As of 2026-11-08T04:45:00Z")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Detected from Coinbase 1-minute candles on this machine. Not news. Not a trading signal. Not a consolidated quote. No order is sent.",
+        "Detected from Coinbase 1-minute candles on this machine. No order is sent.",
       ),
     ).toBeInTheDocument();
     expect(vi.mocked(apiGet)).toHaveBeenCalledWith("/api/v1/market/instruments/BTC-USD/bars?interval=1m&limit=180");
@@ -223,13 +223,8 @@ describe("events candle age", () => {
     expect(within(region).getByText("+$10.00")).toBeInTheDocument();
     expect(within(region).queryByText(/candle is stale/)).not.toBeInTheDocument();
     expect(
-      within(region).getByText(
-        "Candle time is the Coinbase bucket start. The close is not the live print. No order is sent.",
-      ),
-    ).toBeInTheDocument();
-    expect(
       screen.getByText(
-        "Detected from Coinbase 1-minute candles on this machine. Not news. Not a trading signal. Not a consolidated quote. No order is sent.",
+        "Detected from Coinbase 1-minute candles on this machine. No order is sent.",
       ),
     ).toBeInTheDocument();
   });
@@ -338,9 +333,6 @@ describe("events move age", () => {
     expect(row).toHaveTextContent("+$10.00");
     expect(row).toHaveTextContent("Bar start 2026-11-08T04:57:55.000Z");
     expect(within(row).getByText("Move age 2 minutes.")).toBeInTheDocument();
-    expect(
-      within(row).getByText("Age of this 1-minute move. Not news. Not a trading signal. No order is sent."),
-    ).toBeInTheDocument();
     expect(within(region).getByText("Last 1-minute candle closed 65 seconds ago.")).toBeInTheDocument();
     expect(vi.mocked(apiPost)).not.toHaveBeenCalled();
   });

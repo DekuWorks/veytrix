@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "../api/client";
 import { COINBASE_PRODUCTS, type BarResponse, type BarsResponse, type CoinbaseProduct } from "../api/types";
-import { CANDLE_AGE_NOTE, candleAge } from "../market/candleAge";
-import { MOVE_AGE_NOTE, moveAgeLine } from "../market/moveAge";
+import { candleAge } from "../market/candleAge";
+import { moveAgeLine } from "../market/moveAge";
 
 const PRODUCTS = COINBASE_PRODUCTS;
 const MINUTE_MS = 45_000;
@@ -99,7 +99,6 @@ function CandleAge({ barStart }: { barStart: string }) {
     <>
       {barStart.length > 0 ? <p className="font-mono text-xs text-jade-2">Bar start (UTC) {barStart}.</p> : null}
       <p className="text-sm">{age.line}</p>
-      <p className="text-sm text-warn">{CANDLE_AGE_NOTE}</p>
     </>
   );
 }
@@ -164,7 +163,6 @@ function ProductMoves({
                   </div>
                 </dl>
                 <p className="mt-3">{moveAgeLine(move.barStart, now)}</p>
-                <p className="text-warn">{MOVE_AGE_NOTE}</p>
               </li>
             ))}
           </ol>
@@ -242,8 +240,7 @@ export function EventsPage() {
       <div>
         <h1 className="text-2xl font-semibold">Events</h1>
         <p className="mt-2 max-w-3xl text-sm text-muted">
-          Detected from Coinbase 1-minute candles on this machine. Not news. Not a trading signal.
-          Not a consolidated quote. No order is sent.
+          Detected from Coinbase 1-minute candles on this machine. No order is sent.
         </p>
       </div>
       {PRODUCTS.map((product) => (

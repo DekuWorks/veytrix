@@ -49,8 +49,11 @@ def test_openapi_snapshot_matches_the_app() -> None:
 def test_ui_copy_matches_the_service_constants() -> None:
     source = (ROOT / "apps" / "web" / "src" / "content.ts").read_text(encoding="utf-8")
 
-    assert SAMPLE_DISCLAIMER in source
-    assert STOPS_NOT_ENFORCED in source
+    assert "Trading rights stay denied" in source
+    assert "Nothing is signed or broadcast" in source
+    assert "Authentication is not configured" in source
+    assert SAMPLE_DISCLAIMER not in source
+    assert STOPS_NOT_ENFORCED not in source
 
 
 def test_compose_publishes_loopback_only_and_ci_asks_for_no_cloud_credentials() -> None:

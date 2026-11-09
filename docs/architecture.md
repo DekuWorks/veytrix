@@ -9,7 +9,8 @@ What still holds:
 - `POST /api/v1/risk/size` returns a share count with `execution_permitted` and `order_submitted` false.
 - SAMPLE bars are synthetic. BTC-USD, ETH-USD, and SOL-USD are a Coinbase display. Neither path submits an order.
 - Alpaca orders, if any, come from the MAC-01 CLI. Simulated swaps come from the paper-swap CLI. The API reads both and submits neither.
-- Authentication is not implemented. The database in use on this machine is `veytrix-local-postgres` on `127.0.0.1:5433`, not the Compose publish on port 5432 (that host port is taken by another container).
+- `GET /api/v1/futures/posture` reads a disabled FUTURES-01 statement. Topstep automation stays off. The route does not call a broker.
+- Authentication is not implemented. The database in use on this machine is `veytrix-local-postgres` on `127.0.0.1:5433`. Alembic head is `0010_futures_desk`. Do not use port 5432; that host port is another container.
 
 ```text
 browser (127.0.0.1:5173)
@@ -20,6 +21,7 @@ FastAPI (127.0.0.1:8000)
     ├── /market          SAMPLE in memory; Coinbase BTC-USD, ETH-USD, SOL-USD
     ├── /risk/size       decimal calculator, no order write
     ├── /strategies/mac-01   ledger read; pause / resume / kill-switch engage
+    ├── /futures/posture    FUTURES-01 disabled; Topstep automation off
     └── /paper-swaps     simulated fills, read-only
             │
             ▼

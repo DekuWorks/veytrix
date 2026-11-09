@@ -127,7 +127,7 @@ def test_system_status_counts_desks_without_a_broker_balance() -> None:
     body = status.json()
     assert status.status_code == 200
     assert body["database"] == "up"
-    assert body["agents_registered"] == 9
+    assert body["agents_registered"] == len(AGENT_CODES)
     assert body["agents_can_trade"] is False
     assert body["order_route"] == "absent"
     assert body["execution_permitted"] is False
@@ -185,7 +185,7 @@ def test_agents_route_reads_the_local_registry(monkeypatch: pytest.MonkeyPatch) 
     assert all(row["can_submit_orders"] is False for row in body["agents"])
     assert body["trading_rights"] == "denied"
     assert status.status_code == 200
-    assert status.json()["agents_registered"] == 9
+    assert status.json()["agents_registered"] == len(AGENT_CODES)
     assert status.json()["agents_can_trade"] is False
     assert status.json()["order_route"] == "absent"
     assert posted.status_code == 405

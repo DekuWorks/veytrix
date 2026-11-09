@@ -691,6 +691,32 @@ class PaperSwapOrderListResponse(BaseModel):
     orders: list[PaperSwapOrderEntry]
 
 
+class FuturesPostureResponse(BaseModel):
+    """Local statement that FUTURES-01 cannot trade. No broker is called."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    desk: Literal["FUTURES-01"]
+    status: Literal["disabled"]
+    symbols: list[Literal["MES", "MNQ"]] = Field(min_length=2, max_length=2)
+    topstep_automation: Literal["disabled"]
+    topstep_account: Literal["not_connected"]
+    orders: Literal["absent"]
+    market_data: Literal["not_read"]
+    can_enable: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    broker_called: Literal[False]
+    source: Literal["local_posture"]
+    note: str = Field(min_length=1, max_length=400)
+
+    @model_validator(mode="after")
+    def symbols_stay_research_only(self) -> FuturesPostureResponse:
+        if self.symbols != ["MES", "MNQ"]:
+            raise ValueError("Futures symbols are incomplete.")
+        return self
+
+
 AGENT_CODES = (
     "SUPERVISOR-01",
     "DAY-01",
@@ -698,6 +724,7 @@ AGENT_CODES = (
     "CRYPTO-01",
     "DEFI-01",
     "ETF-01",
+    "FUTURES-01",
     "RESEARCH-01",
     "RISK-01",
     "TREASURY-01",
@@ -710,6 +737,7 @@ AgentCode = Literal[
     "CRYPTO-01",
     "DEFI-01",
     "ETF-01",
+    "FUTURES-01",
     "RESEARCH-01",
     "RISK-01",
     "TREASURY-01",

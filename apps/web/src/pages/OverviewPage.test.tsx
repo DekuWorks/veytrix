@@ -154,7 +154,6 @@ describe("overview prints", () => {
     expect(screen.getByText(/Bid \$2,234\.55 · ask \$2,234\.56/)).toBeInTheDocument();
     expect(screen.getByText(/Bid \$186\.41 · ask \$186\.43/)).toBeInTheDocument();
     expect(screen.getByText(/Exchange time 2026-11-08T04:17:21\.906738619Z/)).toBeInTheDocument();
-    expect(screen.getAllByText(/No order is sent/).length).toBeGreaterThan(0);
     expect(screen.getByText("Not sent")).toBeInTheDocument();
   });
 
@@ -324,9 +323,6 @@ describe("overview prints", () => {
     expect(await screen.findByText("$100.05")).toBeInTheDocument();
     expect(btcCard).toHaveTextContent("$100.05");
     expect(btcCard).toHaveTextContent("Spread $0.10 (10.00 bp).");
-    expect(btcCard).toHaveTextContent(
-      "Bid-ask spread from the Coinbase print. Not a consolidated quote. No order is sent.",
-    );
     const ethCard = card("ETH-USD last trade");
     expect(ethCard).toHaveTextContent("$50.00");
     expect(ethCard).toHaveTextContent("Spread $0.00 (0.00 bp).");
@@ -394,9 +390,6 @@ describe("overview prints", () => {
     expect(btcCard).toHaveTextContent("Day high $110.50. Day low $100.25. Day range $10.25.");
     expect(btcCard).not.toHaveTextContent("Day high $1.00");
     expect(btcCard).not.toHaveTextContent("$998.00");
-    expect(btcCard).toHaveTextContent(
-      "In-progress UTC day from the Coinbase daily candle. Not a settlement. No order is sent.",
-    );
     const ethCard = card("ETH-USD last trade");
     expect(ethCard).toHaveTextContent("$2,234.56");
     expect(ethCard).toHaveTextContent("Day high $40.00. Day low $40.00. Day range $0.00.");
@@ -515,9 +508,6 @@ describe("overview prints", () => {
     expect(btcCard).toHaveTextContent("Last trade size 0.01 BTC.");
     expect(btcCard).toHaveTextContent("Spread $0.01 (0.00 bp).");
     expect(btcCard).toHaveTextContent("Day high $110.50. Day low $100.25. Day range $10.25.");
-    expect(btcCard).toHaveTextContent(
-      "From the Coinbase ticker. Base currency, not USD. Not a consolidated quote. No order is sent.",
-    );
     const ethCard = card("ETH-USD last trade");
     expect(ethCard).toHaveTextContent("$2,234.56");
     expect(ethCard).toHaveTextContent("24-hour base volume 37,489.95 ETH.");
@@ -590,9 +580,6 @@ describe("overview prints", () => {
     expect(btcCard).toHaveTextContent("Position in the day 0.00%.");
     expect(btcCard).not.toHaveTextContent("Print is outside the daily candle.");
     expect(btcCard).not.toHaveTextContent("Day high $1.00");
-    expect(btcCard).toHaveTextContent(
-      "Share of the in-progress UTC day range, from the low. Not a trading signal. Not a settlement. No order is sent.",
-    );
     const ethCard = card("ETH-USD last trade");
     expect(ethCard).toHaveTextContent("$200.00");
     expect(ethCard).toHaveTextContent("Position in the day 100.00%.");
@@ -799,9 +786,7 @@ describe("overview paper book", () => {
     renderOverview();
 
     expect(await screen.findByText("No paper positions recorded yet.")).toBeInTheDocument();
-    expect(
-      screen.getByText("Paper book on this machine. Not a fill. The stop is not enforced. No order is sent."),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Paper book" })).toBeInTheDocument();
     expect(screen.queryByText(/Unrealised total/)).not.toBeInTheDocument();
     expect(vi.mocked(apiGet)).not.toHaveBeenCalledWith("/api/v1/risk/size");
   });
@@ -954,11 +939,6 @@ describe("overview paper book", () => {
     expect(solRow).toHaveTextContent("Unrealised percent 0.00%.");
     expect(screen.getByText("Unrealised total +$10.")).toBeInTheDocument();
     expect(screen.queryByText(/Unrealised total .*0\.00%/)).not.toBeInTheDocument();
-    expect(
-      screen.getAllByText(
-        "Unrealised from the Coinbase print, as a share of the entry. Not a fill. No order is sent.",
-      ).length,
-    ).toBe(3);
   });
 
   it("keeps the row when the last trade is missing", async () => {

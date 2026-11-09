@@ -1,29 +1,32 @@
 # Tasks
 
-## Done in this branch
+Status words: TODO, IN PROGRESS, BLOCKED, VERIFIED. VERIFIED here means a local check passed. It does not mean Codex reviewed it, and it does not mean the phase gate is closed.
 
-- Monorepo skeleton, proprietary licence, and safety rules.
-- Dashboard shell: Overview, Market, Quant, Strategy, Events, Risk, Portfolio, Research, Audit, Paper swaps.
-- FastAPI routes, synthetic SAMPLE bars, Coinbase BTC-USD, ETH-USD, and SOL-USD display, and the sizing calculator.
-- Alembic through `0009_agent_registry` on the local database at `127.0.0.1:5433`. Schema `private` holds the agent registry. `GET /api/v1/agents` reads it and cannot enable a desk. `GET /api/v1/agency/desks/{code}` reads one desk and its deny list. `GET /api/v1/audit/log` reads size-audit rows. Neither route can submit an order.
-- Compose file bound to loopback, and a GitHub Actions workflow. This clone has no commits, so that workflow has not run.
-- MAC-01 CLI (paper by default, $100 cap, live gate unused) and simulated testnet swaps.
-- Unit tests for sizing, sample bars, Coinbase parsing, posture, MAC-01, swaps, and the web shell. They were not re-run in the 8 November 2026 docs pass.
+## VERIFIED locally, awaiting Codex
 
-## Sprint 1, still paper-only
+- Registry through `0010_futures_desk` on `127.0.0.1:5433`. Ten desks, all disabled, none can trade.
+- `GET /api/v1/futures/posture` refuses Topstep automation and does not call a broker.
+- Read-only routes from earlier passes: agents, desk detail, audit log, shield and reservation previews, supervisor tool check, reminders, scheduler status, live-gate evidence, local reconciliation, risk log, market health, treasury projection, paper-swap posture.
+- Yellow warning notes removed from the web UI. Red failure alerts remain.
 
-- Replace the static “not configured” auth copy with a real local auth design, reviewed before any cookie is set.
-- Decide the CSRF control that will exist once a cookie exists. Do not pretend it exists now.
-- Sizing successes are written to `audit_events` with the correlation id. Still do not create orders. Rejected sizes write no audit row.
-- The MAC-01 ledger and the simulated swap rows already exist. Daily and weekly stops on the sizing policy are still not enforced. Keep saying that.
-- Pin GitHub Action SHAs after the first green CI run.
-- Run the reviews listed in `docs/reviews/PENDING.md`.
+## TODO
+
+- Replace the running API once at the end of a pass that adds a route, then confirm `GET /api/v1/agents` returns 200.
+- Record the `scripts/check.sh` totals in `docs/implementation-checklist.md` after that command exits 0.
+
+## BLOCKED
+
+- Alpaca paper read and the first paper order. Needs regenerated keys, then a separate written yes. Do not paste keys into chat.
+- Live trading. Separate authorisation. The gate stays unused.
+- Supabase project, Auth, and MFA. Needs organisation, region, and an approved cost.
+- AWS workers, SQS, and Secrets Manager. You chose local-only.
+- DayPilot Wednesday meeting. Time is still TBD. Do not use `daypilot-db`.
+- Model provider and chat. No model id is configured.
+- Apple distribution and the iOS app.
+- Bank payout approval and the legal, tax, and benefits review.
+- Pushing this branch. A normal push was labelled a force-push and refused. Do not use `--force`.
+- Codex review. The command is not installed.
 
 ## Explicitly not next
 
-- AWS deploy. The owner has kept the app local. See ADR 0002.
-- A live trading flag that boots the API.
-- Using the compromised Alpaca key, or sending a paper order before the owner authorises it.
-- Forking God's Eye before the data-licence audit.
-- Vendoring the 21st.dev shell.
-- Signing or broadcasting a swap.
+- An order route, a paper submit, a live submit, a signed swap, a mainnet RPC, or a bank transfer.

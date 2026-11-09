@@ -568,7 +568,7 @@ class AgentRow(Base):
         CheckConstraint(
             "code IN ("
             "'SUPERVISOR-01', 'DAY-01', 'STOCK-01', 'CRYPTO-01', 'DEFI-01', "
-            "'ETF-01', 'RESEARCH-01', 'RISK-01', 'TREASURY-01'"
+            "'ETF-01', 'FUTURES-01', 'RESEARCH-01', 'RISK-01', 'TREASURY-01'"
             ")",
             name="ck_agents_code",
         ),

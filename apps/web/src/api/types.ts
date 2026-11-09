@@ -339,12 +339,29 @@ export const AGENT_CODES = [
   "CRYPTO-01",
   "DEFI-01",
   "ETF-01",
+  "FUTURES-01",
   "RESEARCH-01",
   "RISK-01",
   "TREASURY-01",
 ] as const;
 
 export type AgentCode = (typeof AGENT_CODES)[number];
+
+export type FuturesPostureResponse = {
+  desk: "FUTURES-01";
+  status: "disabled";
+  symbols: ["MES", "MNQ"];
+  topstep_automation: "disabled";
+  topstep_account: "not_connected";
+  orders: "absent";
+  market_data: "not_read";
+  can_enable: false;
+  execution_permitted: false;
+  order_submitted: false;
+  broker_called: false;
+  source: "local_posture";
+  note: string;
+};
 
 export type AgentDesk = {
   code: AgentCode;

@@ -7,10 +7,8 @@ import {
   type PaperPositionResponse,
   type TickerResponse,
 } from "../api/types";
-import { STOPS_NOT_ENFORCED } from "../content";
 import { printStatus } from "../market/freshness";
 import {
-  UNREALISED_PERCENT_NOTE,
   distanceToStop,
   formatDifferenceUsd,
   formatUsd,
@@ -180,9 +178,6 @@ export function PortfolioPage() {
           fill and not a brokerage position. No order is sent.
         </p>
       </div>
-      <p role="note" className="max-w-3xl rounded-md border border-warn/40 bg-panel p-4 text-sm text-warn">
-        {STOPS_NOT_ENFORCED}
-      </p>
       {removeNote ? <p className="text-sm text-danger">{removeNote}</p> : null}
       {list.status === "loading" ? <p className="text-sm text-muted">Loading paper positions.</p> : null}
       {list.status === "unavailable" ? (
@@ -256,7 +251,6 @@ export function PortfolioPage() {
                     </p>
                   ) : null}
                   {freshness !== null && freshness.state !== "current" ? <p>{freshness.line}</p> : null}
-                  <p>Distance to stop from the Coinbase print. The stop is not enforced.</p>
                   {mark.kind === "loading" ? (
                     <p className="text-muted">Distance to stop is loading.</p>
                   ) : null}
@@ -268,7 +262,6 @@ export function PortfolioPage() {
                       Distance to stop {distance.usd} ({distance.percent}).
                     </p>
                   ) : null}
-                  <p className="text-warn">{UNREALISED_PERCENT_NOTE}</p>
                   {mark.kind === "loading" ? <p className="text-muted">Unrealised percent is loading.</p> : null}
                   {mark.kind === "unavailable" ? <p>Unrealised percent is unavailable.</p> : null}
                   {mark.kind === "ready" ? <p>{unrealisedPercentLine(mark.price, position.entry)}</p> : null}

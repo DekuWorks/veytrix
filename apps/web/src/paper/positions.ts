@@ -32,9 +32,6 @@ function formatScaled(signed: bigint, scale: number): string {
   return negative ? `-${body}` : body;
 }
 
-export const UNREALISED_PERCENT_NOTE =
-  "Unrealised from the Coinbase print, as a share of the entry. Not a fill. No order is sent.";
-
 export function unrealisedDifference(last: string, entry: string, shares: number): string | null {
   if (!Number.isSafeInteger(shares) || shares < 0) {
     return null;

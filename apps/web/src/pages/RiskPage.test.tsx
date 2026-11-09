@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiGet, apiPost } from "../api/client";
 import type { SizeResponse, TickerResponse } from "../api/types";
 import { AppRoutes } from "../App";
-import { STOPS_NOT_ENFORCED } from "../content";
 
 vi.mock("../api/client", () => ({
   ApiError: class ApiError extends Error {
@@ -68,7 +67,7 @@ const sized: SizeResponse = {
   weekly_loss_stop_fraction: "0.03",
   policy_name: "experimental-paper-default",
   warning: null,
-  note: STOPS_NOT_ENFORCED,
+  note: "Stored with the size. No order is sent.",
   execution_permitted: false,
   order_submitted: false,
   daily_stop_enforced: false,
@@ -99,10 +98,9 @@ describe("risk page", () => {
     });
   });
 
-  it("shows the stops warning and does not send an order", async () => {
+  it("calculates a paper size and does not send an order", async () => {
     renderRisk();
 
-    expect(screen.getByRole("note")).toHaveTextContent(STOPS_NOT_ENFORCED);
     expect(await screen.findByDisplayValue("75815.71")).toBeInTheDocument();
     expect(screen.getByText(/Exchange time 2026-11-08T04:21:15\.000000Z/)).toBeInTheDocument();
     expect(screen.getAllByText(/No order is sent/).length).toBeGreaterThan(0);
@@ -174,9 +172,6 @@ describe("risk page", () => {
     expect(await screen.findByDisplayValue("75815.71")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Entry price" })).toHaveValue("75815.71");
     expect(screen.getByText("Spread $0.10 (10.00 bp).")).toBeInTheDocument();
-    expect(
-      screen.getByText("Bid-ask spread from the Coinbase print. Not a consolidated quote. No order is sent."),
-    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /send|trade|order/i })).not.toBeInTheDocument();
   });
 
@@ -385,11 +380,6 @@ describe("risk stop distance", () => {
 
     expect(screen.getByText("Stop distance $2.00 (4.00%).")).toBeInTheDocument();
     expect(screen.getAllByText("Stop distance $2.00 (4.00%).")).toHaveLength(1);
-    expect(
-      screen.getByText(
-        "Distance from entry to stop, as a share of the entry. The dollar distance is entry minus stop. The stop is not enforced. No order is sent.",
-      ),
-    ).toBeInTheDocument();
     expect(screen.queryByText("Execution permitted")).not.toBeInTheDocument();
     expect(vi.mocked(apiPost)).not.toHaveBeenCalled();
   });
@@ -451,11 +441,6 @@ describe("risk planned risk percent", () => {
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("1000")).toBeInTheDocument();
     expect(screen.getAllByText("false").length).toBeGreaterThanOrEqual(2);
-    expect(
-      screen.getByText(
-        "Planned risk as a share of the equity you entered. The stop is not enforced. No order is sent.",
-      ),
-    ).toBeInTheDocument();
     expect(vi.mocked(apiPost)).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: /send|place order|submit order/i })).not.toBeInTheDocument();
   });

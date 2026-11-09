@@ -8,10 +8,10 @@ import {
   type TickerResponse,
 } from "../api/types";
 import { KpiCard } from "../components/KpiCard";
-import { PRINT_AVERAGE_NOTE, printAverageGapLine, printMinusAverage } from "../market/averageGap";
-import { CANDLE_AGE_NOTE, candleAge } from "../market/candleAge";
-import { PRINT_GAP_NOTE, printGapLine, printMinusClose } from "../market/printGap";
-import { WINDOW_POSITION_NOTE, windowPosition, windowPositionLine } from "../market/windowPosition";
+import { printAverageGapLine, printMinusAverage } from "../market/averageGap";
+import { candleAge } from "../market/candleAge";
+import { printGapLine, printMinusClose } from "../market/printGap";
+import { windowPosition, windowPositionLine } from "../market/windowPosition";
 import { CLOSE_AVERAGE_WINDOW, averageOfLastCloses } from "../quant/average";
 
 const PRODUCTS = COINBASE_PRODUCTS;
@@ -338,13 +338,11 @@ export function QuantPage() {
         <p className="font-mono text-sm">Last trade {labelledPrice(print.price)}.</p>
       ) : null}
       <p className="text-sm">{quantGap(print, state)}</p>
-      <p className="text-sm text-warn">{PRINT_GAP_NOTE}</p>
       {state.status === "ready" || state.status === "unreadable" ? (
         <div className="space-y-2">
           <p className="font-mono text-xs text-jade-2">As of {state.retrievedAt}</p>
           <p className="font-mono text-xs text-jade-2">Bar start (UTC) {state.barStart}.</p>
           <p className="text-sm">{candleAge(state.barStart, Date.now()).line}</p>
-          <p className="text-sm text-warn">{CANDLE_AGE_NOTE}</p>
         </div>
       ) : null}
       {state.status === "unreadable" ? (
@@ -367,9 +365,7 @@ export function QuantPage() {
               <p className="text-sm">
                 {windowPositionLine(windowPosition(figures.latestClose, figures.windowHigh, figures.windowLow))}
               </p>
-              <p className="text-sm text-warn">{WINDOW_POSITION_NOTE}</p>
               <p className="text-sm">{averageGapLine(print, figures.average)}</p>
-              <p className="text-sm text-warn">{PRINT_AVERAGE_NOTE}</p>
             </>
           )}
           {figures.distanceUsd !== null && figures.distancePercent !== null ? (
