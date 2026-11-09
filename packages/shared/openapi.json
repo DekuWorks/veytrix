@@ -1187,6 +1187,158 @@
         "title": "Mac01PerformanceResponse",
         "type": "object"
       },
+      "Mac01ScheduleResponse": {
+        "additionalProperties": false,
+        "description": "The published MAC-01 clock. This process does not start it or read a calendar.",
+        "properties": {
+          "alpaca_called": {
+            "const": false,
+            "title": "Alpaca Called",
+            "type": "boolean"
+          },
+          "calendar": {
+            "const": "not_read",
+            "title": "Calendar",
+            "type": "string"
+          },
+          "can_start": {
+            "const": false,
+            "title": "Can Start",
+            "type": "boolean"
+          },
+          "config_live_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Live Enabled"
+          },
+          "config_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "paper",
+                  "live"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Mode"
+          },
+          "config_submit_orders": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Submit Orders"
+          },
+          "config_valid": {
+            "title": "Config Valid",
+            "type": "boolean"
+          },
+          "delay_after_open_minutes": {
+            "const": 5,
+            "title": "Delay After Open Minutes",
+            "type": "integer"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "next_session": {
+            "const": "unknown",
+            "title": "Next Session",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_route": {
+            "const": "absent",
+            "title": "Order Route",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "process": {
+            "const": "absent",
+            "title": "Process",
+            "type": "string"
+          },
+          "run_clock": {
+            "const": "09:35",
+            "title": "Run Clock",
+            "type": "string"
+          },
+          "running": {
+            "const": false,
+            "title": "Running",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "local_config",
+            "title": "Source",
+            "type": "string"
+          },
+          "strategy": {
+            "const": "mac-01",
+            "title": "Strategy",
+            "type": "string"
+          },
+          "submit_flag": {
+            "const": false,
+            "title": "Submit Flag",
+            "type": "boolean"
+          },
+          "timezone": {
+            "const": "America/New_York",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strategy",
+          "timezone",
+          "run_clock",
+          "delay_after_open_minutes",
+          "calendar",
+          "next_session",
+          "running",
+          "process",
+          "submit_flag",
+          "can_start",
+          "config_valid",
+          "config_mode",
+          "config_submit_orders",
+          "config_live_enabled",
+          "alpaca_called",
+          "execution_permitted",
+          "order_submitted",
+          "order_route",
+          "source",
+          "note"
+        ],
+        "title": "Mac01ScheduleResponse",
+        "type": "object"
+      },
       "Mac01SignalEntry": {
         "properties": {
           "close": {
@@ -4635,6 +4787,28 @@
           }
         },
         "summary": "Resume",
+        "tags": [
+          "strategies"
+        ]
+      }
+    },
+    "/api/v1/strategies/mac-01/schedule": {
+      "get": {
+        "description": "Published 09:35 New York clock. This route cannot start a run or pass --submit.",
+        "operationId": "schedule_status_api_v1_strategies_mac_01_schedule_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mac01ScheduleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Schedule Status",
         "tags": [
           "strategies"
         ]

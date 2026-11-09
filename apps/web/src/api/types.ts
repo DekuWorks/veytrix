@@ -478,6 +478,29 @@ export type SupervisorTool = {
   executes: false;
 };
 
+export type Mac01ScheduleResponse = {
+  strategy: "mac-01";
+  timezone: "America/New_York";
+  run_clock: "09:35";
+  delay_after_open_minutes: 5;
+  calendar: "not_read";
+  next_session: "unknown";
+  running: false;
+  process: "absent";
+  submit_flag: false;
+  can_start: false;
+  config_valid: boolean;
+  config_mode: "paper" | "live" | null;
+  config_submit_orders: boolean | null;
+  config_live_enabled: boolean | null;
+  alpaca_called: false;
+  execution_permitted: false;
+  order_submitted: false;
+  order_route: "absent";
+  source: "local_config";
+  note: string;
+};
+
 export type SupervisorToolsResponse = {
   source: "local_catalogue";
   model: "not_configured";

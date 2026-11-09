@@ -123,3 +123,9 @@ Claude Code has not reviewed this repository. Codex has not written or run tests
 - Scope: `services/risk/veytrix_risk/treasury.py`, `services/api/veytrix_api/routers/treasury.py`, `services/api/veytrix_api/schemas.py`, `tests/test_treasury.py`, `tests/test_reminders_api.py`
 - Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate.
 - Acceptance: `GET /api/v1/treasury/reminders` is the only method on that path; the accounting close is the 1st of the next month and the payout review is the 5th, with Saturday and Sunday moved to Monday; `daypilot` stays `absent`; `event_created` stays false; `meeting_time` stays `unconfirmed`; `transfer_submitted` stays false; POST is 405; `GET /api/v1/meetings` is not a route; the route does not need the database; no DayPilot event is created; no order route was added; `services/ai-research/veytrix_ai/**` was not changed.
+
+## 23. Scheduler status (awaiting review)
+
+- Scope: `services/api/veytrix_api/routers/strategies.py`, `services/api/veytrix_api/schemas.py`, `apps/web/src/pages/SchedulePage.tsx`, `tests/test_schedule_api.py`
+- Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate.
+- Acceptance: `GET /api/v1/strategies/mac-01/schedule` is the only method on that path; the clock is 09:35 America/New_York and the delay is five minutes; `calendar` stays `not_read` and `next_session` stays `unknown`; `running`, `submit_flag`, `can_start`, and `alpaca_called` stay false even when the config says live and `submit_orders`; an unsafe config still cannot start; POST is 405; there is no start route; the page has no start control and hides a payload that says the scheduler can start; no order route was added; `services/ai-research/veytrix_ai/**` was not changed.

@@ -24,6 +24,7 @@ from veytrix_api.schemas import (
     Mac01OrderEntry,
     Mac01OrderListResponse,
     Mac01PerformanceResponse,
+    Mac01ScheduleResponse,
     Mac01SignalEntry,
     Mac01SignalListResponse,
     Mac01StatusResponse,
@@ -109,6 +110,41 @@ def _status(row: Mac01StateRow) -> Mac01StatusResponse:
 @router.get("/status", response_model=Mac01StatusResponse)
 def status(db: Session = Depends(get_db)) -> Mac01StatusResponse:
     return _status(_state(db))
+
+
+SCHEDULE_NOTE = (
+    "The API does not start the scheduler and does not read the Alpaca calendar. "
+    "A run still needs the CLI. Not investment advice."
+)
+
+
+@router.get("/schedule", response_model=Mac01ScheduleResponse)
+def schedule_status() -> Mac01ScheduleResponse:
+    """Published 09:35 New York clock. This route cannot start a run or pass --submit."""
+
+    config = _config()
+    return Mac01ScheduleResponse(
+        strategy="mac-01",
+        timezone="America/New_York",
+        run_clock="09:35",
+        delay_after_open_minutes=5,
+        calendar="not_read",
+        next_session="unknown",
+        running=False,
+        process="absent",
+        submit_flag=False,
+        can_start=False,
+        config_valid=config is not None,
+        config_mode=config.mode if config else None,
+        config_submit_orders=config.submit_orders if config else None,
+        config_live_enabled=config.live_enabled if config else None,
+        alpaca_called=False,
+        execution_permitted=False,
+        order_submitted=False,
+        order_route="absent",
+        source="local_config",
+        note=SCHEDULE_NOTE,
+    )
 
 
 def _set_flags(db: Session, **flags: bool) -> Mac01StatusResponse:

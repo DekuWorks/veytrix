@@ -928,6 +928,33 @@ class ToolCheckRequest(BaseModel):
         return self
 
 
+class Mac01ScheduleResponse(BaseModel):
+    """The published MAC-01 clock. This process does not start it or read a calendar."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    strategy: Literal["mac-01"]
+    timezone: Literal["America/New_York"]
+    run_clock: Literal["09:35"]
+    delay_after_open_minutes: Literal[5]
+    calendar: Literal["not_read"]
+    next_session: Literal["unknown"]
+    running: Literal[False]
+    process: Literal["absent"]
+    submit_flag: Literal[False]
+    can_start: Literal[False]
+    config_valid: bool
+    config_mode: Literal["paper", "live"] | None
+    config_submit_orders: bool | None
+    config_live_enabled: bool | None
+    alpaca_called: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    order_route: Literal["absent"]
+    source: Literal["local_config"]
+    note: str = Field(min_length=1, max_length=400)
+
+
 class ToolCheckResponse(BaseModel):
     """The local decision. `executed` stays false even when the decision is accept."""
 

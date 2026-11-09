@@ -8,6 +8,7 @@ import { PaperSwapsPage } from "./pages/PaperSwapsPage";
 import { PortfolioPage } from "./pages/PortfolioPage";
 import { QuantPage } from "./pages/QuantPage";
 import { ResearchPage } from "./pages/ResearchPage";
+import { SchedulePage } from "./pages/SchedulePage";
 import { RiskPage } from "./pages/RiskPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SupervisorPage } from "./pages/SupervisorPage";
@@ -27,6 +28,7 @@ export function AppRoutes() {
         <Route path="/market" element={<MarketPage />} />
         <Route path="/quant" element={<QuantPage />} />
         <Route path="/strategy" element={<StrategyPage />} />
+        <Route path="/scheduler" element={<SchedulePage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/risk" element={<RiskPage />} />
         <Route path="/portfolio" element={<PortfolioPage />} />
