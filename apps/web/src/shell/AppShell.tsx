@@ -4,6 +4,7 @@ import { AUTH_NOTICE } from "../content";
 
 const LINKS = [
   { to: "/", label: "Overview", end: true },
+  { to: "/sanctum", label: "Sanctum", end: false },
   { to: "/agency", label: "Agency", end: false },
   { to: "/supervisor", label: "Supervisor", end: false },
   { to: "/market", label: "Market", end: false },

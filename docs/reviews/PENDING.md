@@ -160,3 +160,9 @@ Claude Code has not reviewed this repository. Codex has not written or run tests
 - Status: implemented on 9 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate. This is not a Topstep connection.
 - Acceptance: migration `0010_futures_desk` adds one disabled desk and seven deny permissions; `can_submit_orders`, `can_sign`, `can_transfer_funds`, and `holds_credentials` stay false; `GET /api/v1/futures/posture` is the only method on that path; Topstep automation stays `disabled`; the account stays `not_connected`; orders stay `absent`; market data stays `not_read`; `execution_permitted` and `order_submitted` stay false; POST is 405; there is no futures order route; the page has no enable or order control and hides a payload that says execution is permitted; no Alpaca call; `services/ai-research/veytrix_ai/**` was not changed.
 
+## 29. Sanctum floor (awaiting review)
+
+- Scope: `apps/web/src/pages/SanctumPage.tsx`, `apps/web/src/sanctum/`, `apps/web/src/App.tsx`, `apps/web/src/shell/AppShell.tsx`
+- Status: implemented on 9 November 2026. Codex is not installed and has not reviewed it. Do not treat this note as a closed gate. Production readiness is not met: no verified agent events, no auth, no deployment. Supabase was not provisioned.
+- Acceptance: `/sanctum` is one Phaser floor for the ten registry desks; sky, floor, pan, zoom, centre, meeting, and trading cameras do not submit an order; NPC pose comes from `GET /api/v1/agents` and stays idle while the desks are disabled and trading is denied; verified trading stays "none verified" unless a row says broker-confirmed; the local note box does not call a model; the service-role key is not read by the page; there is no order, enable, sign, withdraw, or Topstep control.
+

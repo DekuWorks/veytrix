@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { AgencyPage } from "./pages/AgencyPage";
 import { AuditPage } from "./pages/AuditPage";
 import { EventsPage } from "./pages/EventsPage";
@@ -13,6 +13,7 @@ import { ReconciliationPage } from "./pages/ReconciliationPage";
 import { ResearchPage } from "./pages/ResearchPage";
 import { RiskLogPage } from "./pages/RiskLogPage";
 import { RiskPage } from "./pages/RiskPage";
+import { SanctumPage } from "./pages/SanctumPage";
 import { SchedulePage } from "./pages/SchedulePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SupervisorPage } from "./pages/SupervisorPage";
@@ -22,6 +23,10 @@ import { TreasuryPage } from "./pages/TreasuryPage";
 import { AppShell } from "./shell/AppShell";
 
 export function AppRoutes() {
+  const location = useLocation();
+  if (location.pathname === "/sanctum") {
+    return <SanctumPage />;
+  }
   return (
     <AppShell>
       <Routes>

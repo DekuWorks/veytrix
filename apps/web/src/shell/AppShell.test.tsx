@@ -20,6 +20,7 @@ describe("dashboard shell", () => {
     expect(screen.getByRole("link", { name: "Quant" })).toHaveAttribute("href", "/quant");
     expect(screen.getByRole("link", { name: "Events" })).toHaveAttribute("href", "/events");
     expect(screen.getByRole("link", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sanctum" })).toHaveAttribute("href", "/sanctum");
     expect(screen.getByRole("link", { name: "Risk" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Portfolio" })).toHaveAttribute("href", "/portfolio");
     expect(screen.getByRole("link", { name: "Research" })).toHaveAttribute("href", "/research");
