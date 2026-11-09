@@ -1000,6 +1000,100 @@ class SubmissionEvidenceResponse(BaseModel):
         return self
 
 
+class ReconciliationRow(BaseModel):
+    """One local order beside an unread broker. `matched` cannot become true."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    client_order_id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{1,128}$")
+    mode: Literal["paper", "live"]
+    side: Literal["buy", "sell"]
+    local_status: Literal[
+        "pending_submit",
+        "pending_new",
+        "pending_cancel",
+        "pending_replace",
+        "new",
+        "accepted",
+        "accepted_for_bidding",
+        "partially_filled",
+        "filled",
+        "done_for_day",
+        "canceled",
+        "expired",
+        "replaced",
+        "rejected",
+        "not_found",
+        "held",
+        "stopped",
+        "suspended",
+        "calculated",
+    ]
+    broker_order_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
+    broker_order_stored: bool
+    broker_status: Literal["not_read"]
+    matched: Literal[False]
+    reason: Literal["broker_not_read"]
+
+
+LOCAL_ORDER_STATUSES = frozenset(
+    {
+        "pending_submit",
+        "pending_new",
+        "pending_cancel",
+        "pending_replace",
+        "new",
+        "accepted",
+        "accepted_for_bidding",
+        "partially_filled",
+        "filled",
+        "done_for_day",
+        "canceled",
+        "expired",
+        "replaced",
+        "rejected",
+        "not_found",
+        "held",
+        "stopped",
+        "suspended",
+        "calculated",
+    }
+)
+TERMINAL_ORDER_STATUSES = frozenset(
+    {"filled", "canceled", "expired", "rejected", "replaced", "not_found"}
+)
+
+
+class ReconciliationResponse(BaseModel):
+    """A local ledger read. There is no field that marks the book reconciled."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    local_orders: int = Field(ge=0)
+    local_fills: int = Field(ge=0)
+    local_open: int = Field(ge=0)
+    broker_rows_read: Literal[0]
+    broker_read: Literal["absent"]
+    alpaca_called: Literal[False]
+    reconciled: Literal[False]
+    rows: list[ReconciliationRow] = Field(max_length=100)
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    order_route: Literal["absent"]
+    source: Literal["local_ledger"]
+    note: str = Field(min_length=1, max_length=400)
+
+    @model_validator(mode="after")
+    def counts_match_the_rows(self) -> ReconciliationResponse:
+        if self.local_orders != len(self.rows):
+            raise ValueError("local_orders does not match the rows.")
+        if self.local_fills > self.local_orders or self.local_open > self.local_orders:
+            raise ValueError("fill or open count exceeds the rows.")
+        if any(row.matched or row.broker_status != "not_read" for row in self.rows):
+            raise ValueError("A row cannot claim a broker match.")
+        return self
+
+
 class Mac01ScheduleResponse(BaseModel):
     """The published MAC-01 clock. This process does not start it or read a calendar."""
 

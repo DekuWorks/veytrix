@@ -536,6 +536,34 @@ export type SubmissionEvidenceResponse = {
   note: string;
 };
 
+export type ReconciliationRow = {
+  client_order_id: string;
+  mode: "paper" | "live";
+  side: "buy" | "sell";
+  local_status: string;
+  broker_order_id: string | null;
+  broker_order_stored: boolean;
+  broker_status: "not_read";
+  matched: false;
+  reason: "broker_not_read";
+};
+
+export type ReconciliationResponse = {
+  local_orders: number;
+  local_fills: number;
+  local_open: number;
+  broker_rows_read: 0;
+  broker_read: "absent";
+  alpaca_called: false;
+  reconciled: false;
+  rows: ReconciliationRow[];
+  execution_permitted: false;
+  order_submitted: false;
+  order_route: "absent";
+  source: "local_ledger";
+  note: string;
+};
+
 export type SupervisorToolsResponse = {
   source: "local_catalogue";
   model: "not_configured";

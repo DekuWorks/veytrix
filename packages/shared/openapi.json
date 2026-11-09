@@ -2455,6 +2455,193 @@
         "title": "ReadyResponse",
         "type": "object"
       },
+      "ReconciliationResponse": {
+        "additionalProperties": false,
+        "description": "A local ledger read. There is no field that marks the book reconciled.",
+        "properties": {
+          "alpaca_called": {
+            "const": false,
+            "title": "Alpaca Called",
+            "type": "boolean"
+          },
+          "broker_read": {
+            "const": "absent",
+            "title": "Broker Read",
+            "type": "string"
+          },
+          "broker_rows_read": {
+            "const": 0,
+            "title": "Broker Rows Read",
+            "type": "integer"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "local_fills": {
+            "minimum": 0.0,
+            "title": "Local Fills",
+            "type": "integer"
+          },
+          "local_open": {
+            "minimum": 0.0,
+            "title": "Local Open",
+            "type": "integer"
+          },
+          "local_orders": {
+            "minimum": 0.0,
+            "title": "Local Orders",
+            "type": "integer"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_route": {
+            "const": "absent",
+            "title": "Order Route",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "reconciled": {
+            "const": false,
+            "title": "Reconciled",
+            "type": "boolean"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationRow"
+            },
+            "maxItems": 100,
+            "title": "Rows",
+            "type": "array"
+          },
+          "source": {
+            "const": "local_ledger",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "local_orders",
+          "local_fills",
+          "local_open",
+          "broker_rows_read",
+          "broker_read",
+          "alpaca_called",
+          "reconciled",
+          "rows",
+          "execution_permitted",
+          "order_submitted",
+          "order_route",
+          "source",
+          "note"
+        ],
+        "title": "ReconciliationResponse",
+        "type": "object"
+      },
+      "ReconciliationRow": {
+        "additionalProperties": false,
+        "description": "One local order beside an unread broker. `matched` cannot become true.",
+        "properties": {
+          "broker_order_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9-]{1,64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Broker Order Id"
+          },
+          "broker_order_stored": {
+            "title": "Broker Order Stored",
+            "type": "boolean"
+          },
+          "broker_status": {
+            "const": "not_read",
+            "title": "Broker Status",
+            "type": "string"
+          },
+          "client_order_id": {
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Client Order Id",
+            "type": "string"
+          },
+          "local_status": {
+            "enum": [
+              "pending_submit",
+              "pending_new",
+              "pending_cancel",
+              "pending_replace",
+              "new",
+              "accepted",
+              "accepted_for_bidding",
+              "partially_filled",
+              "filled",
+              "done_for_day",
+              "canceled",
+              "expired",
+              "replaced",
+              "rejected",
+              "not_found",
+              "held",
+              "stopped",
+              "suspended",
+              "calculated"
+            ],
+            "title": "Local Status",
+            "type": "string"
+          },
+          "matched": {
+            "const": false,
+            "title": "Matched",
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "paper",
+              "live"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "reason": {
+            "const": "broker_not_read",
+            "title": "Reason",
+            "type": "string"
+          },
+          "side": {
+            "enum": [
+              "buy",
+              "sell"
+            ],
+            "title": "Side",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_order_id",
+          "mode",
+          "side",
+          "local_status",
+          "broker_order_stored",
+          "broker_status",
+          "matched",
+          "reason"
+        ],
+        "title": "ReconciliationRow",
+        "type": "object"
+      },
       "ReminderDatesResponse": {
         "additionalProperties": false,
         "description": "Local dates only. There is no field that creates a meeting or a payout.",
@@ -4234,6 +4421,28 @@
         "summary": "Health",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/ledger/reconciliation": {
+      "get": {
+        "description": "Local orders only. The broker side of every row stays unread.",
+        "operationId": "reconciliation_api_v1_ledger_reconciliation_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Reconciliation",
+        "tags": [
+          "ledger"
         ]
       }
     },
