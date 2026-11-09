@@ -82,26 +82,26 @@ export function SupervisorPage() {
   const ready = state.status === "ready" ? state.payload : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Supervisor</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Supervisor</h1>
+        <p className="vx-lede">
           This page lists local tools. Chat is not configured. Nothing here runs a tool or calls a
           model.
         </p>
       </div>
       {state.status === "loading" ? <p className="text-sm text-muted">Loading supervisor tools.</p> : null}
       {state.status === "unavailable" ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           {UNAVAILABLE}
         </p>
       ) : null}
       {ready ? (
         <section aria-labelledby="supervisor-tools" className="space-y-4">
-          <h2 id="supervisor-tools" className="text-lg font-semibold">
+          <h2 id="supervisor-tools" className="vx-section-title">
             Local catalogue. Chat is absent. Nothing on this page can run.
           </h2>
-          <dl className="grid max-w-xl gap-3 rounded-md border border-line bg-panel p-4 text-sm">
+          <dl className="grid max-w-xl gap-3 vx-card text-sm">
             <div className="flex justify-between gap-4">
               <dt>Model</dt>
               <dd className="font-mono">{ready.model}</dd>

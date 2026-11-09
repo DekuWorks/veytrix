@@ -127,26 +127,26 @@ export function SystemPage() {
   const feeds = market.status === "ready" ? market.payload : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">System health</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">System health</h1>
+        <p className="vx-lede">
           This page reads the local process and the public Coinbase tickers. It cannot enable a
           desk, change a setting, or send an order.
         </p>
       </div>
       <section aria-labelledby="local-posture" className="space-y-4">
-        <h2 id="local-posture" className="text-lg font-semibold">
+        <h2 id="local-posture" className="vx-section-title">
           Local posture
         </h2>
         {system.status === "loading" ? <p className="text-sm text-muted">Loading system status.</p> : null}
         {system.status === "unavailable" ? (
-          <p className="text-sm text-danger" role="alert">
+          <p className="vx-alert" role="alert">
             {SYSTEM_UNAVAILABLE}
           </p>
         ) : null}
         {posture ? (
-          <dl className="grid max-w-xl gap-3 rounded-md border border-line bg-panel p-4 text-sm">
+          <dl className="grid max-w-xl gap-3 vx-card text-sm">
             <div className="flex justify-between gap-4">
               <dt>Environment</dt>
               <dd className="font-mono">{posture.env}</dd>
@@ -175,12 +175,12 @@ export function SystemPage() {
         ) : null}
       </section>
       <section aria-labelledby="market-feeds" className="space-y-4">
-        <h2 id="market-feeds" className="text-lg font-semibold">
+        <h2 id="market-feeds" className="vx-section-title">
           Market feeds. Not an order path. No substitute price is shown.
         </h2>
         {market.status === "loading" ? <p className="text-sm text-muted">Loading market health.</p> : null}
         {market.status === "unavailable" ? (
-          <p className="text-sm text-danger" role="alert">
+          <p className="vx-alert" role="alert">
             {MARKET_UNAVAILABLE}
           </p>
         ) : null}
@@ -192,7 +192,7 @@ export function SystemPage() {
             </p>
             <ul className="max-w-xl space-y-3">
               {feeds.feeds.map((feed) => (
-                <li key={feed.symbol} className="rounded-md border border-line bg-panel p-4 text-sm">
+                <li key={feed.symbol} className="vx-card text-sm">
                   <p className="font-semibold">
                     {feed.symbol}{" "}
                     <span className="font-mono font-normal text-muted">{feed.status}</span>

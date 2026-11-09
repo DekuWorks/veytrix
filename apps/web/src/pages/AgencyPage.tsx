@@ -102,14 +102,14 @@ function DeskList() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
         <p className="text-sm font-semibold text-jade">Denied</p>
-        <h1 className="mt-1 text-2xl font-semibold">Agency</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">{AGENCY_NOTICE}</p>
+        <h1 className="vx-title">Agency</h1>
+        <p className="vx-lede">{AGENCY_NOTICE}</p>
       </div>
       <section aria-label="Disabled desks" className="space-y-3">
-        <h2 className="text-lg font-semibold">Desks</h2>
+        <h2 className="vx-section-title">Desks</h2>
         {registry.status === "loading" ? <p className="text-sm text-muted">Loading desks.</p> : null}
         {registry.status === "unavailable" ? <p className="text-sm text-muted">{REGISTRY_DOWN}</p> : null}
         {registry.status === "ready" ? (
@@ -179,11 +179,11 @@ function DeskRead({ code }: { code: string }) {
   const desk = detail.status === "ready" ? detail.desk : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
         <p className="text-sm font-semibold text-jade">Denied</p>
-        <h1 className="mt-1 text-2xl font-semibold">Desk</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">{AGENCY_NOTICE}</p>
+        <h1 className="vx-title">Desk</h1>
+        <p className="vx-lede">{AGENCY_NOTICE}</p>
         <p className="mt-3 text-sm">
           <Link to="/agency">All desks</Link>
         </p>
@@ -195,7 +195,7 @@ function DeskRead({ code }: { code: string }) {
       ) : null}
       {desk ? (
         <section aria-label="Desk detail" className="max-w-xl space-y-4 text-sm">
-          <h2 className="text-lg font-semibold">{desk.code}</h2>
+          <h2 className="vx-section-title">{desk.code}</h2>
           <p>{desk.display_name}</p>
           <p>Status {desk.status}</p>
           <p>Rights denied. This desk is not running.</p>

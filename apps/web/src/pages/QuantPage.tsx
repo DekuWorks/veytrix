@@ -300,11 +300,11 @@ export function QuantPage() {
   const figures = state.status === "ready" ? state.figures : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Quant</h1>
-          <p className="mt-2 max-w-3xl text-sm text-muted">
+          <h1 className="vx-title">Quant</h1>
+          <p className="vx-lede">
             Calculated from Coinbase 1-minute candles. Not a trading signal. Not a consolidated
             quote. No order is sent.
           </p>
@@ -316,9 +316,7 @@ export function QuantPage() {
               key={id}
               type="button"
               aria-pressed={product === id}
-              className={`rounded-md border px-3 py-2 text-sm ${
-                product === id ? "border-jade-2 text-jade-2" : "border-line"
-              }`}
+              className="vx-btn"
               onClick={() => selectProduct(id)}
             >
               {id}
@@ -330,7 +328,7 @@ export function QuantPage() {
         <p className="text-sm text-muted">Loading {product} 1-minute candles.</p>
       ) : null}
       {state.status === "unavailable" ? (
-        <p className="rounded-md border border-danger/40 bg-panel p-4 text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           1-minute candles are unavailable. No figures were invented.
         </p>
       ) : null}

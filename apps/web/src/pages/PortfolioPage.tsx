@@ -170,18 +170,18 @@ export function PortfolioPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Portfolio</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Portfolio</h1>
+        <p className="vx-lede">
           Paper records stored in the local database on this machine. Each row is a saved size, not a
           fill and not a brokerage position. No order is sent.
         </p>
       </div>
-      {removeNote ? <p className="text-sm text-danger">{removeNote}</p> : null}
+      {removeNote ? <p className="vx-alert">{removeNote}</p> : null}
       {list.status === "loading" ? <p className="text-sm text-muted">Loading paper positions.</p> : null}
       {list.status === "unavailable" ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           Paper positions are unavailable. No row was invented.
         </p>
       ) : null}
@@ -195,7 +195,7 @@ export function PortfolioPage() {
             const distance = mark.kind === "ready" ? distanceToStop(mark.price, position.stop) : null;
             const freshness = mark.kind === "ready" ? printStatus(mark.tradeTime, Date.now()) : null;
             return (
-              <li key={position.id} className="rounded-md border border-line bg-panel p-4">
+              <li key={position.id} className="vx-card">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h2 className="text-base font-semibold">{position.symbol}</h2>
@@ -203,7 +203,7 @@ export function PortfolioPage() {
                   </div>
                   <button
                     type="button"
-                    className="rounded-md border border-line px-3 py-1 text-sm"
+                    className="vx-btn"
                     onClick={() => remove(position.id)}
                   >
                     Remove

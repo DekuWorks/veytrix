@@ -58,16 +58,16 @@ export function FuturesPage() {
   const ready = state.status === "ready" ? state.payload : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Futures · FUTURES-01</h1>
-        <p className="max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Futures · FUTURES-01</h1>
+        <p className="vx-lede">
           MES and MNQ are research labels. Topstep automation stays off. No order is sent.
         </p>
       </header>
       {state.status === "loading" ? <p className="text-sm text-muted">Loading the futures posture.</p> : null}
       {state.status === "unavailable" ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           {UNAVAILABLE}
         </p>
       ) : null}

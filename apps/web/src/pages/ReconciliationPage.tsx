@@ -71,23 +71,23 @@ export function ReconciliationPage() {
   const view = state.status === "ready" ? state.payload : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Reconciliation</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Reconciliation</h1>
+        <p className="vx-lede">
           This page reads the local MAC-01 ledger. The broker account was not read, so a stored
           broker id is not a match.
         </p>
       </div>
       {state.status === "loading" ? <p className="text-sm text-muted">Loading the local ledger.</p> : null}
       {state.status === "unavailable" ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           {UNAVAILABLE}
         </p>
       ) : null}
       {view ? (
         <>
-          <dl className="grid max-w-xl gap-3 rounded-md border border-line bg-panel p-4 text-sm">
+          <dl className="grid max-w-xl gap-3 vx-card text-sm">
             <div className="flex justify-between gap-4">
               <dt>Broker read</dt>
               <dd className="font-mono">{view.broker_read}</dd>

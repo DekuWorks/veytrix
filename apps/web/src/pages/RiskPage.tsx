@@ -202,28 +202,28 @@ export function RiskPage() {
   const liveStatus = live === null ? null : printStatus(live.tradeTime, Date.now());
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Risk</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Risk</h1>
+        <p className="vx-lede">
           Long only. Entry starts as the selected Coinbase last trade and keeps updating until you
           edit it. The form calculates a paper share count. No order is sent.
         </p>
       </div>
       <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-md border border-line bg-panel p-3">
+        <div className="vx-card">
           <dt className="text-muted">Example per-trade risk</dt>
           <dd>0.5% of equity</dd>
         </div>
-        <div className="rounded-md border border-line bg-panel p-3">
+        <div className="vx-card">
           <dt className="text-muted">Example daily stop</dt>
           <dd>1%, stored only</dd>
         </div>
-        <div className="rounded-md border border-line bg-panel p-3">
+        <div className="vx-card">
           <dt className="text-muted">Example weekly stop</dt>
           <dd>3%, stored only</dd>
         </div>
-        <div className="rounded-md border border-line bg-panel p-3">
+        <div className="vx-card">
           <dt className="text-muted">Example max allocation</dt>
           <dd>10% of equity</dd>
         </div>
@@ -236,9 +236,7 @@ export function RiskPage() {
               key={id}
               type="button"
               aria-pressed={product === id}
-              className={`rounded-md border px-3 py-2 text-sm ${
-                product === id ? "border-jade-2 text-jade-2" : "border-line"
-              }`}
+              className="vx-btn"
               onClick={() => selectProduct(id)}
             >
               {id}
@@ -248,7 +246,7 @@ export function RiskPage() {
         <label className="grid gap-1 text-sm">
           Account equity
           <input
-            className="rounded-md border border-line bg-obsidian px-3 py-2 font-mono"
+            className="vx-field font-mono"
             inputMode="decimal"
             autoComplete="off"
             name="account_equity"
@@ -261,7 +259,7 @@ export function RiskPage() {
         <label className="grid gap-1 text-sm">
           Entry price
           <input
-            className="rounded-md border border-line bg-obsidian px-3 py-2 font-mono"
+            className="vx-field font-mono"
             inputMode="decimal"
             autoComplete="off"
             name="entry_price"
@@ -301,7 +299,7 @@ export function RiskPage() {
           ) : null}
           <button
             type="button"
-            className="rounded-md border border-line px-3 py-2 text-sm disabled:opacity-60"
+            className="vx-btn"
             onClick={resetEntry}
             disabled={live === null}
           >
@@ -311,7 +309,7 @@ export function RiskPage() {
         <label className="grid gap-1 text-sm">
           Stop price
           <input
-            className="rounded-md border border-line bg-obsidian px-3 py-2 font-mono"
+            className="vx-field font-mono"
             inputMode="decimal"
             autoComplete="off"
             name="stop_price"
@@ -334,12 +332,12 @@ export function RiskPage() {
         </button>
       </form>
       {error ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="vx-alert">
           {error}
         </p>
       ) : null}
       {result ? (
-        <dl className="grid max-w-xl gap-2 rounded-md border border-line bg-panel p-4 text-sm">
+        <dl className="grid max-w-xl gap-2 vx-card text-sm">
           <div className="flex justify-between gap-4">
             <dt>Shares</dt>
             <dd className="font-mono">{result.shares}</dd>
@@ -372,7 +370,7 @@ export function RiskPage() {
         <div className="grid max-w-xl gap-2">
           <button
             type="button"
-            className="w-fit rounded-md border border-line px-4 py-2 text-sm"
+            className="vx-btn w-fit"
             onClick={recordPaper}
           >
             Record paper position

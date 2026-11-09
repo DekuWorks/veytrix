@@ -114,12 +114,12 @@ function ProductMoves({
 }) {
   return (
     <section aria-label={product} className="space-y-3">
-      <h2 className="text-lg font-semibold">{product}</h2>
+      <h2 className="vx-section-title">{product}</h2>
       {state.status === "loading" ? (
         <p className="text-sm text-muted">Loading {product} 1-minute candles.</p>
       ) : null}
       {state.status === "unavailable" ? (
-        <p className="rounded-md border border-danger/40 bg-panel p-4 text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           {product} is unavailable. No price was invented.
         </p>
       ) : null}
@@ -142,7 +142,7 @@ function ProductMoves({
           <CandleAge barStart={state.barStart} />
           <ol className="grid gap-3">
             {state.moves.map((move) => (
-              <li key={move.barStart} className="rounded-md border border-line bg-panel p-4 text-sm">
+              <li key={move.barStart} className="vx-card text-sm">
                 <p className="font-mono text-xs text-muted">Bar start {move.barStart}</p>
                 <dl className="mt-3 grid gap-2 sm:grid-cols-2">
                   <div className="flex justify-between gap-4">
@@ -236,10 +236,10 @@ export function EventsPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Events</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Events</h1>
+        <p className="vx-lede">
           Detected from Coinbase 1-minute candles on this machine. No order is sent.
         </p>
       </div>

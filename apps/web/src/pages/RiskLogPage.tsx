@@ -59,17 +59,17 @@ export function RiskLogPage() {
   const log = state.status === "ready" ? state.payload : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Risk log</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Risk log</h1>
+        <p className="vx-lede">
           Stored size calculations are listed. Shield and reservation previews are not written.
           This page cannot submit an order.
         </p>
       </div>
       {state.status === "loading" ? <p className="text-sm text-muted">Loading the risk log.</p> : null}
       {state.status === "unavailable" ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           {UNAVAILABLE}
         </p>
       ) : null}
@@ -77,7 +77,7 @@ export function RiskLogPage() {
         <>
           <ul className="max-w-xl space-y-2 text-sm">
             {log.unlogged.map((item) => (
-              <li key={item.kind} className="rounded-md border border-line bg-panel px-4 py-3">
+              <li key={item.kind} className="vx-card">
                 <span className="font-mono">{item.kind}</span>
                 <span className="text-muted"> · not stored</span>
               </li>

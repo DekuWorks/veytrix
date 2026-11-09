@@ -99,15 +99,15 @@ export function StrategyPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Strategy · MAC-01</h1>
-        <p className="text-sm text-muted">AAPL daily SMA 20/50 crossover. Long only, at most $100.</p>
+        <h1 className="vx-title">Strategy · MAC-01</h1>
+        <p className="vx-lede">AAPL daily SMA 20/50 crossover. Long only, at most $100.</p>
       </header>
 
       {state.status === "loading" ? <p className="text-sm text-muted">Loading MAC-01 status.</p> : null}
       {state.status === "unavailable" ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="vx-alert">
           {state.detail}
         </p>
       ) : null}
@@ -158,14 +158,14 @@ function StrategyBody({
     <>
       <p
         role="status"
-        className="rounded-md border border-line p-3 text-sm text-muted"
+        className="vx-card text-sm text-muted"
       >
         Mode: {modeLabel(status.config_mode)}. Orders are placed only by the scheduled runner on this
         machine. There is no buy or sell button.
       </p>
 
       <section aria-labelledby="health" className="space-y-3">
-        <h2 id="health" className="text-lg font-semibold">
+        <h2 id="health" className="vx-section-title">
           Health
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -200,13 +200,13 @@ function StrategyBody({
       </section>
 
       <section aria-labelledby="controls" className="space-y-3">
-        <h2 id="controls" className="text-lg font-semibold">
+        <h2 id="controls" className="vx-section-title">
           Controls
         </h2>
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            className="rounded-md border border-line px-3 py-2 text-sm"
+            className="vx-btn"
             disabled={pending || status.paused}
             onClick={onPause}
           >
@@ -214,7 +214,7 @@ function StrategyBody({
           </button>
           <button
             type="button"
-            className="rounded-md border border-line px-3 py-2 text-sm"
+            className="vx-btn"
             disabled={pending || !status.paused}
             onClick={onResume}
           >
@@ -223,7 +223,7 @@ function StrategyBody({
           {!confirmKill ? (
             <button
               type="button"
-              className="rounded-md border border-line px-3 py-2 text-sm"
+              className="vx-btn"
               disabled={pending || status.kill_switch}
               onClick={onKillRequest}
             >
@@ -233,7 +233,7 @@ function StrategyBody({
             <>
               <button
                 type="button"
-                className="rounded-md border border-line bg-panel-2 px-3 py-2 text-sm"
+                className="vx-btn"
                 disabled={pending}
                 onClick={onKillConfirm}
               >
@@ -241,7 +241,7 @@ function StrategyBody({
               </button>
               <button
                 type="button"
-                className="rounded-md border border-line px-3 py-2 text-sm"
+                className="vx-btn"
                 disabled={pending}
                 onClick={onKillCancel}
               >
@@ -255,14 +255,14 @@ function StrategyBody({
           order that is already at Alpaca.
         </p>
         {actionError !== null ? (
-          <p role="alert" className="text-sm text-danger">
+          <p role="alert" className="vx-alert">
             {actionError}
           </p>
         ) : null}
       </section>
 
       <section aria-labelledby="chart" className="space-y-3">
-        <h2 id="chart" className="text-lg font-semibold">
+        <h2 id="chart" className="vx-section-title">
           Chart
         </h2>
         {chart.available ? (
@@ -276,7 +276,7 @@ function StrategyBody({
       </section>
 
       <section aria-labelledby="performance" className="space-y-3">
-        <h2 id="performance" className="text-lg font-semibold">
+        <h2 id="performance" className="vx-section-title">
           Performance ({performance.mode})
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -299,7 +299,7 @@ function StrategyBody({
       </section>
 
       <section aria-labelledby="signals" className="space-y-3">
-        <h2 id="signals" className="text-lg font-semibold">
+        <h2 id="signals" className="vx-section-title">
           Signals
         </h2>
         {signals.signals.length === 0 ? (
@@ -338,7 +338,7 @@ function StrategyBody({
       </section>
 
       <section aria-labelledby="orders" className="space-y-3">
-        <h2 id="orders" className="text-lg font-semibold">
+        <h2 id="orders" className="vx-section-title">
           Orders
         </h2>
         {orders.orders.length === 0 ? (

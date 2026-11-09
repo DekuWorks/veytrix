@@ -171,22 +171,22 @@ export function AuditPage() {
   const ready = probe.status === "ready" ? probe.payload : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Audit</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Audit</h1>
+        <p className="vx-lede">
           This page reads the local diagnostics probe. It does not size a position. No order is
           sent.
         </p>
       </div>
       {probe.status === "loading" ? <p className="text-sm text-muted">Checking diagnostics.</p> : null}
       {probe.status === "error" ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           Diagnostics probe failed. No status was invented.
         </p>
       ) : null}
       {ready ? (
-        <dl className="grid max-w-xl gap-3 rounded-md border border-line bg-panel p-4 text-sm">
+        <dl className="grid max-w-xl gap-3 vx-card text-sm">
           <div className="flex justify-between gap-4">
             <dt>Environment</dt>
             <dd className="font-mono">{ready.env}</dd>
@@ -218,14 +218,14 @@ export function AuditPage() {
         </dl>
       ) : null}
       <section aria-labelledby="size-journal" className="space-y-4">
-        <h2 id="size-journal" className="text-lg font-semibold">
+        <h2 id="size-journal" className="vx-section-title">
           {JOURNAL_HEADER}
         </h2>
         {journal.status === "loading" ? (
           <p className="text-sm text-muted">Loading paper sizes.</p>
         ) : null}
         {journal.status === "unavailable" ? (
-          <p className="text-sm text-danger" role="alert">
+          <p className="vx-alert" role="alert">
             {JOURNAL_UNAVAILABLE}
           </p>
         ) : null}
@@ -235,7 +235,7 @@ export function AuditPage() {
         {journal.status === "ready" && journal.entries.length > 0 ? (
           <ul className="grid max-w-xl gap-3">
             {journal.entries.map((item) => (
-              <li key={item.id} className="rounded-md border border-line bg-panel p-4 text-sm">
+              <li key={item.id} className="vx-card text-sm">
                 <h3 className="text-base font-semibold">{item.symbol}</h3>
                 <p className="mt-2">Shares {item.shares}</p>
                 <p className="mt-2">Binding constraint {item.binding_constraint}</p>
@@ -247,12 +247,12 @@ export function AuditPage() {
         ) : null}
       </section>
       <section aria-labelledby="audit-log" className="space-y-4">
-        <h2 id="audit-log" className="text-lg font-semibold">
+        <h2 id="audit-log" className="vx-section-title">
           {LOG_HEADER}
         </h2>
         {log.status === "loading" ? <p className="text-sm text-muted">Loading the audit log.</p> : null}
         {log.status === "unavailable" ? (
-          <p className="text-sm text-danger" role="alert">
+          <p className="vx-alert" role="alert">
             {LOG_UNAVAILABLE}
           </p>
         ) : null}
@@ -262,7 +262,7 @@ export function AuditPage() {
         {log.status === "ready" && log.events.length > 0 ? (
           <ul className="grid max-w-xl gap-3">
             {log.events.map((item) => (
-              <li key={item.id} className="rounded-md border border-line bg-panel p-4 text-sm">
+              <li key={item.id} className="vx-card text-sm">
                 <h3 className="text-base font-semibold">{item.symbol}</h3>
                 <p className="mt-2">Action {item.action}</p>
                 <p className="mt-2">Shares {item.shares}</p>

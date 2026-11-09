@@ -104,7 +104,7 @@ export function AppShell({ children }: AppShellProps) {
         >
           <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-4">
             <div>
-              <p id={titleId} className="text-xs font-semibold tracking-wide text-jade">
+              <p id={titleId} className="vx-kicker">
                 Veytrix
               </p>
               <p className={`mt-1 text-sm text-muted ${collapsed ? "md:sr-only" : ""}`}>
@@ -114,7 +114,7 @@ export function AppShell({ children }: AppShellProps) {
             <button
               ref={closeRef}
               type="button"
-              className="rounded-md border border-line px-2 py-1 text-sm md:hidden"
+              className="vx-btn md:hidden"
               onClick={() => {
                 setOpen(false);
                 menuRef.current?.focus();
@@ -131,11 +131,7 @@ export function AppShell({ children }: AppShellProps) {
                 end={item.end}
                 aria-label={item.label}
                 onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `rounded-md px-3 py-2 text-sm ${
-                    isActive ? "bg-panel-2 text-jade" : "text-ink hover:bg-panel-2"
-                  }`
-                }
+                className="vx-nav-link"
               >
                 <span aria-hidden="true" className={collapsed ? "hidden md:inline" : "hidden"}>
                   {item.label.slice(0, 1)}
@@ -145,7 +141,7 @@ export function AppShell({ children }: AppShellProps) {
             ))}
             <button
               type="button"
-              className="mt-auto hidden rounded-md border border-line px-3 py-2 text-sm md:inline-flex"
+              className="vx-btn mt-auto hidden md:inline-flex"
               aria-pressed={collapsed}
               onClick={() => setCollapsed((value) => !value)}
             >
@@ -154,11 +150,11 @@ export function AppShell({ children }: AppShellProps) {
           </nav>
         </aside>
         <div className="min-w-0">
-          <header className="flex items-center gap-3 border-b border-line px-4 py-3 md:px-6">
+          <header className="flex items-center gap-3 border-b border-line bg-panel/80 px-4 py-3 md:px-8">
             <button
               ref={menuRef}
               type="button"
-              className="rounded-md border border-line px-3 py-2 text-sm md:hidden"
+              className="vx-btn md:hidden"
               aria-expanded={open}
               aria-controls="primary-nav"
               onClick={() => setOpen(true)}
@@ -167,7 +163,7 @@ export function AppShell({ children }: AppShellProps) {
             </button>
             <p className="text-sm text-muted">Private research desk · live quotes</p>
           </header>
-          <main id="main" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-6 outline-none md:px-6">
+          <main id="main" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-8 outline-none md:px-8">
             {children}
           </main>
           <footer className="space-y-2 border-t border-line px-4 py-4 text-sm text-muted md:px-6">

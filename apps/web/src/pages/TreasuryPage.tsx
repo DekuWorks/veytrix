@@ -79,10 +79,10 @@ export function TreasuryPage() {
   const ready = summary.status === "ready" ? summary.summary : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Treasury</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Treasury</h1>
+        <p className="vx-lede">
           This page reads a local projection for the open month. It does not approve a payout
           and it does not send one.
         </p>
@@ -91,16 +91,16 @@ export function TreasuryPage() {
         <p className="text-sm text-muted">Loading the monthly projection.</p>
       ) : null}
       {summary.status === "unavailable" ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           {UNAVAILABLE}
         </p>
       ) : null}
       {ready ? (
         <section aria-labelledby="monthly-summary" className="space-y-4">
-          <h2 id="monthly-summary" className="text-lg font-semibold">
+          <h2 id="monthly-summary" className="vx-section-title">
             Monthly projection. Not a transfer. No payout is sent.
           </h2>
-          <dl className="grid max-w-xl gap-3 rounded-md border border-line bg-panel p-4 text-sm">
+          <dl className="grid max-w-xl gap-3 vx-card text-sm">
             <div className="flex justify-between gap-4">
               <dt>Period</dt>
               <dd className="font-mono">{ready.period}</dd>

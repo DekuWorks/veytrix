@@ -230,7 +230,7 @@ class HqScene extends Phaser.Scene {
     for (const code of FLOOR_ORDER) {
       const home = DESK_TILES[code];
       const point = tileCenter(home);
-      const sprite = this.add.sprite(point.x, point.y, `${code}-sit-0`).setOrigin(0.5, 0.9).setScale(3.5).setDepth(point.y);
+      const sprite = this.add.sprite(point.x, point.y, `${code}-sit-0`).setOrigin(0.5, 0.92).setScale(2.15).setDepth(point.y);
       sprite.setInteractive({ useHandCursor: true });
       sprite.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
         pointer.event?.stopPropagation();
@@ -240,7 +240,7 @@ class HqScene extends Phaser.Scene {
         }
       });
       const label = this.add
-        .text(point.x, point.y - 46, code, {
+        .text(point.x, point.y - 78, code, {
           fontFamily: "IBM Plex Sans, sans-serif",
           fontSize: "15px",
           color: "#7dffa8",
@@ -279,7 +279,7 @@ class HqScene extends Phaser.Scene {
     this.player = this.add
       .sprite(start.x, start.y, "visitor-0")
       .setOrigin(0.5, 0.9)
-      .setScale(3)
+      .setScale(2)
       .setDepth(start.y)
       .setVisible(false);
     const boardX = BOARDROOM.x * TILE + TILE / 2;
@@ -414,7 +414,7 @@ class HqScene extends Phaser.Scene {
   }
 
   private placeLabel(npc: Npc) {
-    npc.label.setPosition(npc.sprite.x, npc.sprite.y - 64);
+    npc.label.setPosition(npc.sprite.x, npc.sprite.y - 92);
     npc.dot.setPosition(npc.label.x - npc.label.width / 2 - 9, npc.label.y - 10);
     npc.crown?.setPosition(npc.label.x, npc.label.y - 18);
     npc.sprite.setDepth(npc.sprite.y);

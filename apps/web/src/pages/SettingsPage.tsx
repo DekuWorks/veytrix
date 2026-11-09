@@ -55,26 +55,26 @@ export function SettingsPage() {
   const ready = state.status === "ready" ? state.payload : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Settings</h1>
+        <p className="vx-lede">
           This page reads the local diagnostics. There is no field to edit, no key to paste, and
           no switch that turns on live trading.
         </p>
       </div>
       {state.status === "loading" ? <p className="text-sm text-muted">Loading settings.</p> : null}
       {state.status === "unavailable" ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           {UNAVAILABLE}
         </p>
       ) : null}
       {ready ? (
         <section aria-labelledby="local-settings" className="space-y-4">
-          <h2 id="local-settings" className="text-lg font-semibold">
+          <h2 id="local-settings" className="vx-section-title">
             Fixed local posture. Nothing on this page can be saved.
           </h2>
-          <dl className="grid max-w-xl gap-3 rounded-md border border-line bg-panel p-4 text-sm">
+          <dl className="grid max-w-xl gap-3 vx-card text-sm">
             <div className="flex justify-between gap-4">
               <dt>Environment</dt>
               <dd className="font-mono">{ready.env}</dd>

@@ -66,22 +66,22 @@ export function SchedulePage() {
   const schedule = state.status === "ready" ? state.payload : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Scheduler</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Scheduler</h1>
+        <p className="vx-lede">
           MAC-01 is published for 09:35 America/New_York, five minutes after the open. This page
           does not read the exchange calendar and cannot start a run.
         </p>
       </div>
       {state.status === "loading" ? <p className="text-sm text-muted">Loading scheduler status.</p> : null}
       {state.status === "unavailable" ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           {UNAVAILABLE}
         </p>
       ) : null}
       {schedule ? (
-        <dl className="grid max-w-xl gap-3 rounded-md border border-line bg-panel p-4 text-sm">
+        <dl className="grid max-w-xl gap-3 vx-card text-sm">
           <div className="flex justify-between gap-4">
             <dt>Clock</dt>
             <dd className="font-mono">

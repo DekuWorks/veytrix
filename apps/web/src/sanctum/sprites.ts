@@ -227,13 +227,19 @@ function paintDesk(pix: Pix, code: AgentCode) {
   const anchor = DESK_TILES[code];
   const dx = Math.sign(GLOBE.x - anchor.x);
   const dy = Math.sign(GLOBE.y - anchor.y);
-  const x = anchor.x * TILE - dx * 28 - 8;
-  const y = anchor.y * TILE - dy * 22 - 4;
-  pix.fillRect(x, y, 40, 22, "#101816");
-  pix.fillRect(x + 2, y + 2, 11, 9, SCREENS[code]);
-  pix.fillRect(x + 14, y + 2, 11, 9, "#0e2420");
-  pix.fillRect(x + 26, y + 2, 11, 9, SCREENS[code]);
-  pix.fillRect(x + 4, y + 4, 7, 4, "#d8fff0aa");
+  const x = anchor.x * TILE - dx * 34 - 10;
+  const y = anchor.y * TILE - dy * 26 - 6;
+  pix.fillRect(x + 6, y + 30, 36, 6, "#241c16");
+  pix.fillRect(x + 10, y + 18, 28, 14, "#3a3228");
+  pix.fillRect(x, y, 56, 18, "#121a17");
+  pix.fillRect(x, y, 56, 2, "#3dbe8b");
+  pix.fillRect(x + 3, y + 4, 15, 10, SCREENS[code]);
+  pix.fillRect(x + 20, y + 4, 15, 10, "#0c1c18");
+  pix.fillRect(x + 37, y + 4, 15, 10, SCREENS[code]);
+  pix.fillRect(x + 5, y + 6, 8, 3, "#e7fff4aa");
+  pix.fillRect(x + 48, y - 12, 2, 14, "#2c2a24");
+  pix.fillRect(x + 43, y - 16, 12, 5, "#e6c36a");
+  pix.fillCircle(x + 49, y - 8, 8, "#f0d48a33");
 }
 
 function paintBoardroom(pix: Pix) {
@@ -292,11 +298,13 @@ export function renderFloor(): Pix {
     paintTree(pix, tree);
   }
   for (const lamp of LAMPS) {
-    const x = lamp.x * TILE;
-    const y = lamp.y * TILE;
-    pix.fillRect(x + 6, y, 3, 14, "#2c2a24");
-    pix.fillRect(x + 3, y - 2, 9, 4, "#e6c36a");
-    pix.fillCircle(x + 7, y, 6, "#f0d48a55");
+    const x = lamp.x * TILE + 8;
+    const y = lamp.y * TILE + 10;
+    pix.fillCircle(x, y + 6, 14, "#f0d48a22");
+    pix.fillRect(x - 1, y - 2, 3, 18, "#3a3428");
+    pix.fillRect(x - 7, y - 8, 14, 5, "#e6c36a");
+    pix.fillRect(x - 5, y - 10, 10, 3, "#f4dd9a");
+    pix.fillCircle(x, y - 4, 5, "#fff1c088");
   }
   for (const plant of PLANTS) {
     const x = plant.x * TILE;
@@ -332,71 +340,89 @@ const LOOKS: Record<AgentCode, Look> = {
 export type SpritePose = "sit" | "walk" | "work" | "talk";
 
 export function renderAgent(code: AgentCode, pose: SpritePose, frame: number): Pix {
-  const pix = new Pix(16, 24);
+  const pix = new Pix(24, 40);
   const look = LOOKS[code];
   const bob = pose === "walk" && frame === 1 ? 1 : 0;
-  const y0 = (pose === "sit" ? 5 : 2) + bob;
-  pix.fillRect(4, 22, 8, 1, "#00000066");
+  const y0 = (pose === "sit" ? 8 : 3) + bob;
+  pix.fillRect(6, 38, 12, 2, "#00000055");
   if (look.extra === "crown") {
-    pix.fillRect(4, y0 - 3, 8, 2, "#e2c15a");
-    pix.set(4, y0 - 4, "#e2c15a");
-    pix.set(7, y0 - 4, "#e2c15a");
-    pix.set(11, y0 - 4, "#e2c15a");
+    pix.fillRect(6, y0 - 4, 12, 3, "#e2c15a");
+    pix.fillRect(6, y0 - 7, 2, 4, "#e2c15a");
+    pix.fillRect(11, y0 - 8, 2, 5, "#e2c15a");
+    pix.fillRect(16, y0 - 7, 2, 4, "#e2c15a");
   }
   if (look.extra === "tall") {
-    pix.fillRect(4, y0 - 2, 8, 2, look.hair);
+    pix.fillRect(7, y0 - 3, 10, 3, look.hair);
   }
   if (look.extra === "antenna") {
-    pix.set(8, y0 - 2, look.hair);
-    pix.set(8, y0 - 1, "#7dffa8");
+    pix.fillRect(11, y0 - 6, 2, 5, look.hair);
+    pix.fillRect(10, y0 - 7, 4, 2, "#7dffa8");
   }
-  pix.fillRect(4, y0, 8, 4, look.hair);
+  pix.fillRect(6, y0, 12, 7, look.hair);
   if (look.extra === "bun") {
-    pix.fillRect(11, y0 + 1, 3, 3, look.hair);
+    pix.fillCircle(17, y0 + 3, 3, look.hair);
+  }
+  if (look.extra === "side") {
+    pix.fillRect(16, y0 + 4, 4, 6, look.hair);
+  }
+  if (look.extra === "short") {
+    pix.fillRect(6, y0, 12, 3, look.hair);
   }
   if (look.extra === "hood") {
-    pix.fillRect(3, y0, 10, 3, "#102028");
+    pix.fillRect(4, y0 - 1, 16, 5, "#102028");
+    pix.fillRect(5, y0 + 3, 14, 2, "#16485a");
   }
-  pix.fillRect(5, y0 + 3, 6, 3, look.skin);
-  pix.set(6, y0 + 4, "#1a1a1a");
-  pix.set(9, y0 + 4, "#1a1a1a");
+  pix.fillRect(7, y0 + 5, 10, 6, look.skin);
+  pix.fillRect(9, y0 + 7, 2, 2, "#1a1a1a");
+  pix.fillRect(14, y0 + 7, 2, 2, "#1a1a1a");
   if (look.extra === "glasses") {
-    pix.set(6, y0 + 4, "#9fd8ff");
-    pix.set(9, y0 + 4, "#9fd8ff");
+    pix.fillRect(8, y0 + 7, 4, 2, "#9fd8ff");
+    pix.fillRect(13, y0 + 7, 4, 2, "#9fd8ff");
   }
   if (look.extra === "visor") {
-    pix.fillRect(5, y0 + 3, 6, 1, "#7ec8ff");
+    pix.fillRect(7, y0 + 6, 10, 2, "#7ec8ff");
   }
   if (pose === "talk" && frame === 1) {
-    pix.set(7, y0 + 5, "#7a3040");
-    pix.set(8, y0 + 5, "#7a3040");
+    pix.fillRect(11, y0 + 9, 3, 1, "#7a3040");
   }
-  pix.fillRect(4, y0 + 6, 8, 5, look.shirt);
+  pix.fillRect(5, y0 + 11, 14, 9, look.shirt);
+  pix.fillRect(5, y0 + 11, 14, 2, "#00000033");
   if (look.extra === "badge") {
-    pix.set(8, y0 + 8, "#f0d48a");
+    pix.fillRect(13, y0 + 14, 3, 3, "#f0d48a");
   }
   if (pose === "work") {
-    pix.fillRect(frame === 0 ? 12 : 13, y0 + 7, 3, 2, look.skin);
+    pix.fillRect(frame === 0 ? 18 : 19, y0 + 14, 4, 3, look.skin);
+  } else if (pose === "talk") {
+    pix.fillRect(2, y0 + 13, 3, 6, look.shirt);
+    pix.fillRect(19, y0 + 12, 3, 6, look.skin);
+  } else {
+    pix.fillRect(3, y0 + 13, 3, 6, look.shirt);
+    pix.fillRect(18, y0 + 13, 3, 6, look.shirt);
   }
   if (pose === "sit") {
-    pix.fillRect(3, y0 + 11, 10, 3, look.legs);
+    pix.fillRect(4, y0 + 20, 16, 5, look.legs);
+    pix.fillRect(4, y0 + 24, 6, 3, "#141414");
+    pix.fillRect(14, y0 + 24, 6, 3, "#141414");
   } else if (pose === "walk" && frame === 1) {
-    pix.fillRect(4, y0 + 11, 3, 5, look.legs);
-    pix.fillRect(9, y0 + 12, 3, 4, look.legs);
+    pix.fillRect(6, y0 + 20, 4, 10, look.legs);
+    pix.fillRect(13, y0 + 21, 4, 8, look.legs);
+    pix.fillRect(6, y0 + 29, 5, 2, "#141414");
   } else {
-    pix.fillRect(5, y0 + 11, 2, 5, look.legs);
-    pix.fillRect(9, y0 + 11, 2, 5, look.legs);
+    pix.fillRect(7, y0 + 20, 3, 10, look.legs);
+    pix.fillRect(14, y0 + 20, 3, 10, look.legs);
+    pix.fillRect(6, y0 + 29, 5, 2, "#141414");
+    pix.fillRect(13, y0 + 29, 5, 2, "#141414");
   }
   return pix;
 }
 
 export function renderVisitor(frame: number): Pix {
-  const pix = new Pix(16, 24);
-  const y0 = frame === 1 ? 3 : 2;
-  pix.fillRect(5, y0, 6, 3, "#e7f3ec");
-  pix.fillRect(4, y0 + 4, 8, 6, "#3dbe8b");
-  pix.fillRect(5, y0 + 10, 2, 5, "#102018");
-  pix.fillRect(9, y0 + 10, 2, frame === 1 ? 4 : 5, "#102018");
+  const pix = new Pix(24, 40);
+  const y0 = frame === 1 ? 5 : 4;
+  pix.fillRect(8, y0, 8, 6, "#e7f3ec");
+  pix.fillRect(6, y0 + 6, 12, 10, "#3dbe8b");
+  pix.fillRect(7, y0 + 16, 3, 12, "#102018");
+  pix.fillRect(14, y0 + 16, 3, frame === 1 ? 10 : 12, "#102018");
   return pix;
 }
 

@@ -10,14 +10,14 @@ type KpiCardProps = {
 
 export function KpiCard({ label, value, detail, activity, note, extra, position }: KpiCardProps) {
   return (
-    <article className="rounded-md border border-line bg-panel p-4">
+    <article className="vx-card">
       <h3 className="text-sm text-muted">{label}</h3>
-      <p className="mt-2 font-mono text-2xl text-ink">{value}</p>
-      <p className="mt-2 text-sm text-muted">{detail}</p>
-      {activity !== undefined ? <p className="mt-2 text-sm text-muted">{activity}</p> : null}
-      {note !== undefined ? <p className="mt-2 text-sm text-muted">{note}</p> : null}
-      {extra !== undefined ? <p className="mt-2 text-sm text-muted">{extra}</p> : null}
-      {position !== undefined ? <p className="mt-2 text-sm text-muted">{position}</p> : null}
+      <p className="mt-3 font-mono text-[clamp(1.5rem,3vw,1.75rem)] leading-none tracking-tight text-jade-2">{value}</p>
+      <p className="vx-copy">{detail}</p>
+      {activity !== undefined ? <p className="vx-copy">{activity}</p> : null}
+      {note !== undefined ? <p className="vx-copy">{note}</p> : null}
+      {extra !== undefined ? <p className="vx-copy">{extra}</p> : null}
+      {position !== undefined ? <p className="vx-copy">{position}</p> : null}
     </article>
   );
 }

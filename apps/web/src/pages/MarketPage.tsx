@@ -337,11 +337,11 @@ export function MarketPage() {
     ticker.status === "ready" ? printStatus(ticker.payload.trade_time, Date.now()) : null;
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Market</h1>
-          <p className="mt-2 max-w-3xl text-sm text-muted">
+          <h1 className="vx-title">Market</h1>
+          <p className="vx-lede">
             The headline is the latest Coinbase trade for the selected product, refreshed every 2
             seconds. The chart is that product&apos;s 1-minute candles for the last three hours,
             refreshed about every 45 seconds. The daily table keeps the change versus the previous
@@ -356,9 +356,7 @@ export function MarketPage() {
                 key={id}
                 type="button"
                 aria-pressed={product === id}
-                className={`rounded-md border px-3 py-2 text-sm ${
-                  product === id ? "border-jade-2 text-jade-2" : "border-line"
-                }`}
+                className="vx-btn"
                 onClick={() => selectProduct(id)}
               >
                 {id}
@@ -367,7 +365,7 @@ export function MarketPage() {
           </fieldset>
           <button
             type="button"
-            className="rounded-md border border-line px-3 py-2 text-sm"
+            className="vx-btn"
             onClick={() => {
               setMinute({ status: "loading" });
               setDaily({ status: "loading" });
@@ -383,19 +381,19 @@ export function MarketPage() {
       </div>
       {ticker.status === "loading" ? <p className="text-sm text-muted">Waiting for the live print.</p> : null}
       {ticker.status === "error" ? (
-        <p className="rounded-md border border-danger/40 bg-panel p-4 text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           Live ticker is unavailable. No price was invented.
         </p>
       ) : null}
       {ticker.status === "invalid" ? (
-        <p className="rounded-md border border-danger/40 bg-panel p-4 text-sm text-danger" role="alert">
+        <p className="vx-alert" role="alert">
           The ticker response was not a Coinbase {product} print.
         </p>
       ) : null}
       {ticker.status === "ready" ? (
         <section aria-labelledby="live-print" className="space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 id="live-print" className="text-lg font-semibold">
+            <h2 id="live-print" className="vx-section-title">
               Live print · {ticker.payload.symbol}
             </h2>
             <p className="font-mono text-xs text-jade-2">Exchange time {ticker.payload.trade_time}</p>
@@ -429,7 +427,7 @@ export function MarketPage() {
 
       <section aria-labelledby="minute-series" className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 id="minute-series" className="text-lg font-semibold">
+          <h2 id="minute-series" className="vx-section-title">
             {product} · 1 minute
           </h2>
           {minute.status === "ready" ? (
@@ -441,12 +439,12 @@ export function MarketPage() {
           <p className="text-sm text-muted">Loading {product} 1-minute candles.</p>
         ) : null}
         {minute.status === "error" ? (
-          <p className="rounded-md border border-danger/40 bg-panel p-4 text-sm text-danger" role="alert">
+          <p className="vx-alert" role="alert">
             1-minute candles are unavailable. No price was invented.
           </p>
         ) : null}
         {minute.status === "invalid" ? (
-          <p className="rounded-md border border-danger/40 bg-panel p-4 text-sm text-danger" role="alert">
+          <p className="vx-alert" role="alert">
             The API response was not a Coinbase {product} 1-minute series. No prices are shown.
           </p>
         ) : null}
@@ -514,19 +512,19 @@ export function MarketPage() {
       </section>
 
       <section aria-labelledby="daily-series" className="space-y-3">
-        <h2 id="daily-series" className="text-lg font-semibold">
+        <h2 id="daily-series" className="vx-section-title">
           Daily candles · {product}
         </h2>
         {daily.status === "loading" ? (
           <p className="text-sm text-muted">Loading {product} daily candles.</p>
         ) : null}
         {daily.status === "error" ? (
-          <p className="rounded-md border border-danger/40 bg-panel p-4 text-sm text-danger" role="alert">
+          <p className="vx-alert" role="alert">
             Daily candles are unavailable. No price was invented.
           </p>
         ) : null}
         {daily.status === "invalid" ? (
-          <p className="rounded-md border border-danger/40 bg-panel p-4 text-sm text-danger" role="alert">
+          <p className="vx-alert" role="alert">
             The API response was not a Coinbase {product} daily series. No prices are shown.
           </p>
         ) : null}
@@ -538,14 +536,14 @@ export function MarketPage() {
                 value={usd(daily.payload.last_close)}
                 detail={daily.payload.symbol}
               />
-              <article className="rounded-md border border-line bg-panel p-4">
+              <article className="vx-card">
                 <h3 className="text-sm text-muted">Change vs previous close</h3>
                 <p className={`mt-2 font-mono text-2xl ${changeClass}`}>{signedUsd(daily.payload.change)}</p>
                 <p className={`mt-2 font-mono text-sm ${changeClass}`}>
                   {daily.payload.change_percent === null ? "—" : `${daily.payload.change_percent}%`}
                 </p>
               </article>
-              <article className="rounded-md border border-line bg-panel p-4">
+              <article className="vx-card">
                 <h3 className="text-sm text-muted">Last daily range</h3>
                 <p className="mt-2 font-mono text-lg text-ink">
                   Low {usd(daily.payload.bars.at(-1)?.low ?? null)}

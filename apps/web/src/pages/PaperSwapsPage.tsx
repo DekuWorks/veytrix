@@ -150,22 +150,22 @@ export function PaperSwapsPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
         <p className="text-sm font-semibold text-jade">Simulated</p>
-        <h1 className="mt-1 text-2xl font-semibold">Paper swaps</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">{PAPER_SWAP_NOTICE}</p>
+        <h1 className="vx-title">Paper swaps</h1>
+        <p className="vx-lede">{PAPER_SWAP_NOTICE}</p>
       </div>
       <section aria-label="Swap posture" className="space-y-3">
-        <h2 className="text-lg font-semibold">Signing</h2>
+        <h2 className="vx-section-title">Signing</h2>
         {posture.status === "loading" ? <p className="text-sm text-muted">Loading posture.</p> : null}
         {posture.status === "unavailable" ? (
-          <p className="text-sm text-danger" role="alert">
+          <p className="vx-alert" role="alert">
             {POSTURE_DOWN}
           </p>
         ) : null}
         {posture.status === "ready" ? (
-          <dl className="grid max-w-xl gap-3 rounded-md border border-line bg-panel p-4 text-sm">
+          <dl className="grid max-w-xl gap-3 vx-card text-sm">
             <div className="flex justify-between gap-4">
               <dt>Signing</dt>
               <dd className="font-mono">{posture.posture.signing}</dd>
@@ -191,7 +191,7 @@ export function PaperSwapsPage() {
       </section>
 
       <section aria-label="Simulated balances" className="space-y-3">
-        <h2 className="text-lg font-semibold">Balances</h2>
+        <h2 className="vx-section-title">Balances</h2>
         {portfolio.status === "loading" ? <p className="text-sm text-muted">Loading balances.</p> : null}
         {portfolio.status === "unavailable" ? <p className="text-sm text-muted">{LEDGER_DOWN}</p> : null}
         {portfolio.status === "ready" && portfolio.portfolio.networks.length === 0 ? (
@@ -225,7 +225,7 @@ export function PaperSwapsPage() {
       </section>
 
       <section aria-label="Simulated swaps" className="space-y-3">
-        <h2 className="text-lg font-semibold">Swaps</h2>
+        <h2 className="vx-section-title">Swaps</h2>
         {orders.status === "loading" ? <p className="text-sm text-muted">Loading swaps.</p> : null}
         {orders.status === "unavailable" ? <p className="text-sm text-muted">{LEDGER_DOWN}</p> : null}
         {orders.status === "ready" && orders.orders.length === 0 ? (

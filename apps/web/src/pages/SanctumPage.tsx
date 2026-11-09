@@ -367,6 +367,10 @@ export function SanctumPage() {
   };
 
   const selectedAgent = snapshot.agents?.find((agent) => agent.code === selected) ?? null;
+  const runningLabel = snapshot.agents
+    ? String(snapshot.agents.filter((agent) => agent.status !== "disabled" && agent.status !== "paused").length)
+    : "not verified";
+  const paperLine = snapshot.trades.value === "0" ? "0 verified paper trades" : snapshot.trades.detail;
   const feed = activityFeed({
     agents: snapshot.agents ? FLOOR_ORDER.map((code) => {
       const agent = snapshot.agents?.find((item) => item.code === code);
@@ -470,7 +474,7 @@ export function SanctumPage() {
                   <p>Verified trading activity: {snapshot.verified}</p>
                   <p>No order is sent. Trading denied. Simulated.</p>
                 </div>
-                <button type="button" className="rounded-md border border-line px-2 py-1" onClick={() => setDetailOpen(false)}>
+                <button type="button" className="vx-btn" onClick={() => setDetailOpen(false)}>
                   Close detail
                 </button>
               </div>
@@ -500,9 +504,9 @@ export function SanctumPage() {
                   id="sanctum-note"
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
-                  className="h-16 w-full rounded-md border border-line bg-obsidian px-2 py-1"
+                  className="vx-field h-16"
                 />
-                <button type="submit" className="rounded-md border border-line px-2 py-1">
+                <button type="submit" className="vx-btn">
                   Save local note
                 </button>
               </form>
@@ -519,7 +523,7 @@ export function SanctumPage() {
             <h1 className="text-base font-semibold">Sanctum — Sky View</h1>
             <p className="text-xs text-muted">Live Agency Operations</p>
           </div>
-          <section aria-label="Agency status" className="rounded-md border border-line p-3">
+          <section aria-label="Agency status" className="vx-card">
             <p className="text-xs text-muted">Agency Status</p>
             <p className="mt-1 font-semibold text-danger">
               {snapshot.loaded ? agencyStatus(snapshot.ready) : "Loading"}
@@ -527,21 +531,25 @@ export function SanctumPage() {
             <p className="mt-1 text-xs text-muted">No order is sent. Trading denied. Simulated.</p>
           </section>
           {snapshot.loaded && !snapshot.ready ? (
-            <p className="text-sm text-danger" role="alert">
+            <p className="vx-alert" role="alert">
               Agent registry is unavailable. No desk was invented. No order was sent.
             </p>
           ) : null}
           {snapshot.loaded && snapshot.futuresAlert ? (
-            <p className="text-sm text-danger" role="alert">
+            <p className="vx-alert" role="alert">
               Futures posture is unavailable. No order was sent.
             </p>
           ) : null}
-          <section aria-label="Agency counts" className="space-y-2">
+          <section aria-label="Agency counts" className="vx-card space-y-2">
             <div className="flex items-baseline justify-between gap-3">
               <span>Agents present</span>
               <span className="font-semibold">{counts.value}</span>
             </div>
             <p className="text-xs text-muted">{counts.detail}</p>
+            <div className="flex items-baseline justify-between gap-3">
+              <span>Running</span>
+              <span className="font-semibold">{runningLabel}</span>
+            </div>
             <div className="flex items-baseline justify-between gap-3">
               <span>Active tasks</span>
               <span className="font-semibold">not verified</span>
@@ -550,7 +558,10 @@ export function SanctumPage() {
               <span>Trades (Paper)</span>
               <span className="font-semibold">{snapshot.trades.value}</span>
             </div>
-            <p className="text-xs text-muted">{snapshot.trades.detail}</p>
+            <p className="text-xs text-muted">{paperLine}</p>
+            {paperLine === snapshot.trades.detail ? null : (
+              <p className="text-xs text-muted">{snapshot.trades.detail}</p>
+            )}
             <div className="flex items-baseline justify-between gap-3">
               <span>Alerts</span>
               <span className="font-semibold">{snapshot.alerts}</span>
@@ -586,10 +597,10 @@ export function SanctumPage() {
                 <p>Close and review dates are unavailable. No meeting was booked.</p>
               )}
               <div className="flex gap-2">
-                <button type="button" className="rounded-md border border-line px-2 py-1" onClick={() => gameRef.current?.gather()}>
+                <button type="button" className="vx-btn" onClick={() => gameRef.current?.gather()}>
                   Gather in the boardroom
                 </button>
-                <button type="button" className="rounded-md border border-line px-2 py-1" onClick={() => gameRef.current?.returnToDesks()}>
+                <button type="button" className="vx-btn" onClick={() => gameRef.current?.returnToDesks()}>
                   Return to desks
                 </button>
               </div>
@@ -623,41 +634,41 @@ export function SanctumPage() {
           <section aria-label="Camera controls" className="space-y-2">
             <h2 className="text-xs font-semibold text-muted">Camera Controls</h2>
             <div className="grid grid-cols-4 gap-1">
-              <button type="button" aria-label="Pan up" className="rounded-md border border-line py-1" onClick={() => gameRef.current?.panBy(0, -80)}>
+              <button type="button" aria-label="Pan up" className="vx-btn" onClick={() => gameRef.current?.panBy(0, -80)}>
                 ↑
               </button>
-              <button type="button" aria-label="Pan left" className="rounded-md border border-line py-1" onClick={() => gameRef.current?.panBy(-80, 0)}>
+              <button type="button" aria-label="Pan left" className="vx-btn" onClick={() => gameRef.current?.panBy(-80, 0)}>
                 ←
               </button>
-              <button type="button" aria-label="Pan right" className="rounded-md border border-line py-1" onClick={() => gameRef.current?.panBy(80, 0)}>
+              <button type="button" aria-label="Pan right" className="vx-btn" onClick={() => gameRef.current?.panBy(80, 0)}>
                 →
               </button>
-              <button type="button" aria-label="Pan down" className="rounded-md border border-line py-1" onClick={() => gameRef.current?.panBy(0, 80)}>
+              <button type="button" aria-label="Pan down" className="vx-btn" onClick={() => gameRef.current?.panBy(0, 80)}>
                 ↓
               </button>
-              <button type="button" aria-label="Zoom out" className="rounded-md border border-line py-1" onClick={() => gameRef.current?.zoomBy(0.85)}>
+              <button type="button" aria-label="Zoom out" className="vx-btn" onClick={() => gameRef.current?.zoomBy(0.85)}>
                 −
               </button>
-              <button type="button" aria-label="Zoom in" className="rounded-md border border-line py-1" onClick={() => gameRef.current?.zoomBy(1.15)}>
+              <button type="button" aria-label="Zoom in" className="vx-btn" onClick={() => gameRef.current?.zoomBy(1.15)}>
                 +
               </button>
-              <button type="button" aria-label="Fit the floor" className="col-span-2 rounded-md border border-line py-1" onClick={() => setCamera("sky", "sky")}>
+              <button type="button" aria-label="Fit the floor" className="vx-btn col-span-2" onClick={() => setCamera("sky", "sky")}>
                 Fit
               </button>
             </div>
             <div className="grid grid-cols-2 gap-1">
-              <button type="button" className="rounded-md border border-line px-2 py-1" onClick={() => setCamera("sky", "sky")}>
+              <button type="button" className="vx-btn" onClick={() => setCamera("sky", "sky")}>
                 Full Floor
               </button>
-              <button type="button" className="rounded-md border border-line px-2 py-1" onClick={() => setCamera("center")}>
+              <button type="button" className="vx-btn" onClick={() => setCamera("center")}>
                 Center
               </button>
-              <button type="button" className="rounded-md border border-line px-2 py-1" onClick={() => setCamera("meeting", "boardroom")}>
+              <button type="button" className="vx-btn" onClick={() => setCamera("meeting", "boardroom")}>
                 Meeting
               </button>
               <button
                 type="button"
-                className="rounded-md border border-line px-2 py-1"
+                className="vx-btn"
                 title="Frame the trading desks. No order is sent."
                 onClick={() => setCamera("trading")}
               >
@@ -710,7 +721,7 @@ export function SanctumPage() {
           <p className="text-sm">Simulation (Paper)</p>
           <p className="text-[11px] text-muted">No order is sent. Simulated.</p>
         </div>
-        <Link to="/settings" className="ml-auto rounded-md border border-line px-2 py-1 text-sm" aria-label="Settings">
+        <Link to="/settings" className="vx-btn ml-auto" aria-label="Settings">
           Settings
         </Link>
       </footer>

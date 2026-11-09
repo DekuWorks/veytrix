@@ -223,10 +223,10 @@ export function ResearchPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Research</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Research</h1>
+        <p className="vx-lede">
           Research notes stored on this machine. No order is sent.
         </p>
       </div>
@@ -234,7 +234,7 @@ export function ResearchPage() {
         <label className="grid gap-1 text-sm">
           Title
           <input
-            className="rounded-md border border-line bg-obsidian px-3 py-2"
+            className="vx-field"
             name="title"
             value={title}
             maxLength={120}
@@ -279,12 +279,12 @@ export function ResearchPage() {
       {list.status === "ready" && list.notes.length > 0 ? (
         <ul className="grid max-w-xl gap-3">
           {list.notes.map((note) => (
-            <li key={note.id} className="rounded-md border border-line bg-panel p-4">
+            <li key={note.id} className="vx-card">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-base font-semibold">{note.title}</h2>
                 <button
                   type="button"
-                  className="rounded-md border border-line px-3 py-1 text-sm"
+                  className="vx-btn"
                   onClick={() => void removeNote(note.id)}
                 >
                   Delete note
@@ -298,14 +298,14 @@ export function ResearchPage() {
         </ul>
       ) : null}
       <section aria-labelledby="source-events" className="space-y-4">
-        <h2 id="source-events" className="text-lg font-semibold">
+        <h2 id="source-events" className="vx-section-title">
           {EVENT_HEADER}
         </h2>
         <form aria-label="Source events" className="grid max-w-xl gap-4" onSubmit={onAddEvent}>
           <label className="grid gap-1 text-sm">
             Title
             <input
-              className="rounded-md border border-line bg-obsidian px-3 py-2"
+              className="vx-field"
               name="event-title"
               value={eventTitle}
               maxLength={120}
@@ -316,7 +316,7 @@ export function ResearchPage() {
           <label className="grid gap-1 text-sm">
             Source
             <input
-              className="rounded-md border border-line bg-obsidian px-3 py-2"
+              className="vx-field"
               name="source"
               value={source}
               maxLength={200}
@@ -327,7 +327,7 @@ export function ResearchPage() {
           <label className="grid gap-1 text-sm">
             Event time
             <input
-              className="rounded-md border border-line bg-obsidian px-3 py-2"
+              className="vx-field"
               name="event-time"
               value={eventTime}
               onChange={(event) => setEventTime(event.target.value)}
@@ -338,7 +338,7 @@ export function ResearchPage() {
           <label className="grid gap-1 text-sm">
             First public time
             <input
-              className="rounded-md border border-line bg-obsidian px-3 py-2"
+              className="vx-field"
               name="first-public-at"
               value={firstPublicAt}
               onChange={(event) => setFirstPublicAt(event.target.value)}
@@ -372,12 +372,12 @@ export function ResearchPage() {
         {events.status === "ready" && events.events.length > 0 ? (
           <ul className="grid max-w-xl gap-3">
             {events.events.map((item) => (
-              <li key={item.id} className="rounded-md border border-line bg-panel p-4">
+              <li key={item.id} className="vx-card">
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="text-base font-semibold">{item.title}</h3>
                   <button
                     type="button"
-                    className="rounded-md border border-line px-3 py-1 text-sm"
+                    className="vx-btn"
                     onClick={() => void removeEvent(item.id)}
                   >
                     Delete source event

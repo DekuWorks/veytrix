@@ -55,8 +55,8 @@ export function AppRoutes() {
           path="*"
           element={
             <div>
-              <h1 className="text-2xl font-semibold">Not built</h1>
-              <p className="mt-2 text-sm text-muted">That page is not part of this sprint.</p>
+              <h1 className="vx-title">Not built</h1>
+              <p className="vx-lede">That page is not part of this sprint.</p>
             </div>
           }
         />

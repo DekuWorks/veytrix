@@ -375,16 +375,16 @@ export function OverviewPage() {
   const now = Date.now();
 
   return (
-    <div className="space-y-8">
+    <div className="vx-page">
       <div>
-        <h1 className="text-2xl font-semibold">Overview</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">
+        <h1 className="vx-title">Overview</h1>
+        <p className="vx-lede">
           Local posture for this build. The cards below describe the code that is running, not a
           live brokerage account.
         </p>
       </div>
       <section aria-labelledby="build-posture">
-        <h2 id="build-posture" className="text-lg font-semibold">
+        <h2 id="build-posture" className="vx-section-title">
           This build
         </h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -394,7 +394,7 @@ export function OverviewPage() {
         </div>
       </section>
       <section aria-labelledby="live-prints">
-        <h2 id="live-prints" className="text-lg font-semibold">
+        <h2 id="live-prints" className="vx-section-title">
           Live prints
         </h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -423,12 +423,12 @@ export function OverviewPage() {
         </div>
       </section>
       <section aria-labelledby="paper-book">
-        <h2 id="paper-book" className="text-lg font-semibold">
+        <h2 id="paper-book" className="vx-section-title">
           Paper book
         </h2>
         {book.status === "loading" ? <p className="mt-3 text-sm text-muted">Loading the paper book.</p> : null}
         {book.status === "unavailable" ? (
-          <p className="mt-3 text-sm text-danger" role="alert">
+          <p className="vx-alert mt-3" role="alert">
             The paper book is unavailable.
           </p>
         ) : null}
@@ -443,7 +443,7 @@ export function OverviewPage() {
                 const quote = quotes[position.symbol];
                 const freshness = quote.status === "ready" ? printStatus(quote.payload.trade_time, now) : null;
                 return (
-                  <li key={position.id} className="rounded-md border border-line bg-panel p-4 text-sm">
+                  <li key={position.id} className="vx-card text-sm">
                     <h3 className="text-base font-semibold">{position.symbol}</h3>
                     <p className="mt-2">
                       Shares <span className="font-mono">{position.shares}</span>
@@ -475,13 +475,13 @@ export function OverviewPage() {
           </>
         ) : null}
       </section>
-      <section aria-labelledby="api-probe" className="rounded-md border border-line bg-panel p-4">
-        <h2 id="api-probe" className="text-lg font-semibold">
+      <section aria-labelledby="api-probe" className="vx-card">
+        <h2 id="api-probe" className="vx-section-title">
           API probe
         </h2>
         {probe.status === "loading" ? <p className="mt-3 text-sm text-muted">Checking the local API.</p> : null}
         {probe.status === "error" ? (
-          <p className="mt-3 text-sm text-danger" role="alert">
+          <p className="vx-alert mt-3" role="alert">
             API probe failed. No status was invented.
           </p>
         ) : null}
