@@ -147,3 +147,9 @@ Claude Code has not reviewed this repository. Codex has not written or run tests
 - Scope: `services/api/veytrix_api/routers/risk.py`, `services/api/veytrix_api/schemas.py`, `apps/web/src/pages/RiskLogPage.tsx`, `tests/test_risk_events_api.py`
 - Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate.
 - Acceptance: `GET /api/v1/risk/log` is the only method on that path; it returns size-audit rows and nothing else; shield and reservation previews are named and `persisted` stays false; a payload that claims `order_submitted` returns 503 and does not echo the row; the route writes no row; POST is 405; no path ends in `/events`; the page has no submit control and hides a preview marked stored; no order route was added; `services/ai-research/veytrix_ai/**` was not changed.
+
+## 27. Paper-swap posture (awaiting review)
+
+- Scope: `services/api/veytrix_api/routers/paper_swaps.py`, `services/api/veytrix_api/schemas.py`, `apps/web/src/pages/PaperSwapsPage.tsx`, `tests/test_paper_swap_posture.py`
+- Status: implemented on 8 November 2026. Codex has not reviewed it. Do not treat the checklist notes as a closed gate.
+- Acceptance: `GET /api/v1/paper-swaps/posture` is the only method on that path; signing and broadcast stay `absent`; the private key and mainnet stay `refused`; `api_can_record` stays false; the networks stay Solana devnet, Sepolia `11155111`, and Base Sepolia `84532`; the route does not import `veytrix_ai` and does not need the database; POST is 405; portfolio and orders stay GET only; the page hides a posture that says the API can record; no order route was added.

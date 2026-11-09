@@ -4,10 +4,12 @@ import type {
   PaperSwapOrder,
   PaperSwapOrderListResponse,
   PaperSwapPortfolioResponse,
+  PaperSwapPostureResponse,
 } from "../api/types";
 import { PAPER_SWAP_NOTICE } from "../content";
 
 const LEDGER_DOWN = "The paper-swap ledger is unavailable.";
+const POSTURE_DOWN = "Paper-swap posture is unavailable. No signing path was invented.";
 const EMPTY_BALANCES = "No simulated balances yet. The paper-swap CLI records them.";
 const EMPTY_ORDERS = "No simulated swaps yet.";
 
@@ -20,6 +22,28 @@ type OrderState =
   | { status: "loading" }
   | { status: "unavailable" }
   | { status: "ready"; orders: PaperSwapOrder[] };
+
+type PostureState =
+  | { status: "loading" }
+  | { status: "unavailable" }
+  | { status: "ready"; posture: PaperSwapPostureResponse };
+
+function isPosture(value: PaperSwapPostureResponse): boolean {
+  return (
+    value.signing === "absent" &&
+    value.broadcast === "absent" &&
+    value.private_key === "refused" &&
+    value.api_can_record === false &&
+    value.mainnet === "refused" &&
+    value.networks.join(",") === "solana-devnet,sepolia,base-sepolia" &&
+    value.chain_ids.join(",") === "devnet,11155111,84532" &&
+    value.executable === false &&
+    value.execution_permitted === false &&
+    value.order_submitted === false &&
+    value.source === "local_posture" &&
+    value.note.length > 0
+  );
+}
 
 function isMoney(value: string): boolean {
   return value.length > 0 && !value.includes("e") && !value.includes("E");
@@ -63,6 +87,7 @@ function priceLabel(order: PaperSwapOrder): string {
 export function PaperSwapsPage() {
   const [portfolio, setPortfolio] = useState<PortfolioState>({ status: "loading" });
   const [orders, setOrders] = useState<OrderState>({ status: "loading" });
+  const [posture, setPosture] = useState<PostureState>({ status: "loading" });
 
   useEffect(() => {
     document.title = "Paper swaps · Veytrix";
@@ -107,6 +132,18 @@ export function PaperSwapsPage() {
           setOrders({ status: "unavailable" });
         }
       });
+    apiGet<PaperSwapPostureResponse>("/api/v1/paper-swaps/posture")
+      .then((payload) => {
+        if (cancelled) {
+          return;
+        }
+        setPosture(isPosture(payload) ? { status: "ready", posture: payload } : { status: "unavailable" });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPosture({ status: "unavailable" });
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -119,6 +156,39 @@ export function PaperSwapsPage() {
         <h1 className="mt-1 text-2xl font-semibold">Paper swaps</h1>
         <p className="mt-2 max-w-3xl text-sm text-muted">{PAPER_SWAP_NOTICE}</p>
       </div>
+      <section aria-label="Swap posture" className="space-y-3">
+        <h2 className="text-lg font-semibold">Signing</h2>
+        {posture.status === "loading" ? <p className="text-sm text-muted">Loading posture.</p> : null}
+        {posture.status === "unavailable" ? (
+          <p className="text-sm text-danger" role="alert">
+            {POSTURE_DOWN}
+          </p>
+        ) : null}
+        {posture.status === "ready" ? (
+          <dl className="grid max-w-xl gap-3 rounded-md border border-line bg-panel p-4 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt>Signing</dt>
+              <dd className="font-mono">{posture.posture.signing}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt>Broadcast</dt>
+              <dd className="font-mono">{posture.posture.broadcast}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt>Private key</dt>
+              <dd className="font-mono">{posture.posture.private_key}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt>Mainnet</dt>
+              <dd className="font-mono">{posture.posture.mainnet}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt>API can record</dt>
+              <dd className="font-mono">{String(posture.posture.api_can_record)}</dd>
+            </div>
+          </dl>
+        ) : null}
+      </section>
 
       <section aria-label="Simulated balances" className="space-y-3">
         <h2 className="text-lg font-semibold">Balances</h2>

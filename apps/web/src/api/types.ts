@@ -285,6 +285,21 @@ export type PaperSwapPortfolioResponse = {
   networks: PaperSwapNetwork[];
 };
 
+export type PaperSwapPostureResponse = {
+  signing: "absent";
+  broadcast: "absent";
+  private_key: "refused";
+  api_can_record: false;
+  mainnet: "refused";
+  networks: ["solana-devnet", "sepolia", "base-sepolia"];
+  chain_ids: ["devnet", "11155111", "84532"];
+  executable: false;
+  execution_permitted: false;
+  order_submitted: false;
+  source: "local_posture";
+  note: string;
+};
+
 export type PaperSwapOrder = {
   id: string;
   chain: "solana" | "ethereum" | "base";

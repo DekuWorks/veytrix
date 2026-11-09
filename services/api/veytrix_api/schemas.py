@@ -630,6 +630,35 @@ class PaperSwapPortfolioResponse(BaseModel):
     networks: list[PaperSwapNetwork]
 
 
+class PaperSwapPostureResponse(BaseModel):
+    """Why this API cannot sign or record a swap. The CLI is a separate process."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    signing: Literal["absent"]
+    broadcast: Literal["absent"]
+    private_key: Literal["refused"]
+    api_can_record: Literal[False]
+    mainnet: Literal["refused"]
+    networks: list[Literal["solana-devnet", "sepolia", "base-sepolia"]] = Field(
+        min_length=3, max_length=3
+    )
+    chain_ids: list[Literal["devnet", "11155111", "84532"]] = Field(min_length=3, max_length=3)
+    executable: Literal[False]
+    execution_permitted: Literal[False]
+    order_submitted: Literal[False]
+    source: Literal["local_posture"]
+    note: str = Field(min_length=1, max_length=400)
+
+    @model_validator(mode="after")
+    def networks_stay_on_testnet(self) -> PaperSwapPostureResponse:
+        if self.networks != ["solana-devnet", "sepolia", "base-sepolia"]:
+            raise ValueError("Paper-swap networks are incomplete.")
+        if self.chain_ids != ["devnet", "11155111", "84532"]:
+            raise ValueError("Paper-swap chain ids are incomplete.")
+        return self
+
+
 class PaperSwapOrderEntry(BaseModel):
     id: UUID
     chain: Literal["solana", "ethereum", "base"]

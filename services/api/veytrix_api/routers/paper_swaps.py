@@ -22,6 +22,7 @@ from veytrix_api.schemas import (
     PaperSwapOrderEntry,
     PaperSwapOrderListResponse,
     PaperSwapPortfolioResponse,
+    PaperSwapPostureResponse,
 )
 
 router = APIRouter(prefix="/paper-swaps", tags=["paper-swaps"])
@@ -140,3 +141,29 @@ def orders(db: Session = Depends(get_db)) -> PaperSwapOrderListResponse:
             )
         )
     return PaperSwapOrderListResponse(orders=entries)
+
+
+POSTURE_NOTE = (
+    "This API does not sign, broadcast, or record a swap. "
+    "Only the paper-swap CLI records a simulated fill. Not a transaction."
+)
+
+
+@router.get("/posture", response_model=PaperSwapPostureResponse)
+def posture() -> PaperSwapPostureResponse:
+    """State that signing is absent. This route does not read the ledger or the CLI."""
+
+    return PaperSwapPostureResponse(
+        signing="absent",
+        broadcast="absent",
+        private_key="refused",
+        api_can_record=False,
+        mainnet="refused",
+        networks=["solana-devnet", "sepolia", "base-sepolia"],
+        chain_ids=["devnet", "11155111", "84532"],
+        executable=False,
+        execution_permitted=False,
+        order_submitted=False,
+        source="local_posture",
+        note=POSTURE_NOTE,
+    )

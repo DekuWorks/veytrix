@@ -2429,6 +2429,107 @@
         "title": "PaperSwapPortfolioResponse",
         "type": "object"
       },
+      "PaperSwapPostureResponse": {
+        "additionalProperties": false,
+        "description": "Why this API cannot sign or record a swap. The CLI is a separate process.",
+        "properties": {
+          "api_can_record": {
+            "const": false,
+            "title": "Api Can Record",
+            "type": "boolean"
+          },
+          "broadcast": {
+            "const": "absent",
+            "title": "Broadcast",
+            "type": "string"
+          },
+          "chain_ids": {
+            "items": {
+              "enum": [
+                "devnet",
+                "11155111",
+                "84532"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Chain Ids",
+            "type": "array"
+          },
+          "executable": {
+            "const": false,
+            "title": "Executable",
+            "type": "boolean"
+          },
+          "execution_permitted": {
+            "const": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "mainnet": {
+            "const": "refused",
+            "title": "Mainnet",
+            "type": "string"
+          },
+          "networks": {
+            "items": {
+              "enum": [
+                "solana-devnet",
+                "sepolia",
+                "base-sepolia"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Networks",
+            "type": "array"
+          },
+          "note": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "private_key": {
+            "const": "refused",
+            "title": "Private Key",
+            "type": "string"
+          },
+          "signing": {
+            "const": "absent",
+            "title": "Signing",
+            "type": "string"
+          },
+          "source": {
+            "const": "local_posture",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signing",
+          "broadcast",
+          "private_key",
+          "api_can_record",
+          "mainnet",
+          "networks",
+          "chain_ids",
+          "executable",
+          "execution_permitted",
+          "order_submitted",
+          "source",
+          "note"
+        ],
+        "title": "PaperSwapPostureResponse",
+        "type": "object"
+      },
       "ReadyResponse": {
         "properties": {
           "database": {
@@ -4732,6 +4833,28 @@
           }
         },
         "summary": "Portfolio",
+        "tags": [
+          "paper-swaps"
+        ]
+      }
+    },
+    "/api/v1/paper-swaps/posture": {
+      "get": {
+        "description": "State that signing is absent. This route does not read the ledger or the CLI.",
+        "operationId": "posture_api_v1_paper_swaps_posture_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperSwapPostureResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Posture",
         "tags": [
           "paper-swaps"
         ]
