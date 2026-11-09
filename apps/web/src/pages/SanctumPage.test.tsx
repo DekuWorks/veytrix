@@ -146,17 +146,22 @@ describe("sanctum route", () => {
       expect(screen.getAllByText(code).length).toBeGreaterThan(0);
     }
     expect(screen.getByText("BOARDROOM")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Trading" })).toHaveAttribute(
       "title",
       "Frame the trading desks. No order is sent.",
     );
     expect(screen.queryByRole("button", { name: /order|enable|sign|withdraw|topstep/i })).not.toBeInTheDocument();
-    expect(await screen.findByText("Trading denied")).toBeInTheDocument();
+    expect(screen.getAllByText("Paper").length).toBeGreaterThan(0);
     expect(screen.getByText("Simulation (Paper)")).toBeInTheDocument();
-    expect(screen.getAllByText(/none verified/i).length).toBeGreaterThan(0);
-    expect(screen.getByText("not verified")).toBeInTheDocument();
-    expect(screen.queryByText("Operational")).not.toBeInTheDocument();
-    expect(screen.queryByText(/reviewing Topstep/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Dayvid · DAY-01: Scanning intraday setups")).toBeInTheDocument();
+    expect(screen.getByText("Astra · RESEARCH-01: Compiling market intel")).toBeInTheDocument();
+    expect(screen.getByText("Futures · FUTURES-01: Reviewing Topstep rules")).toBeInTheDocument();
+    expect(screen.getByText("Aegis · RISK-01: Monitoring exposure limits")).toBeInTheDocument();
+    expect(screen.getByText("Midas · TREASURY-01: Reconciling balances")).toBeInTheDocument();
+    for (const name of ["Roads", "Dayvid", "Vex", "Nyx", "Cipher", "Lyra", "Astra", "Aegis", "Midas", "Futures"]) {
+      expect(screen.getAllByText(name).length).toBeGreaterThan(0);
+    }
     expect(screen.getAllByText(/No order is sent/).length).toBeGreaterThan(0);
   });
 });

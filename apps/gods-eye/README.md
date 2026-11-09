@@ -10,4 +10,6 @@ The MIT licence applies to that upstream source code only. It does not apply to 
 - Data: https://github.com/bilawalsidhu/gods-eye-view/blob/main/DATA_SOURCES.md
 - Brand note: https://godseyeview.ai/brand/
 
-Veytrix must not be presented as God's Eye, as an official build, or as an endorsed version. A later phase can fork that commit, audit the data licences, and remove anything Veytrix is not allowed to keep. That work has not started.
+Veytrix must not be presented as God's Eye, as an official build, or as an endorsed version.
+
+On 9 November 2026 upstream HEAD `e5da073d33c76a6fe8f56d676b13b4a12152e0ce` was cloned beside this repo and audited. This directory was not replaced with that tree. The local research globe is the `/worldview` route in `apps/web`. Restricted datasets, models, and imagery were not imported. Codex has not reviewed it.

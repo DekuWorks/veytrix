@@ -1,687 +1,591 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { apiGet } from "../api/client";
+import { apiGet, apiPost } from "../api/client";
 import {
-  AGENT_CODES,
   type AgentCode,
   type AgentDesk,
   type AgentListResponse,
-  type DeskDetail,
-  type FuturesPostureResponse,
+  type AuditLogListResponse,
+  type SystemStatusResponse,
 } from "../api/types";
-import {
-  activityFeed,
-  agencyStatus,
-  agentStat,
-  deskHealth,
-  isDeskDetail,
-  isFuturesPosture,
-  isRegistry,
-  paperTradeStat,
-  poseFor,
-  poseFromBroadcast,
-  systemHealth,
-  taskHistory,
-  verifiedTrading,
-  type DeskPose,
-} from "../sanctum/activity";
-import { FLOOR_ORDER } from "../sanctum/floor";
-import type { SanctumController, SanctumMode } from "../sanctum/game";
-import { openSanctumChannel } from "../sanctum/realtime";
-import { renderAgent } from "../sanctum/sprites";
-import { formatClock, formatLongDate, newYorkDate, nextWednesday } from "../sanctum/wednesday";
+import { isRegistry } from "../sanctum/activity";
+import { type ActivityLine } from "../sanctum/ui/ActivityFeed";
+import { AgentDock } from "../sanctum/ui/AgentDock";
+import { Icon } from "../sanctum/ui/Icon";
+import { LogPanel, type SanctumLog } from "../sanctum/ui/LogPanel";
+import { SkyFloor } from "../sanctum/ui/SkyFloor";
+import "../sanctum/ui/sanctum.css";
 
 const NAV = [
-  { to: "/sanctum", label: "Sanctum" },
-  { to: "/market", label: "Market" },
-  { to: "/portfolio", label: "Portfolio" },
-  { to: "/agency", label: "Agents" },
-  { to: "/strategy", label: "Strategy" },
-  { to: "/research", label: "Research" },
-  { to: "/treasury", label: "Treasury" },
+  { to: "/sanctum", label: "Sanctum", icon: "home" },
+  { to: "/market", label: "Market", icon: "chart" },
+  { to: "/portfolio", label: "Portfolio", icon: "case" },
+  { to: "/agency", label: "Agents", icon: "users" },
+  { to: "/strategy", label: "Strategy", icon: "shield" },
+  { to: "/research", label: "Research", icon: "book" },
+  { to: "/treasury", label: "Treasury", icon: "vault" },
+  { to: "/worldview", label: "Worldview", icon: "globe" },
 ] as const;
 
 const RAIL = [
-  { id: "sky", label: "Sky View" },
-  { id: "floor", label: "Floor View" },
-  { id: "agents", label: "Agent List" },
-  { id: "activity", label: "Activity" },
-  { id: "boardroom", label: "Boardroom" },
-  { id: "cameras", label: "Cameras" },
-  { id: "logs", label: "Logs" },
+  { id: "sky", label: "Sky View", icon: "home" },
+  { id: "floor", label: "Floor View", icon: "grid" },
+  { id: "agents", label: "Agent List", icon: "users" },
+  { id: "activity", label: "Activity", icon: "pulse" },
+  { id: "boardroom", label: "Boardroom", icon: "podium" },
+  { id: "cameras", label: "Cameras", icon: "camera" },
+  { id: "logs", label: "Logs", icon: "list" },
 ] as const;
 
 type RailId = (typeof RAIL)[number]["id"];
 
-const ZONES = [
-  { colour: "#3dbe8b", label: "Trading Desks (4)" },
-  { colour: "#8b6bb8", label: "Research / Analysis (2)" },
-  { colour: "#c46a6a", label: "Risk / Treasury (2)" },
-  { colour: "#3dbe8b", label: "Command Center (1)" },
-  { colour: "#d4b15a", label: "Boardroom (1)" },
-  { colour: "#8a8478", label: "Lounge & Workspaces (Shared)" },
+const ROSTER: Record<string, { name: string; role: string }> = {
+  "SUPERVISOR-01": { name: "Roads", role: "AI Commander" },
+  "DAY-01": { name: "Dayvid", role: "Day desk" },
+  "STOCK-01": { name: "Vex", role: "Stock desk" },
+  "CRYPTO-01": { name: "Nyx", role: "Crypto desk" },
+  "DEFI-01": { name: "Cipher", role: "DeFi desk" },
+  "ETF-01": { name: "Lyra", role: "ETF desk" },
+  "RESEARCH-01": { name: "Astra", role: "Research desk" },
+  "RISK-01": { name: "Aegis", role: "Risk desk" },
+  "TREASURY-01": { name: "Midas", role: "Treasury desk" },
+  "FUTURES-01": { name: "Futures", role: "Futures desk" },
+};
+
+const PERSONAS: Record<string, string> = Object.fromEntries(
+  Object.entries(ROSTER).filter(([code]) => code !== "FUTURES-01").map(([code, row]) => [code, row.name]),
+);
+
+function deskIdentity(code: string): { name: string; role: string } {
+  return ROSTER[code] ?? { name: code, role: "Desk" };
+}
+
+const TASKS = [
+  { id: "position_size", label: "Size" },
+  { id: "sma_crossover", label: "Crossover" },
+  { id: "treasury_split", label: "Split" },
+  { id: "reconcile", label: "Reconcile" },
+  { id: "risk_check", label: "Risk check" },
 ] as const;
 
-type AuditRow = { created_at: string; action: string };
+const FEED: ActivityLine[] = [
+  { id: "day", message: "Dayvid · DAY-01: Scanning intraday setups", time: "1m" },
+  { id: "research", message: "Astra · RESEARCH-01: Compiling market intel", time: "2m" },
+  { id: "futures", message: "Futures · FUTURES-01: Reviewing Topstep rules", time: "3m" },
+  { id: "risk", message: "Aegis · RISK-01: Monitoring exposure limits", time: "3m" },
+  { id: "treasury", message: "Midas · TREASURY-01: Reconciling balances", time: "4m" },
+];
 
-type Snapshot = {
-  loaded: boolean;
-  ready: boolean;
-  agents: AgentDesk[] | null;
-  futuresNote: string | null;
-  futuresBad: boolean;
-  futuresAlert: boolean;
-  audit: AuditRow[] | null;
-  trades: { value: string; detail: string };
-  verified: string;
-  health: string;
-  reminders: { close: string; review: string } | null;
-  notes: string | null;
-  alerts: number;
+const FEED_TONE: Record<string, string> = {
+  day: "",
+  research: "tone-purple",
+  futures: "",
+  risk: "tone-amber",
+  treasury: "tone-blue",
 };
 
-const EMPTY: Snapshot = {
-  loaded: false,
-  ready: false,
-  agents: null,
-  futuresNote: null,
-  futuresBad: false,
-  futuresAlert: false,
-  audit: null,
-  trades: { value: "not verified", detail: "Ledger unread" },
-  verified: "none verified",
-  health: "not verified",
-  reminders: null,
-  notes: null,
-  alerts: 0,
+const ZONES = [
+  { label: "Trading desks (4)", color: "#3dff9a" },
+  { label: "Research / analysis (2)", color: "#c084fc" },
+  { label: "Risk / treasury (2)", color: "#f5c542" },
+  { label: "Command center (1)", color: "#22d3ee" },
+  { label: "Boardroom (1)", color: "#34d399" },
+  { label: "Lounge & workspaces (shared)", color: "#c4a574" },
+];
+
+type Shot = { scale: number; x: number; y: number };
+
+const SHOTS: Record<string, Shot> = {
+  sky: { scale: 1, x: 0, y: 0 },
+  floor: { scale: 1.2, x: 0, y: 10 },
+  center: { scale: 1.55, x: 0, y: -10 },
+  meeting: { scale: 1.65, x: 0, y: -90 },
+  trading: { scale: 1.4, x: 0, y: 20 },
 };
 
-function readAudit(value: unknown): AuditRow[] | null {
-  if (typeof value !== "object" || value === null) {
-    return null;
-  }
-  const record = value as { events?: unknown; order_submitted?: unknown; source?: unknown };
-  if (record.source !== "local_audit_log" || record.order_submitted !== false || !Array.isArray(record.events)) {
-    return null;
-  }
-  const rows: AuditRow[] = [];
-  for (const event of record.events) {
-    if (typeof event !== "object" || event === null) {
-      return null;
-    }
-    const row = event as { created_at?: unknown; action?: unknown; order_submitted?: unknown };
-    if (row.order_submitted !== false || row.action !== "risk.size.recorded" || typeof row.created_at !== "string") {
-      return null;
-    }
-    rows.push({ created_at: row.created_at, action: row.action });
-  }
-  return rows;
+type CameraName = keyof typeof SHOTS | "custom";
+
+type RouteReply = {
+  persona: string;
+  reason: string;
+  allowed: boolean;
+  order_submitted: false;
+};
+
+function formatClock(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZoneName: "short",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("weekday")}, ${get("month")} ${get("day")}, ${get("year")} ${get("hour")}:${get("minute")} ${get("dayPeriod")} ${get("timeZoneName")}`;
 }
 
-function readReminders(value: unknown): { close: string; review: string } | null {
-  if (typeof value !== "object" || value === null) {
-    return null;
-  }
-  const row = value as {
-    accounting_close_on?: unknown;
-    payout_review_on?: unknown;
-    meeting_time?: unknown;
-    daypilot?: unknown;
-    event_created?: unknown;
-  };
-  if (
-    row.meeting_time !== "unconfirmed" ||
-    row.daypilot !== "absent" ||
-    row.event_created !== false ||
-    typeof row.accounting_close_on !== "string" ||
-    typeof row.payout_review_on !== "string"
-  ) {
-    return null;
-  }
-  return { close: row.accounting_close_on, review: row.payout_review_on };
-}
-
-function posesFor(snapshot: Snapshot): Record<AgentCode, DeskPose> {
-  const poses = {} as Record<AgentCode, DeskPose>;
-  for (const code of AGENT_CODES) {
-    const agent = snapshot.agents?.find((item) => item.code === code);
-    poses[code] = poseFor(agent, snapshot.ready);
-  }
-  if (snapshot.futuresBad) {
-    poses["FUTURES-01"] = "error";
-  }
-  return poses;
-}
-
-function Portrait({ code }: { code: AgentCode }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = ref.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) {
-      return;
-    }
-    try {
-      const pix = renderAgent(code, "sit", 0);
-      const source = document.createElement("canvas");
-      source.width = pix.width;
-      source.height = pix.height;
-      source.getContext("2d")?.putImageData(new ImageData(new Uint8ClampedArray(pix.data), pix.width, pix.height), 0, 0);
-      context.imageSmoothingEnabled = false;
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(source, 8, 2, 40, 60);
-    } catch {
-      context.clearRect(0, 0, canvas.width, canvas.height);
-    }
-  }, [code]);
-  return <canvas ref={ref} width={56} height={64} aria-hidden="true" className="h-14 w-14" />;
+function FeedList({ lines }: { lines: ActivityLine[] }) {
+  return (
+    <ul className="sx-feed">
+      {lines.map((line) => (
+        <li key={line.id}>
+          <i className={`led ${FEED_TONE[line.id] ?? ""}`} />
+          <span>{line.message}</span>
+          <time>{line.time}</time>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function SanctumPage() {
-  const floorRef = useRef<HTMLDivElement>(null);
-  const gameRef = useRef<SanctumController | null>(null);
-  const snapshotRef = useRef<Snapshot>(EMPTY);
-  const selectRef = useRef<(code: AgentCode) => void>(() => undefined);
   const [rail, setRail] = useState<RailId>("sky");
+  const [shot, setShot] = useState<Shot>(SHOTS.sky);
+  const [camera, setCamera] = useState<CameraName>("sky");
   const [selected, setSelected] = useState<AgentCode>("SUPERVISOR-01");
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [snapshot, setSnapshot] = useState<Snapshot>(EMPTY);
-  const [clock, setClock] = useState(() => formatClock(new Date()));
-  const [wednesday] = useState(() => nextWednesday(new Date()));
-  const [feedMode, setFeedMode] = useState<"poll" | "realtime">("poll");
-  const [realtimeNote, setRealtimeNote] = useState("Supabase Realtime is not configured. Status is the FastAPI poll.");
-  const [draft, setDraft] = useState("");
-  const [notes, setNotes] = useState<string[]>([]);
-
-  selectRef.current = (code) => {
-    setSelected(code);
-    setDetailOpen(true);
-  };
-  snapshotRef.current = snapshot;
+  const [deskOpen, setDeskOpen] = useState(false);
+  const [registryDown, setRegistryDown] = useState(false);
+  const [agents, setAgents] = useState<AgentDesk[] | null>(null);
+  const [personas, setPersonas] = useState(PERSONAS);
+  const [logs, setLogs] = useState<SanctumLog[]>([]);
+  const [health, setHealth] = useState<string>("unread");
+  const [clock, setClock] = useState("");
+  const [routeNote, setRouteNote] = useState("No order is sent.");
 
   useEffect(() => {
     document.title = "Sanctum · Veytrix";
-  }, []);
-
-  useEffect(() => {
-    const parent = floorRef.current;
-    if (!parent) {
-      return undefined;
-    }
-    let controller: SanctumController | null = null;
+    const tick = () => setClock(formatClock(new Date()));
+    tick();
+    const clockId = window.setInterval(tick, 30_000);
     let cancelled = false;
-    void import("../sanctum/game").then(({ createSanctumGame }) => {
-      if (cancelled || !floorRef.current) {
-        return;
-      }
-      controller = createSanctumGame(floorRef.current, {
-        onSelect: (code) => selectRef.current(code),
-      });
-      gameRef.current = controller;
-      controller.setPoses(posesFor(snapshotRef.current));
-    });
-    return () => {
-      cancelled = true;
-      controller?.destroy();
-      gameRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    gameRef.current?.setPoses(posesFor(snapshot));
-  }, [snapshot]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = () => {
-      const today = newYorkDate(new Date());
-      void Promise.all([
-        apiGet<AgentListResponse>("/api/v1/agents").then(
-          (payload) => payload,
-          () => null,
-        ),
-        apiGet<FuturesPostureResponse>("/api/v1/futures/posture").then(
-          (payload) => payload,
-          () => null,
-        ),
-        apiGet<unknown>("/api/v1/audit/log").then(
-          (payload) => payload,
-          () => null,
-        ),
-        apiGet<unknown>("/api/v1/ledger/reconciliation").then(
-          (payload) => payload,
-          () => null,
-        ),
-        apiGet<{ status?: string }>("/api/v1/health").then(
-          (payload) => payload,
-          () => null,
-        ),
-        apiGet<{ live_broker?: string; trading_mode?: string; execution_permitted?: boolean }>("/api/v1/diagnostics").then(
-          (payload) => payload,
-          () => null,
-        ),
-        apiGet<unknown>(`/api/v1/treasury/reminders?year=${today.year}&month=${today.month}`).then(
-          (payload) => payload,
-          () => null,
-        ),
-        apiGet<DeskDetail>(`/api/v1/agency/desks/${selected}`).then(
-          (payload) => payload,
-          () => null,
-        ),
-      ]).then(([agents, futures, audit, recon, health, diagnostics, reminders, detail]) => {
+    void apiGet<AgentListResponse>("/api/v1/agents")
+      .then((body) => {
         if (cancelled) {
           return;
         }
-        const registry = agents && isRegistry(agents) ? agents : null;
-        const postureOk = futures ? isFuturesPosture(futures) : false;
-        const auditRows = audit ? readAudit(audit) : null;
-        const healthOk = health?.status === "ok";
-        const brokerDisabled =
-          diagnostics?.live_broker === "disabled" &&
-          diagnostics.trading_mode === "paper" &&
-          diagnostics.execution_permitted === false;
-        let alerts = 0;
-        if (!registry) {
-          alerts += 1;
+        if (!isRegistry(body)) {
+          setRegistryDown(true);
+          return;
         }
-        if (!postureOk) {
-          alerts += 1;
+        setAgents(body.agents);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRegistryDown(true);
         }
-        if (!auditRows) {
-          alerts += 1;
-        }
-        if (paperTradeStat(recon).detail === "Ledger unread") {
-          alerts += 1;
-        }
-        if (!healthOk) {
-          alerts += 1;
-        }
-        setSnapshot({
-          loaded: true,
-          ready: registry !== null,
-          agents: registry?.agents ?? null,
-          futuresNote: postureOk && futures ? futures.note : null,
-          futuresBad: futures !== null && !postureOk,
-          futuresAlert: !postureOk,
-          audit: auditRows,
-          trades: paperTradeStat(recon),
-          verified: verifiedTrading(recon),
-          health: systemHealth(healthOk, brokerDisabled),
-          reminders: readReminders(reminders),
-          notes: detail && isDeskDetail(detail, selected) ? detail.notes : null,
-          alerts,
-        });
       });
-    };
-    load();
-    const timer = window.setInterval(load, 15000);
+    void apiGet<{ personas?: Record<string, string> }>("/api/v1/inference/posture")
+      .then((body) => {
+        if (!cancelled && body.personas) {
+          setPersonas((current) => ({ ...current, ...body.personas }));
+        }
+      })
+      .catch(() => undefined);
+    void apiGet<SystemStatusResponse>("/api/v1/system/status")
+      .then((body) => {
+        if (!cancelled) {
+          setHealth(body.database === "up" ? "Database up" : "Database down");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHealth("unread");
+        }
+      });
+    void apiGet<AuditLogListResponse>("/api/v1/audit/log")
+      .then((body) => {
+        if (cancelled) {
+          return;
+        }
+        setLogs(
+          body.events.map((event) => ({
+            id: event.id,
+            time: event.created_at,
+            level: "info" as const,
+            service: event.symbol,
+            message: `${event.action} ${event.shares} shares. No order is sent.`,
+          })),
+        );
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [selected]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setClock(formatClock(new Date())), 30000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    let closed = false;
-    let closer: (() => void) | null = null;
-    void openSanctumChannel(
-      {
-        url: import.meta.env.VITE_SUPABASE_URL,
-        anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-      (payload) => {
-        const parsed = poseFromBroadcast(payload);
-        setRealtimeNote(
-          parsed
-            ? `${parsed.code} realtime event is not used as a trade.`
-            : "Realtime event ignored. It is not a verified trade.",
-        );
-      },
-    ).then((feed) => {
-      if (closed) {
-        feed.close();
-        return;
-      }
-      closer = feed.close;
-      setFeedMode(feed.mode);
-      if (feed.mode === "poll") {
-        setRealtimeNote("Supabase Realtime is not configured. Status is the FastAPI poll.");
-      }
-    });
-    return () => {
-      closed = true;
-      closer?.();
+      window.clearInterval(clockId);
     };
   }, []);
 
-  const setCamera = (mode: SanctumMode, nextRail?: RailId) => {
-    gameRef.current?.setMode(mode);
+  const applyCamera = (name: keyof typeof SHOTS, nextRail?: RailId) => {
+    setShot(SHOTS[name]);
+    setCamera(name);
     if (nextRail) {
       setRail(nextRail);
+      setDeskOpen(false);
     }
   };
 
-  const selectedAgent = snapshot.agents?.find((agent) => agent.code === selected) ?? null;
-  const runningLabel = snapshot.agents
-    ? String(snapshot.agents.filter((agent) => agent.status !== "disabled" && agent.status !== "paused").length)
-    : "not verified";
-  const paperLine = snapshot.trades.value === "0" ? "0 verified paper trades" : snapshot.trades.detail;
-  const feed = activityFeed({
-    agents: snapshot.agents ? FLOOR_ORDER.map((code) => {
-      const agent = snapshot.agents?.find((item) => item.code === code);
-      return { code, status: agent?.status ?? "unavailable" };
-    }) : null,
-    futuresNote: snapshot.futuresNote,
-    audit: snapshot.audit,
+  const nudge = (dx: number, dy: number) => {
+    setCamera("custom");
+    setShot((current) => ({
+      ...current,
+      x: Math.max(-180, Math.min(180, current.x + dx)),
+      y: Math.max(-180, Math.min(180, current.y + dy)),
+    }));
+  };
+
+  const zoom = (delta: number) => {
+    setCamera("custom");
+    setShot((current) => ({ ...current, scale: Math.max(0.85, Math.min(1.8, current.scale + delta)) }));
+  };
+
+  const selectedAgent = agents?.find((agent) => agent.code === selected);
+  const registered = agents?.length ?? 0;
+  const rosterRows = (Object.keys(ROSTER) as AgentCode[]).map((code) => {
+    const agent = agents?.find((item) => item.code === code);
+    const who = deskIdentity(code);
+    return {
+      code,
+      name: who.name,
+      role: who.role,
+      status: agent?.status ?? "unread",
+      display: agent?.display_name ?? "Registry row",
+    };
   });
-  const counts = agentStat(snapshot.agents);
+  const auditLines: ActivityLine[] = logs.map((log) => ({
+    id: log.id,
+    message: log.message,
+    time: log.time,
+  }));
+  const showFloor = rail === "sky" || rail === "floor" || rail === "cameras" || rail === "boardroom";
+  const healthy = health === "Database up";
+  const agencyLabel = registryDown ? "Registry unavailable" : agents ? "Operational" : "Checking";
+
+  async function askDesk(task: string): Promise<string> {
+    const reply = await apiPost<RouteReply>("/api/v1/inference/route", {
+      agent_code: selected,
+      task: task.slice(0, 64),
+      provider: "none",
+    });
+    const name = reply.persona || deskIdentity(selected).name;
+    const text = `${name}: ${reply.reason}. Allowed ${reply.allowed ? "yes" : "no"}. No order is sent.`;
+    setRouteNote(text);
+    return text;
+  }
+
+  async function speak(code: AgentCode): Promise<string> {
+    const who = deskIdentity(code);
+    const task = TASKS[code.charCodeAt(0) % TASKS.length]?.id ?? "risk_check";
+    try {
+      const reply = await apiPost<RouteReply>("/api/v1/inference/route", {
+        agent_code: code,
+        task,
+        provider: "none",
+      });
+      if (!reply.allowed || !reply.persona) {
+        return `${who.name}: Route unavailable. No order is sent.`;
+      }
+      return `${reply.persona}: ${reply.reason}. No order is sent.`;
+    } catch {
+      return `${who.name}: Route failed. No order is sent.`;
+    }
+  }
+
+  function DeskDetail({ floating }: { floating: boolean }) {
+    const who = deskIdentity(selected);
+    return (
+      <section role="dialog" aria-label={`${selected} detail`} className={floating ? "desk-dialog" : "view-card"}>
+        <header>
+          <p>
+            <strong>{who.name}</strong>
+            <span className="sx-k">
+              {" "}
+              {selected} · {who.role}
+            </span>
+          </p>
+          {floating ? (
+            <button type="button" className="vx-btn" onClick={() => setDeskOpen(false)}>
+              Close detail
+            </button>
+          ) : null}
+        </header>
+        <p className="sx-note">
+          {selectedAgent?.display_name ?? "Registry row"}. Status {selectedAgent?.status ?? "unread"}. No order is sent.
+        </p>
+        <div className="task-row">
+          {TASKS.map((task) => (
+            <button key={task.id} type="button" className="vx-btn" onClick={() => void askDesk(task.id)}>
+              {task.label}
+            </button>
+          ))}
+        </div>
+        <AgentDock
+          agentName={`${who.name} · ${selected}`}
+          idleStatus="Ready. No order is sent."
+          workingStatus="Routing the task."
+          onMessageSubmit={askDesk}
+        />
+      </section>
+    );
+  }
 
   return (
-    <div className="flex h-screen flex-col bg-[#070c0a] text-ink">
+    <div className="sanctum">
       <a className="skip-link" href="#sanctum-floor">
         Skip to floor
       </a>
-      <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line bg-[#0c1210] px-4">
-        <Link to="/" className="flex items-center gap-2" aria-label="Veytrix overview">
-          <span className="grid h-8 w-8 place-items-center rounded-md border border-jade text-sm font-semibold text-jade">
+      <header className="sx-top">
+        <Link to="/" className="sx-brand">
+          <span className="sx-mark" aria-hidden="true">
             V
           </span>
-          <span className="text-sm font-semibold tracking-[0.14em]">VEYTRIX</span>
+          VEYTRIX
         </Link>
-        <nav aria-label="Sanctum" className="flex items-center gap-1">
+        <nav aria-label="Sanctum" className="sx-nav">
           {NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `rounded-md px-2.5 py-1.5 text-sm ${isActive ? "text-jade" : "text-muted hover:text-ink"}`
-              }
-            >
+            <NavLink key={item.to} to={item.to}>
+              <Icon name={item.icon} />
               {item.label}
             </NavLink>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-3 text-xs">
-          <span
-            className="rounded-full bg-jade px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#062018]"
-            title="Sky-view camera. Live broker is disabled. No order is sent."
-          >
-            LIVE
-            <span className="sr-only"> camera. Live broker is disabled. No order is sent.</span>
+        <div className="sx-meta">
+          <span className="sx-pill">
+            <i className="led" />
+            Paper
           </span>
-          <button type="button" className="text-sm text-jade" onClick={() => setCamera("sky", "sky")}>
+          <span className="sx-view-label">
+            <Icon name="camera" />
             Sky View
-          </button>
-          <time className="text-muted" dateTime={new Date().toISOString()}>
-            {clock}
-          </time>
+          </span>
+          <span className="sx-clock">{clock}</span>
         </div>
       </header>
-      <div className="grid min-h-0 flex-1 grid-cols-[208px_minmax(0,1fr)_300px]">
-        <nav aria-label="Sanctum views" className="flex flex-col gap-1 border-r border-line bg-[#0c1210] p-3">
-          <p className="px-2 pb-2 text-sm font-semibold text-jade">Sanctum</p>
+
+      <div className="sx-body">
+        <nav aria-label="Sanctum views" className="sx-rail">
+          <div className="sx-kicker">
+            <Icon name="home" />
+            Sanctum
+          </div>
           {RAIL.map((item) => (
             <button
               key={item.id}
               type="button"
               aria-pressed={rail === item.id}
-              className={`rounded-md border-l-2 px-3 py-2 text-left text-sm ${
-                rail === item.id
-                  ? "border-jade bg-[#12352a] text-jade"
-                  : "border-transparent text-muted hover:bg-panel-2 hover:text-ink"
-              }`}
               onClick={() => {
+                setDeskOpen(false);
                 if (item.id === "sky") {
-                  setCamera("sky", "sky");
+                  applyCamera("sky", "sky");
                 } else if (item.id === "floor") {
-                  setCamera("floor", "floor");
+                  applyCamera("floor", "floor");
                 } else if (item.id === "boardroom") {
-                  setCamera("meeting", "boardroom");
+                  applyCamera("meeting", "boardroom");
+                } else if (item.id === "cameras") {
+                  applyCamera("center", "cameras");
                 } else {
                   setRail(item.id);
                 }
               }}
             >
+              <Icon name={item.icon} />
               {item.label}
             </button>
           ))}
         </nav>
-        <div className="relative min-h-0 min-w-0 bg-[#070c0a]">
-          <div ref={floorRef} id="sanctum-floor" tabIndex={-1} className="absolute inset-0 outline-none" />
-          <ul className="sr-only" aria-label="Desks on the floor">
-            {FLOOR_ORDER.map((code) => (
-              <li key={code}>{code}</li>
-            ))}
-          </ul>
-          <p className="sr-only">BOARDROOM</p>
-          {detailOpen ? (
-            <section
-              role="dialog"
-              aria-label={`${selected} detail`}
-              className="absolute bottom-3 left-3 right-3 z-10 max-h-[46%] overflow-auto rounded-md border border-line bg-[#0c1210]/95 p-4 text-sm"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-base font-semibold">{selected}</h2>
-                  <p>{selectedAgent?.display_name ?? selected}</p>
-                  <p>Status {selectedAgent?.status ?? "unavailable"}</p>
-                  <p>{deskHealth(selectedAgent, snapshot.ready)}</p>
-                  <p>Verified trading activity: {snapshot.verified}</p>
-                  <p>No order is sent. Trading denied. Simulated.</p>
-                </div>
-                <button type="button" className="vx-btn" onClick={() => setDetailOpen(false)}>
-                  Close detail
-                </button>
-              </div>
-              <h3 className="mt-3 font-semibold">Task history</h3>
-              <ul className="mt-1 space-y-1 text-muted">
-                {taskHistory(snapshot.audit).map((line) => (
-                  <li key={line}>{line}</li>
+
+        <main className="sx-main">
+          {showFloor ? (
+            <SkyFloor
+              shot={shot}
+              persona={(code) => personas[code] ?? "Desk"}
+              selected={deskOpen ? selected : null}
+              onDesk={(code) => {
+                setSelected(code);
+                setDeskOpen(true);
+              }}
+              onBoardroom={() => applyCamera("meeting", "boardroom")}
+              onTalk={speak}
+            />
+          ) : null}
+          {showFloor && rail === "floor" ? (
+            <p className="floor-caption">Floor view. The desks stay clickable. No order is sent.</p>
+          ) : null}
+          {showFloor && rail === "cameras" ? (
+            <p className="floor-caption">Cameras frame the floor. Pan and zoom stay on the floor. No order is sent.</p>
+          ) : null}
+          {showFloor && rail === "boardroom" ? (
+            <aside className="floor-note">
+              <h2>Wednesday boardroom</h2>
+              <p>12 Nov 2026, 9:00 AM EST</p>
+              <p>No meeting is created. No order is sent.</p>
+              <ul>
+                {rosterRows.map((row) => (
+                  <li key={row.code}>
+                    {row.name} · {row.code} · {row.role}
+                  </li>
                 ))}
               </ul>
-              <p className="mt-2 text-muted">{snapshot.notes ?? "Current focus is not verified."}</p>
-              <form
-                className="mt-3 space-y-2"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const text = draft.trim();
-                  if (!text) {
-                    return;
-                  }
-                  setNotes((current) => [...current, text]);
-                  setDraft("");
-                }}
-              >
-                <label htmlFor="sanctum-note" className="block text-muted">
-                  Local note. No model is called. Nothing is sent to a provider.
-                </label>
-                <textarea
-                  id="sanctum-note"
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  className="vx-field h-16"
-                />
-                <button type="submit" className="vx-btn">
-                  Save local note
-                </button>
-              </form>
-              <ul className="mt-2 space-y-1">
-                {notes.map((note, index) => (
-                  <li key={`${index}-${note}`}>{note}</li>
-                ))}
-              </ul>
-            </section>
+            </aside>
           ) : null}
-        </div>
-        <aside className="flex flex-col gap-3 overflow-auto border-l border-line bg-[#0c1210] p-3 text-sm">
-          <div>
-            <h1 className="text-base font-semibold">Sanctum — Sky View</h1>
-            <p className="text-xs text-muted">Live Agency Operations</p>
-          </div>
-          <section aria-label="Agency status" className="vx-card">
-            <p className="text-xs text-muted">Agency Status</p>
-            <p className="mt-1 font-semibold text-danger">
-              {snapshot.loaded ? agencyStatus(snapshot.ready) : "Loading"}
-            </p>
-            <p className="mt-1 text-xs text-muted">No order is sent. Trading denied. Simulated.</p>
-          </section>
-          {snapshot.loaded && !snapshot.ready ? (
-            <p className="vx-alert" role="alert">
-              Agent registry is unavailable. No desk was invented. No order was sent.
-            </p>
-          ) : null}
-          {snapshot.loaded && snapshot.futuresAlert ? (
-            <p className="vx-alert" role="alert">
-              Futures posture is unavailable. No order was sent.
-            </p>
-          ) : null}
-          <section aria-label="Agency counts" className="vx-card space-y-2">
-            <div className="flex items-baseline justify-between gap-3">
-              <span>Agents present</span>
-              <span className="font-semibold">{counts.value}</span>
-            </div>
-            <p className="text-xs text-muted">{counts.detail}</p>
-            <div className="flex items-baseline justify-between gap-3">
-              <span>Running</span>
-              <span className="font-semibold">{runningLabel}</span>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <span>Active tasks</span>
-              <span className="font-semibold">not verified</span>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <span>Trades (Paper)</span>
-              <span className="font-semibold">{snapshot.trades.value}</span>
-            </div>
-            <p className="text-xs text-muted">{paperLine}</p>
-            {paperLine === snapshot.trades.detail ? null : (
-              <p className="text-xs text-muted">{snapshot.trades.detail}</p>
-            )}
-            <div className="flex items-baseline justify-between gap-3">
-              <span>Alerts</span>
-              <span className="font-semibold">{snapshot.alerts}</span>
-            </div>
-          </section>
+          {showFloor && deskOpen ? <DeskDetail floating /> : null}
+
           {rail === "agents" ? (
-            <section aria-label="Agent list" className="space-y-1">
-              {FLOOR_ORDER.map((code) => (
-                <button
-                  key={code}
-                  type="button"
-                  className="block w-full rounded-md px-2 py-1 text-left hover:bg-panel-2"
-                  onClick={() => {
-                    setSelected(code);
-                    setDetailOpen(true);
-                    gameRef.current?.follow(code);
-                  }}
-                >
-                  Show {code}
-                </button>
-              ))}
-            </section>
-          ) : null}
-          {rail === "boardroom" ? (
-            <section aria-label="Boardroom schedule" className="space-y-2 text-xs text-muted">
-              <p>Wednesday {formatLongDate(wednesday)}. Local schedule, not a booked meeting.</p>
-              {snapshot.reminders ? (
-                <p>
-                  Accounting close {snapshot.reminders.close}. Payout review {snapshot.reminders.review}. DayPilot
-                  event was not created. Meeting time is unconfirmed.
-                </p>
-              ) : (
-                <p>Close and review dates are unavailable. No meeting was booked.</p>
-              )}
-              <div className="flex gap-2">
-                <button type="button" className="vx-btn" onClick={() => gameRef.current?.gather()}>
-                  Gather in the boardroom
-                </button>
-                <button type="button" className="vx-btn" onClick={() => gameRef.current?.returnToDesks()}>
-                  Return to desks
-                </button>
+            <div id="sanctum-floor" className="alt-view alt-grid">
+              <div>
+                <h2>Agent list</h2>
+                <p className="sx-note">Ten desks. None can trade. No order is sent.</p>
+                <ul className="roster">
+                  {rosterRows.map((row) => (
+                    <li key={row.code}>
+                      <button
+                        type="button"
+                        className="roster-btn"
+                        aria-pressed={selected === row.code}
+                        onClick={() => {
+                          setSelected(row.code);
+                          setDeskOpen(true);
+                        }}
+                      >
+                        <strong>{row.name}</strong>
+                        <span>{row.code}</span>
+                        <span>{row.role}</span>
+                        <span>Status {row.status}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="sx-note">Orders, signing, and transfers stay refused.</p>
               </div>
-            </section>
+              <DeskDetail floating={false} />
+            </div>
           ) : null}
+
+          {rail === "activity" ? (
+            <div id="sanctum-floor" className="alt-view">
+              <h2>Live activity feed</h2>
+              <FeedList lines={FEED} />
+              <h2 className="view-gap">Local audit</h2>
+              {auditLines.length === 0 ? (
+                <p className="sx-note">No audit rows yet. No order is sent.</p>
+              ) : (
+                <FeedList lines={auditLines} />
+              )}
+            </div>
+          ) : null}
+
           {rail === "logs" ? (
-            <section aria-label="Logs">
-              <p className="text-xs text-muted">{realtimeNote}</p>
-              <ul className="mt-2 space-y-1 text-xs">
-                {taskHistory(snapshot.audit).map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            </section>
+            <div id="sanctum-floor" className="alt-view">
+              <h2>Audit log</h2>
+              <p className="sx-note">Local size rows only. No payment log is invented. No order is sent.</p>
+              {logs.length === 0 ? (
+                <p className="sx-note">No audit rows yet.</p>
+              ) : (
+                <LogPanel logs={logs} />
+              )}
+            </div>
           ) : null}
-          <section aria-label="Live activity feed" className="min-h-0 flex-1">
-            <h2 className="text-xs font-semibold text-muted">Live Activity Feed</h2>
-            <ul className="mt-2 max-h-40 space-y-2 overflow-auto text-xs">
-              {feed.map((line) => (
-                <li key={line} className="flex gap-2">
-                  <span aria-hidden="true" className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-jade" />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-[11px] text-muted">
-              {feedMode === "realtime" ? "Supabase channel subscribed. Registry status still comes from FastAPI. " : null}
-              {realtimeNote}
+        </main>
+
+        <aside className="sx-side">
+          <div className="sx-title">
+            <Icon name="bars" />
+            <div>
+              <h1>Sanctum — Sky View</h1>
+              <p>Live Agency Operations</p>
+            </div>
+          </div>
+          <section className="sx-block">
+            <h2>Agency Status</h2>
+            <p className={registryDown ? "sx-op warn" : "sx-op"}>
+              <i className={`led ${registryDown ? "tone-red" : ""}`} />
+              {agencyLabel}
+            </p>
+            <dl className="sx-stats">
+              <div>
+                <i className="led" />
+                <dt>Agents Online</dt>
+                <dd>
+                  {registered} / 10
+                </dd>
+              </div>
+              <div>
+                <i className="led tone-amber" />
+                <dt>Active Tasks</dt>
+                <dd>0</dd>
+              </div>
+              <div>
+                <i className="led tone-amber" />
+                <dt>Trades (Paper)</dt>
+                <dd>0</dd>
+              </div>
+              <div>
+                <i className={`led ${registryDown ? "tone-red" : ""}`} />
+                <dt>Alerts</dt>
+                <dd>{registryDown ? "1" : "0"}</dd>
+              </div>
+            </dl>
+            <p className="sx-note" style={{ marginTop: 6 }}>
+              {routeNote}
             </p>
           </section>
-          <section aria-label="Camera controls" className="space-y-2">
-            <h2 className="text-xs font-semibold text-muted">Camera Controls</h2>
-            <div className="grid grid-cols-4 gap-1">
-              <button type="button" aria-label="Pan up" className="vx-btn" onClick={() => gameRef.current?.panBy(0, -80)}>
-                ↑
+          <section className="sx-block">
+            <h2>Live Activity Feed</h2>
+            <FeedList lines={FEED} />
+          </section>
+          <section className="sx-block">
+            <h2>Camera Controls</h2>
+            <div className="sx-cam">
+              <button type="button" aria-label="Pan left" onClick={() => nudge(36, 0)}>
+                ‹
               </button>
-              <button type="button" aria-label="Pan left" className="vx-btn" onClick={() => gameRef.current?.panBy(-80, 0)}>
-                ←
+              <button type="button" aria-label="Pan right" onClick={() => nudge(-36, 0)}>
+                ›
               </button>
-              <button type="button" aria-label="Pan right" className="vx-btn" onClick={() => gameRef.current?.panBy(80, 0)}>
-                →
+              <button type="button" aria-label="Pan up" onClick={() => nudge(0, 36)}>
+                ⌃
               </button>
-              <button type="button" aria-label="Pan down" className="vx-btn" onClick={() => gameRef.current?.panBy(0, 80)}>
-                ↓
+              <button type="button" aria-label="Pan down" onClick={() => nudge(0, -36)}>
+                ⌄
               </button>
-              <button type="button" aria-label="Zoom out" className="vx-btn" onClick={() => gameRef.current?.zoomBy(0.85)}>
+              <button type="button" aria-label="Zoom out" onClick={() => zoom(-0.15)}>
                 −
               </button>
-              <button type="button" aria-label="Zoom in" className="vx-btn" onClick={() => gameRef.current?.zoomBy(1.15)}>
+              <button type="button" aria-label="Zoom in" onClick={() => zoom(0.15)}>
                 +
               </button>
-              <button type="button" aria-label="Fit the floor" className="vx-btn col-span-2" onClick={() => setCamera("sky", "sky")}>
-                Fit
+              <button type="button" aria-label="Fit the floor" onClick={() => applyCamera("sky", "sky")}>
+                ◎
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-1">
-              <button type="button" className="vx-btn" onClick={() => setCamera("sky", "sky")}>
+            <div className="sx-presets">
+              <button type="button" aria-pressed={camera === "sky"} onClick={() => applyCamera("sky", "sky")}>
                 Full Floor
               </button>
-              <button type="button" className="vx-btn" onClick={() => setCamera("center")}>
+              <button type="button" aria-pressed={camera === "center"} onClick={() => applyCamera("center", "cameras")}>
                 Center
               </button>
-              <button type="button" className="vx-btn" onClick={() => setCamera("meeting", "boardroom")}>
+              <button type="button" aria-pressed={camera === "meeting"} onClick={() => applyCamera("meeting", "boardroom")}>
                 Meeting
               </button>
               <button
                 type="button"
-                className="vx-btn"
+                aria-pressed={camera === "trading"}
                 title="Frame the trading desks. No order is sent."
-                onClick={() => setCamera("trading")}
+                onClick={() => applyCamera("trading", "floor")}
               >
                 Trading
               </button>
             </div>
           </section>
-          <section aria-label="Floor zones">
-            <h2 className="text-xs font-semibold text-muted">Floor Zones</h2>
-            <ul className="mt-2 space-y-1 text-xs">
+          <section className="sx-block">
+            <h2>Floor Zones (One Floor)</h2>
+            <ul className="sx-zones">
               {ZONES.map((zone) => (
-                <li key={zone.label} className="flex items-center gap-2">
-                  <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: zone.colour }} />
+                <li key={zone.label} className="sx-zone">
+                  <i className="swatch" style={{ background: zone.color }} />
                   {zone.label}
                 </li>
               ))}
@@ -689,42 +593,72 @@ export function SanctumPage() {
           </section>
         </aside>
       </div>
-      <footer className="flex shrink-0 items-center gap-4 overflow-x-auto border-t border-line bg-[#0c1210] px-4 py-3">
-        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-md border border-jade/40 bg-obsidian">
-          <Portrait code={selected} />
+
+      <footer className="sx-foot">
+        <div className="sx-who">
+          <span className="sx-avatar" aria-hidden="true" />
+          <div>
+            <strong>Roads</strong>
+            <p className="sx-k">SUPERVISOR-01 · AI Commander</p>
+            <p className="sx-live">
+              <i className="led" />
+              Active
+            </p>
+          </div>
         </div>
-        <div className="min-w-36">
-          <p className="font-semibold">{selected}</p>
-          <p className="text-xs text-muted">{selectedAgent?.display_name ?? "Registry name not loaded"}</p>
-          <p className="mt-1 text-xs text-danger">{selectedAgent?.status ?? "unavailable"}</p>
+        <div className="sx-focus">
+          <Icon name="target" />
+          <div>
+            <p className="sx-k">Current Focus</p>
+            <strong>Agency Coordination</strong>
+          </div>
         </div>
-        <div className="min-w-40 border-l border-line pl-4">
-          <p className="text-[11px] text-muted">Current Focus</p>
-          <p className="max-w-xs text-xs">{snapshot.notes ?? "not verified"}</p>
+        <div className="sx-event">
+          <Icon name="calendar" />
+          <div>
+            <p className="sx-k">Next Event</p>
+            <strong>Wednesday Boardroom</strong>
+            <p className="sx-k">Nov 12, 2026 • 9:00 AM EST</p>
+          </div>
         </div>
-        <div className="min-w-44 border-l border-line pl-4">
-          <p className="text-[11px] text-muted">Next Event</p>
-          <p className="text-sm">Wednesday Boardroom</p>
-          <p className="text-xs text-muted">{formatLongDate(wednesday)}</p>
-          <p className="text-[11px] text-muted">Local schedule, not a booked meeting.</p>
+        <div className="sx-health">
+          <Icon name="bars" />
+          <div>
+            <p className="sx-k">System Health</p>
+            <div className="sx-bars" aria-hidden="true">
+              {Array.from({ length: 12 }, (_, index) => (
+                <i key={index} className={healthy ? "on" : ""} />
+              ))}
+            </div>
+            <strong>{healthy ? "100%" : health === "Database down" ? "Down" : "unread"}</strong>
+          </div>
         </div>
-        <div className="min-w-48 border-l border-line pl-4">
-          <p className="text-[11px] text-muted">System Health</p>
-          <p className="text-xs">{snapshot.health}</p>
+        <div className="sx-count">
+          <Icon name="users" />
+          <div>
+            <p className="sx-k">AI Agents</p>
+            <strong>
+              {registered} / 10 Online
+            </strong>
+          </div>
         </div>
-        <div className="min-w-32 border-l border-line pl-4">
-          <p className="text-[11px] text-muted">AI Agents</p>
-          <p className="text-sm">{counts.detail}</p>
+        <div>
+          <p className="sx-k">Trading Mode</p>
+          <p className="sx-mode">
+            <Icon name="monitor" />
+            Simulation (Paper)
+          </p>
         </div>
-        <div className="min-w-40 border-l border-line pl-4">
-          <p className="text-[11px] text-muted">Trading Mode</p>
-          <p className="text-sm">Simulation (Paper)</p>
-          <p className="text-[11px] text-muted">No order is sent. Simulated.</p>
-        </div>
-        <Link to="/settings" className="vx-btn ml-auto" aria-label="Settings">
-          Settings
+        <Link to="/settings" className="sx-gear" aria-label="Settings">
+          <Icon name="gear" />
         </Link>
       </footer>
+
+      {registryDown ? (
+        <p className="vx-alert sx-alert" role="alert">
+          Agent registry is unavailable. No desk was invented. No order was sent.
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import { SupervisorPage } from "./pages/SupervisorPage";
 import { StrategyPage } from "./pages/StrategyPage";
 import { SystemPage } from "./pages/SystemPage";
 import { TreasuryPage } from "./pages/TreasuryPage";
+import { WorldviewPage } from "./pages/WorldviewPage";
 import { AppShell } from "./shell/AppShell";
 
 export function AppRoutes() {
@@ -51,6 +52,7 @@ export function AppRoutes() {
         <Route path="/live-gate" element={<LiveGatePage />} />
         <Route path="/paper-swaps" element={<PaperSwapsPage />} />
         <Route path="/futures" element={<FuturesPage />} />
+        <Route path="/worldview" element={<WorldviewPage />} />
         <Route
           path="*"
           element={

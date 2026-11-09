@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from functools import lru_cache
 from urllib.parse import urlparse
 
@@ -51,6 +52,19 @@ class Settings(BaseSettings):
     log_level: str = Field(
         default="INFO",
         validation_alias=AliasChoices("VEYTRIX_LOG_LEVEL", "log_level"),
+    )
+    paid_inference_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("VEYTRIX_PAID_INFERENCE", "paid_inference_enabled"),
+    )
+    ai_monthly_ceiling_usd: Decimal = Field(
+        default=Decimal("0"),
+        ge=0,
+        validation_alias=AliasChoices("VEYTRIX_AI_MONTHLY_CEILING_USD", "ai_monthly_ceiling_usd"),
+    )
+    ollama_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("VEYTRIX_OLLAMA_URL", "ollama_url"),
     )
 
 

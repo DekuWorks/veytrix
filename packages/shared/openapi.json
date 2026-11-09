@@ -780,6 +780,149 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "InferencePosture": {
+        "properties": {
+          "auto_purchase": {
+            "default": false,
+            "title": "Auto Purchase",
+            "type": "boolean"
+          },
+          "cursor_subscription_runs_agents": {
+            "default": false,
+            "title": "Cursor Subscription Runs Agents",
+            "type": "boolean"
+          },
+          "execution_permitted": {
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "monthly_ceiling_usd": {
+            "title": "Monthly Ceiling Usd",
+            "type": "string"
+          },
+          "ollama_configured": {
+            "title": "Ollama Configured",
+            "type": "boolean"
+          },
+          "order_submitted": {
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "paid_inference_enabled": {
+            "title": "Paid Inference Enabled",
+            "type": "boolean"
+          },
+          "personas": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Personas",
+            "type": "object"
+          },
+          "spent_usd": {
+            "title": "Spent Usd",
+            "type": "string"
+          }
+        },
+        "required": [
+          "paid_inference_enabled",
+          "monthly_ceiling_usd",
+          "spent_usd",
+          "ollama_configured",
+          "personas"
+        ],
+        "title": "InferencePosture",
+        "type": "object"
+      },
+      "InferenceRequest": {
+        "properties": {
+          "agent_code": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "provider": {
+            "default": "none",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Provider",
+            "type": "string"
+          },
+          "task": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_code",
+          "task"
+        ],
+        "title": "InferenceRequest",
+        "type": "object"
+      },
+      "InferenceResponse": {
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "allowed": {
+            "title": "Allowed",
+            "type": "boolean"
+          },
+          "estimated_usd": {
+            "title": "Estimated Usd",
+            "type": "string"
+          },
+          "execution_permitted": {
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "order_submitted": {
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "paid": {
+            "title": "Paid",
+            "type": "boolean"
+          },
+          "persona": {
+            "title": "Persona",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "task": {
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_code",
+          "persona",
+          "task",
+          "provider",
+          "allowed",
+          "reason",
+          "estimated_usd",
+          "paid"
+        ],
+        "title": "InferenceResponse",
+        "type": "object"
+      },
       "InstrumentListResponse": {
         "properties": {
           "disclaimer": {
@@ -4739,6 +4882,68 @@
         "summary": "Health",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/inference/posture": {
+      "get": {
+        "operationId": "inference_posture_api_v1_inference_posture_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InferencePosture"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Inference Posture",
+        "tags": [
+          "inference"
+        ]
+      }
+    },
+    "/api/v1/inference/route": {
+      "post": {
+        "operationId": "inference_route_api_v1_inference_route_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InferenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InferenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inference Route",
+        "tags": [
+          "inference"
         ]
       }
     },
