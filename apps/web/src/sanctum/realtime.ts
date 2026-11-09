@@ -32,8 +32,10 @@ export function supabaseBlocked(env: SupabaseEnv): "missing" | "service_role" | 
   return null;
 }
 
-export async function openSanctumChannel(
+async function openBroadcast(
   env: SupabaseEnv,
+  channelName: string,
+  eventName: string,
   onEvent: (payload: unknown) => void,
 ): Promise<SanctumFeed> {
   if (supabaseBlocked(env) !== null || !env.url || !env.anonKey) {
@@ -44,8 +46,8 @@ export async function openSanctumChannel(
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
   const channel = client
-    .channel("sanctum-status")
-    .on("broadcast", { event: "desk" }, (message) => {
+    .channel(channelName)
+    .on("broadcast", { event: eventName }, (message) => {
       onEvent(message);
     })
     .subscribe();
@@ -55,4 +57,22 @@ export async function openSanctumChannel(
       void client.removeChannel(channel);
     },
   };
+}
+
+export function openSanctumChannel(
+  env: SupabaseEnv,
+  onEvent: (payload: unknown) => void,
+): Promise<SanctumFeed> {
+  return openBroadcast(env, "sanctum-status", "desk", onEvent);
+}
+
+/**
+ * Doorbell for new messages. The payload holds ids only, never text, so the browser
+ * re-reads the message from the local API. A doorbell cannot create a message or an order.
+ */
+export function openCommsChannel(
+  env: SupabaseEnv,
+  onEvent: (payload: unknown) => void,
+): Promise<SanctumFeed> {
+  return openBroadcast(env, "veytrix-comms", "message", onEvent);
 }

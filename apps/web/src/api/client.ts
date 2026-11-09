@@ -47,6 +47,10 @@ export function apiPost<T>(path: string, payload: unknown): Promise<T> {
   return request<T>(path, { method: "POST", body: JSON.stringify(payload) });
 }
 
+export function apiPatch<T>(path: string, payload: unknown): Promise<T> {
+  return request<T>(path, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
 export function apiDelete(path: string): Promise<void> {
   return request<void>(path, { method: "DELETE" });
 }

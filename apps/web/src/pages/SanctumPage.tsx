@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { apiGet, apiPost } from "../api/client";
+import { apiGet } from "../api/client";
 import {
   type AgentCode,
   type AgentDesk,
@@ -10,7 +10,11 @@ import {
 } from "../api/types";
 import { isRegistry } from "../sanctum/activity";
 import { type ActivityLine } from "../sanctum/ui/ActivityFeed";
-import { AgentDock } from "../sanctum/ui/AgentDock";
+import { ChatPanel } from "../sanctum/ui/ChatPanel";
+import { ConversationMonitor } from "../sanctum/ui/ConversationMonitor";
+import { truncate } from "../comms/speech";
+import { useComms } from "../comms/useComms";
+import { ORIGIN_TAG } from "../comms/types";
 import { Icon } from "../sanctum/ui/Icon";
 import { LogPanel, type SanctumLog } from "../sanctum/ui/LogPanel";
 import { SkyFloor } from "../sanctum/ui/SkyFloor";
@@ -34,6 +38,7 @@ const RAIL = [
   { id: "activity", label: "Activity", icon: "pulse" },
   { id: "boardroom", label: "Boardroom", icon: "podium" },
   { id: "cameras", label: "Cameras", icon: "camera" },
+  { id: "talk", label: "Conversations", icon: "book" },
   { id: "logs", label: "Logs", icon: "list" },
 ] as const;
 
@@ -60,29 +65,17 @@ function deskIdentity(code: string): { name: string; role: string } {
   return ROSTER[code] ?? { name: code, role: "Desk" };
 }
 
-const TASKS = [
-  { id: "position_size", label: "Size" },
-  { id: "sma_crossover", label: "Crossover" },
-  { id: "treasury_split", label: "Split" },
-  { id: "reconcile", label: "Reconcile" },
-  { id: "risk_check", label: "Risk check" },
-] as const;
-
-const FEED: ActivityLine[] = [
-  { id: "day", message: "Dayvid · DAY-01: Scanning intraday setups", time: "1m" },
-  { id: "research", message: "Astra · RESEARCH-01: Compiling market intel", time: "2m" },
-  { id: "futures", message: "Futures · FUTURES-01: Reviewing Topstep rules", time: "3m" },
-  { id: "risk", message: "Aegis · RISK-01: Monitoring exposure limits", time: "3m" },
-  { id: "treasury", message: "Midas · TREASURY-01: Reconciling balances", time: "4m" },
-];
-
-const FEED_TONE: Record<string, string> = {
-  day: "",
-  research: "tone-purple",
-  futures: "",
-  risk: "tone-amber",
-  treasury: "tone-blue",
-};
+function ago(iso: string, now: number): string {
+  const seconds = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));
+  if (Number.isNaN(seconds)) {
+    return "";
+  }
+  if (seconds < 90) {
+    return `${seconds}s`;
+  }
+  const minutes = Math.round(seconds / 60);
+  return minutes < 90 ? `${minutes}m` : `${Math.round(minutes / 60)}h`;
+}
 
 const ZONES = [
   { label: "Trading desks (4)", color: "#3dff9a" },
@@ -105,13 +98,6 @@ const SHOTS: Record<string, Shot> = {
 
 type CameraName = keyof typeof SHOTS | "custom";
 
-type RouteReply = {
-  persona: string;
-  reason: string;
-  allowed: boolean;
-  order_submitted: false;
-};
-
 function formatClock(date: Date): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
@@ -128,6 +114,20 @@ function formatClock(date: Date): string {
   return `${get("weekday")}, ${get("month")} ${get("day")}, ${get("year")} ${get("hour")}:${get("minute")} ${get("dayPeriod")} ${get("timeZoneName")}`;
 }
 
+function FeedList({ lines }: { lines: ActivityLine[] }) {
+  return (
+    <ul className="sx-feed">
+      {lines.map((line) => (
+        <li key={line.id}>
+          <i className="led" />
+          <span>{line.message}</span>
+          <time>{line.time}</time>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 const SIDEBAR_KEY = "veytrix.sanctum.sidebar";
 
 function readSidebarCollapsed(): boolean {
@@ -138,31 +138,9 @@ function readSidebarCollapsed(): boolean {
   }
 }
 
-function FeedList({ lines }: { lines: ActivityLine[] }) {
-  return (
-  const [navCollapsed, setNavCollapsed] = useState(readSidebarCollapsed);
-    <ul className="sx-feed">
-      {lines.map((line) => (
-        <li key={line.id}>
-          <i className={`led ${FEED_TONE[line.id] ?? ""}`} />
-          <span>{line.message}</span>
-          <time>{line.time}</time>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function SanctumPage() {
   const [rail, setRail] = useState<RailId>("sky");
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(SIDEBAR_KEY, navCollapsed ? "collapsed" : "expanded");
-    } catch {
-      // Storage can be blocked. The choice still applies for this visit.
-    }
-  }, [navCollapsed]);
+  const [navCollapsed, setNavCollapsed] = useState(readSidebarCollapsed);
   const [shot, setShot] = useState<Shot>(SHOTS.sky);
   const [camera, setCamera] = useState<CameraName>("sky");
   const [selected, setSelected] = useState<AgentCode>("SUPERVISOR-01");
@@ -173,7 +151,17 @@ export function SanctumPage() {
   const [logs, setLogs] = useState<SanctumLog[]>([]);
   const [health, setHealth] = useState<string>("unread");
   const [clock, setClock] = useState("");
-  const [routeNote, setRouteNote] = useState("No order is sent.");
+  const [following, setFollowing] = useState(false);
+  const [monitorFollow, setMonitorFollow] = useState<string | null>(null);
+  const comms = useComms();
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_KEY, navCollapsed ? "collapsed" : "expanded");
+    } catch {
+      // Storage can be blocked. The choice still applies for this visit.
+    }
+  }, [navCollapsed]);
 
   useEffect(() => {
     document.title = "Sanctum · Veytrix";
@@ -278,75 +266,45 @@ export function SanctumPage() {
     message: log.message,
     time: log.time,
   }));
-  const showFloor = rail === "sky" || rail === "floor" || rail === "cameras" || rail === "boardroom";
+  const clock0 = Date.now();
+  const feedLines: ActivityLine[] =
+    comms.feed.length === 0
+      ? [
+          {
+            id: "empty",
+            message: "No agent messages are stored yet. Open a desk and ask a question.",
+            time: "",
+          },
+        ]
+      : [...comms.feed]
+          .reverse()
+          .slice(0, 5)
+          .map((message) => ({
+            id: message.message_id,
+            message: `${message.sender_name} · ${message.sender_id}: ${truncate(message.content, 84)} [${ORIGIN_TAG[message.origin]}]`,
+            time: ago(message.timestamp, clock0),
+          }));
+  const showFloor =
+    rail === "sky" || rail === "floor" || rail === "cameras" || rail === "boardroom" || rail === "talk";
   const healthy = health === "Database up";
   const agencyLabel = registryDown ? "Registry unavailable" : agents ? "Operational" : "Checking";
 
-  async function askDesk(task: string): Promise<string> {
-    const reply = await apiPost<RouteReply>("/api/v1/inference/route", {
-      agent_code: selected,
-      task: task.slice(0, 64),
-      provider: "none",
-    });
-    const name = reply.persona || deskIdentity(selected).name;
-    const text = `${name}: ${reply.reason}. Allowed ${reply.allowed ? "yes" : "no"}. No order is sent.`;
-    setRouteNote(text);
-    return text;
-  }
-
-  async function speak(code: AgentCode): Promise<string> {
-    const who = deskIdentity(code);
-    const task = TASKS[code.charCodeAt(0) % TASKS.length]?.id ?? "risk_check";
-    try {
-      const reply = await apiPost<RouteReply>("/api/v1/inference/route", {
-        agent_code: code,
-        task,
-        provider: "none",
-      });
-      if (!reply.allowed || !reply.persona) {
-        return `${who.name}: Route unavailable. No order is sent.`;
-      }
-      return `${reply.persona}: ${reply.reason}. No order is sent.`;
-    } catch {
-      return `${who.name}: Route failed. No order is sent.`;
-    }
-  }
-
-  function DeskDetail({ floating }: { floating: boolean }) {
+  // A plain function, not a component: a component declared here would remount the chat on every render.
+  function deskDetail(floating: boolean) {
     const who = deskIdentity(selected);
     return (
-      <section role="dialog" aria-label={`${selected} detail`} className={floating ? "desk-dialog" : "view-card"}>
-        <header>
-          <p>
-            <strong>{who.name}</strong>
-            <span className="sx-k">
-              {" "}
-              {selected} · {who.role}
-            </span>
-          </p>
-          {floating ? (
-            <button type="button" className="vx-btn" onClick={() => setDeskOpen(false)}>
-              Close detail
-            </button>
-          ) : null}
-        </header>
-        <p className="sx-note">
-          {selectedAgent?.display_name ?? "Registry row"}. Status {selectedAgent?.status ?? "unread"}. No order is sent.
-        </p>
-        <div className="task-row">
-          {TASKS.map((task) => (
-            <button key={task.id} type="button" className="vx-btn" onClick={() => void askDesk(task.id)}>
-              {task.label}
-            </button>
-          ))}
-        </div>
-        <AgentDock
-          agentName={`${who.name} · ${selected}`}
-          idleStatus="Ready. No order is sent."
-          workingStatus="Routing the task."
-          onMessageSubmit={askDesk}
-        />
-      </section>
+      <ChatPanel
+        key={selected}
+        code={selected}
+        name={who.name}
+        role={who.role}
+        status={`${selectedAgent?.display_name ?? "Registry row"}. Status ${selectedAgent?.status ?? "unread"}`}
+        floating={floating}
+        following={following}
+        onFollow={setFollowing}
+        onResult={comms.ingest}
+        onClose={() => setDeskOpen(false)}
+      />
     );
   }
 
@@ -450,9 +408,15 @@ export function SanctumPage() {
                 setDeskOpen(true);
               }}
               onBoardroom={() => applyCamera("meeting", "boardroom")}
-              onTalk={speak}
+              speech={comms.frame.speech}
+              gather={comms.frame.gather}
+              follow={(following && deskOpen ? selected : (monitorFollow as AgentCode | null)) || null}
+              onAvatar={(code) => {
+                comms.speakLast(code);
+              }}
             />
           ) : null}
+          {showFloor && comms.notice ? <p className="cx-floor-note">{comms.notice}</p> : null}
           {showFloor && rail === "floor" ? (
             <p className="floor-caption">Floor view. The desks stay clickable. No order is sent.</p>
           ) : null}
@@ -463,7 +427,9 @@ export function SanctumPage() {
             <aside className="floor-note">
               <h2>Wednesday boardroom</h2>
               <p>12 Nov 2026, 9:00 AM EST</p>
-              <p>No meeting is created. No order is sent.</p>
+              <p>
+                Convene a session from Conversations. No calendar event is created. No order is sent.
+              </p>
               <ul>
                 {rosterRows.map((row) => (
                   <li key={row.code}>
@@ -473,7 +439,7 @@ export function SanctumPage() {
               </ul>
             </aside>
           ) : null}
-          {showFloor && deskOpen ? <DeskDetail floating /> : null}
+          {showFloor && deskOpen ? deskDetail(true) : null}
 
           {rail === "agents" ? (
             <div id="sanctum-floor" className="alt-view alt-grid">
@@ -502,14 +468,14 @@ export function SanctumPage() {
                 </ul>
                 <p className="sx-note">Orders, signing, and transfers stay refused.</p>
               </div>
-              <DeskDetail floating={false} />
+              {deskDetail(false)}
             </div>
           ) : null}
 
           {rail === "activity" ? (
             <div id="sanctum-floor" className="alt-view">
               <h2>Live activity feed</h2>
-              <FeedList lines={FEED} />
+              <FeedList lines={feedLines} />
               <h2 className="view-gap">Local audit</h2>
               {auditLines.length === 0 ? (
                 <p className="sx-note">No audit rows yet. No order is sent.</p>
@@ -517,6 +483,12 @@ export function SanctumPage() {
                 <FeedList lines={auditLines} />
               )}
             </div>
+          ) : null}
+
+          {rail === "talk" ? (
+            <aside className="cx-drawer" aria-label="Conversations">
+              <ConversationMonitor comms={comms} onFollowAgent={setMonitorFollow} />
+            </aside>
           ) : null}
 
           {rail === "logs" ? (
@@ -571,12 +543,21 @@ export function SanctumPage() {
               </div>
             </dl>
             <p className="sx-note" style={{ marginTop: 6 }}>
-              {routeNote}
+              No order is sent.
             </p>
           </section>
           <section className="sx-block">
             <h2>Live Activity Feed</h2>
-            <FeedList lines={FEED} />
+            <FeedList lines={feedLines} />
+            <p className="sx-note" style={{ marginTop: 6 }}>
+              {comms.available
+                ? comms.realtime === "not_configured"
+                  ? "Stored messages only. Realtime is not configured."
+                  : comms.realtime === "connected"
+                    ? "Stored messages only. Realtime doorbell connected."
+                    : "Stored messages only. Realtime is not connected; polling."
+                : "Conversation API unavailable. Restart the API from this branch."}
+            </p>
           </section>
           <section className="sx-block">
             <h2>Camera Controls</h2>

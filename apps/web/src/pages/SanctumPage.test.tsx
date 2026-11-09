@@ -129,6 +129,47 @@ describe("sanctum route", () => {
           order_submitted: false,
         });
       }
+      if (path.startsWith("/api/v1/comms/flags")) {
+        return Promise.resolve({
+          flags: { agent_chat: true, group_chat: true, autonomous_discussions: false, voice_chat: false, live_execution: false },
+          realtime: "not_configured",
+          model: "not_configured",
+          note: "",
+        });
+      }
+      if (path.startsWith("/api/v1/comms/feed")) {
+        return Promise.resolve({
+          realtime: "not_configured",
+          messages: [
+            {
+              message_id: "m-1",
+              conversation_id: "c-1",
+              seq: 2,
+              thread_id: null,
+              sender_id: "RISK-01",
+              sender_name: "Aegis",
+              sender_kind: "agent",
+              recipient_ids: ["HUMAN"],
+              kind: "reply",
+              origin: "tool_verified",
+              origin_label: "verified from local records",
+              timestamp: new Date().toISOString(),
+              correlation_id: "x",
+              task_id: null,
+              decision_id: null,
+              tool_call_id: null,
+              content: "Aegis, Risk desk. Nothing is running on this desk.",
+              status: "delivered",
+              visibility: "conversation",
+              citations: [],
+              meta: {},
+            },
+          ],
+        });
+      }
+      if (path.startsWith("/api/v1/comms/conversations")) {
+        return Promise.resolve({ conversations: [] });
+      }
       return Promise.reject(new Error(path));
     });
   });
@@ -154,11 +195,14 @@ describe("sanctum route", () => {
     expect(screen.queryByRole("button", { name: /order|enable|sign|withdraw|topstep/i })).not.toBeInTheDocument();
     expect(screen.getAllByText("Paper").length).toBeGreaterThan(0);
     expect(screen.getByText("Simulation (Paper)")).toBeInTheDocument();
-    expect(screen.getByText("Dayvid · DAY-01: Scanning intraday setups")).toBeInTheDocument();
-    expect(screen.getByText("Astra · RESEARCH-01: Compiling market intel")).toBeInTheDocument();
-    expect(screen.getByText("Futures · FUTURES-01: Reviewing Topstep rules")).toBeInTheDocument();
-    expect(screen.getByText("Aegis · RISK-01: Monitoring exposure limits")).toBeInTheDocument();
-    expect(screen.getByText("Midas · TREASURY-01: Reconciling balances")).toBeInTheDocument();
+    // The scripted placeholder lines were removed. The feed shows stored messages only.
+    expect(screen.queryByText(/Scanning intraday setups/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Compiling market intel/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reviewing Topstep rules/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Monitoring exposure limits/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reconciling balances/)).not.toBeInTheDocument();
+    expect(await screen.findAllByText(/Aegis · RISK-01: Aegis, Risk desk\. Nothing is running/)).not.toHaveLength(0);
+    expect(screen.getAllByText(/\[verified\]/).length).toBeGreaterThan(0);
     for (const name of ["Roads", "Dayvid", "Vex", "Nyx", "Cipher", "Lyra", "Astra", "Aegis", "Midas", "Futures"]) {
       expect(screen.getAllByText(name).length).toBeGreaterThan(0);
     }

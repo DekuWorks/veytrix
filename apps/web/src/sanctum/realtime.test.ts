@@ -54,3 +54,31 @@ describe("sanctum realtime", () => {
     feed.close();
   });
 });
+
+describe("comms realtime doorbell", () => {
+  it("polls when Supabase is not configured and says so", async () => {
+    const { openCommsChannel } = await import("./realtime");
+    const feed = await openCommsChannel({}, () => undefined);
+    expect(feed.mode).toBe("poll");
+  });
+
+  it("refuses a service-role key and keeps polling", async () => {
+    const { openCommsChannel } = await import("./realtime");
+    const feed = await openCommsChannel(
+      { url: "https://x.supabase.co", anonKey: jwt("service_role") },
+      () => undefined,
+    );
+    expect(feed.mode).toBe("poll");
+  });
+
+  it("subscribes to the comms channel when an anon key is set", async () => {
+    const { openCommsChannel } = await import("./realtime");
+    createClient.mockClear();
+    const feed = await openCommsChannel(
+      { url: "https://x.supabase.co", anonKey: jwt("anon") },
+      () => undefined,
+    );
+    expect(feed.mode).toBe("realtime");
+    expect(createClient).toHaveBeenCalledTimes(1);
+  });
+});

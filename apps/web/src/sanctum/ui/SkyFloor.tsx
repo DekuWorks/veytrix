@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { AgentCode } from "../../api/types";
+import type { Speech } from "../../comms/types";
 import "./sanctum.css";
+import "./comms.css";
 
 const SPINES = ["#7f1d1d", "#1d4ed8", "#166534", "#a16207", "#6b21a8", "#0f766e", "#9a3412", "#1e3a8a", "#365314", "#b45309", "#831843", "#134e4a"];
 
@@ -86,8 +88,20 @@ type SkyFloorProps = {
   selected: AgentCode | null;
   onDesk: (code: AgentCode) => void;
   onBoardroom: () => void;
-  onTalk: (code: AgentCode) => Promise<string>;
+  /** The newest persisted message per speaking desk. Nothing here is generated in the browser. */
+  speech: Record<string, Speech>;
+  /** Desks walking to, or sitting in, the boardroom for a stored discussion. */
+  gather: readonly string[];
+  /** A desk to keep centred in the camera, or null. */
+  follow: AgentCode | null;
+  /** Fired when an avatar is clicked, after the desk detail opens. */
+  onAvatar: (code: AgentCode) => void;
 };
+
+function seatFor(index: number, count: number): Spot {
+  const angle = (2 * Math.PI * index) / Math.max(1, count);
+  return clampSpot({ x: MEETING.x + Math.cos(angle) * 14, y: MEETING.y - 2 + Math.sin(angle) * 5 });
+}
 
 function clampSpot(spot: Spot): Spot {
   return {
@@ -128,35 +142,40 @@ function Shelf({ side }: { side: "l" | "r" }) {
 }
 
 /** Sky-view floor built from HTML and CSS. No picture. */
-export function SkyFloor({ shot, persona, selected, onDesk, onBoardroom, onTalk }: SkyFloorProps) {
+export function SkyFloor({
+  shot,
+  persona,
+  selected,
+  onDesk,
+  onBoardroom,
+  speech,
+  gather,
+  follow,
+  onAvatar,
+}: SkyFloorProps) {
   const [spots, setSpots] = useState<Record<string, Spot>>(() =>
     Object.fromEntries(CREW.map((member) => [member.code, member.home])),
   );
-  const [bubbles, setBubbles] = useState<Record<string, string>>({});
   const goals = useRef<Record<string, Spot>>(Object.fromEntries(CREW.map((member) => [member.code, member.home])));
   const hop = useRef(0);
-  const talking = useRef(false);
-  const onTalkRef = useRef(onTalk);
-  onTalkRef.current = onTalk;
+  const gathered = useRef<readonly string[]>([]);
+  gathered.current = gather;
 
-  async function showLine(code: AgentCode) {
-    const member = CREW.find((item) => item.code === code);
-    const fallback = member?.name ?? code;
-    try {
-      const line = await onTalkRef.current(code);
-      setBubbles((current) => ({ ...current, [code]: line }));
-    } catch {
-      setBubbles((current) => ({ ...current, [code]: `${fallback}: Route failed. No order is sent.` }));
-    }
-    window.setTimeout(() => {
-      setBubbles((current) => ({ ...current, [code]: "" }));
-    }, 7000);
-  }
+  const reduceMotion = () =>
+    typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   useEffect(() => {
-    const reduce =
-      typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
+    CREW.forEach((member) => {
+      const seat = gather.indexOf(member.code);
+      goals.current[member.code] = seat >= 0 ? seatFor(seat, gather.length) : member.home;
+    });
+    if (reduceMotion()) {
+      setSpots(Object.fromEntries(CREW.map((member) => [member.code, goals.current[member.code]])));
+    }
+  }, [gather]);
+
+  useEffect(() => {
+    if (reduceMotion()) {
       return undefined;
     }
     const move = window.setInterval(() => {
@@ -171,6 +190,9 @@ export function SkyFloor({ shot, persona, selected, onDesk, onBoardroom, onTalk 
     const wander = window.setInterval(() => {
       const member = CREW[hop.current % CREW.length];
       hop.current += 1;
+      if (gathered.current.includes(member.code)) {
+        return;
+      }
       const stop = hop.current % 3 === 0 ? member.home : ROUTE_STOPS[hop.current % ROUTE_STOPS.length];
       goals.current[member.code] = stop;
     }, 2800);
@@ -180,34 +202,16 @@ export function SkyFloor({ shot, persona, selected, onDesk, onBoardroom, onTalk 
     };
   }, []);
 
-  useEffect(() => {
-    if (talking.current) {
-      return;
-    }
-    const pair = CREW.find((member, index) =>
-      CREW.slice(index + 1).some((other) => {
-        const a = spots[member.code];
-        const b = spots[other.code];
-        if (!a || !b) {
-          return false;
-        }
-        return Math.hypot(a.x - b.x, a.y - b.y) < 7 && !bubbles[member.code] && !bubbles[other.code];
-      }),
-    );
-    if (!pair) {
-      return;
-    }
-    talking.current = true;
-    void showLine(pair.code).finally(() => {
-      talking.current = false;
-    });
-  }, [spots, bubbles]);
+  const followed = follow ? (spots[follow] ?? null) : null;
+  const camera = followed
+    ? `scale(${Math.max(shot.scale, 1.7)}) translate(${50 - followed.x}%, ${50 - followed.y}%)`
+    : `translate(${shot.x}px, ${shot.y}px) scale(${shot.scale})`;
 
   return (
     <div id="sanctum-floor" tabIndex={-1} className="sky-floor">
       <div
         className="sky-cam"
-        style={{ transform: `translate(${shot.x}px, ${shot.y}px) scale(${shot.scale})` }}
+        style={{ transform: camera }}
       >
         <div className="sky-world">
           <div className="plate hall" />
@@ -287,13 +291,23 @@ export function SkyFloor({ shot, persona, selected, onDesk, onBoardroom, onTalk 
             const spot = spots[member.code] ?? member.home;
             return (
               <div key={member.code} className="bot" style={{ top: `${spot.y}%`, left: `${spot.x}%` }}>
-                {bubbles[member.code] ? <p className="thought">{bubbles[member.code]}</p> : null}
+                {speech[member.code] ? (
+                  <p
+                    className={`thought live${speech[member.code].replay ? " replay" : ""}${spot.x > 62 ? " flip" : ""}`}
+                    data-origin={speech[member.code].origin}
+                    data-message-id={speech[member.code].id}
+                    role="status"
+                  >
+                    {speech[member.code].text}
+                    <span className="cx-bubble-tag">{speech[member.code].label}</span>
+                  </p>
+                ) : null}
                 <button
                   type="button"
                   aria-pressed={selected === member.code}
                   onClick={() => {
                     onDesk(member.code);
-                    void showLine(member.code);
+                    onAvatar(member.code);
                   }}
                 >
                   <span className="nameplate">
