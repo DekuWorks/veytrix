@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from veytrix_api.comms import discussion, replies, roster, safety, store
+from veytrix_api.comms import delegate, discussion, replies, roster, safety, store, work
 from veytrix_api.comms.envelope import (
     Citation,
     ConversationEnvelope,
@@ -46,8 +46,9 @@ from veytrix_api.settings import Settings
 router = APIRouter(prefix="/comms", tags=["comms"])
 STORE_DOWN = "Conversation store is unavailable. Run alembic upgrade head on the local database."
 FLAG_NOTE = (
-    "No language model is configured. Replies are composed from local records and labelled. "
-    "live_execution is fixed off and cannot be enabled by setting or message."
+    "Language is English (en). No language model is configured. Replies are verified from "
+    "local records and labelled. live_execution is fixed off and cannot be enabled by a "
+    "setting or a message."
 )
 ALL_HANDS = "All desks"
 AUTO_COOLDOWN = timedelta(minutes=15)
@@ -416,7 +417,15 @@ def send_message(
         )
     else:
         thread = body.thread_id or human.id
+        delegated = False
+        if roster.SUPERVISOR in responders and delegate.matches(body.content):
+            parsed = delegate.parse(body.content)
+            if parsed is not None:
+                new_rows.extend(delegate.assign(db, conv, body.content, correlation, thread))
+                delegated = True
         for code in responders:
+            if delegated and code == roster.SUPERVISOR:
+                continue
             if store.message_count(db, conv.id) >= conv.max_messages:
                 store.record_event(
                     db,
@@ -769,6 +778,54 @@ def moderate(
     conv.updated_at = datetime.now(UTC)
     out = store.conversation_out(db, conv)
     messages = [store.message_out(r) for r in rows]
+    db.commit()
+    realtime = _announce(request, db, rows, correlation)
+    return SendResult(conversation=out, messages=messages, realtime=realtime)  # type: ignore[arg-type]
+
+
+@router.post("/messages/{message_id}/answer", response_model=SendResult)
+@store_errors
+def answer_message(
+    message_id: uuid.UUID, request: Request, db: Session = Depends(get_db)
+) -> SendResult:
+    """One other desk answers a stored line. Calling it again returns the same reply."""
+
+    _throttle(request)
+    _require(request, "agent_chat")
+    source = db.get(MessageRow, message_id)
+    if source is None or source.sender_kind != "agent":
+        raise HTTPException(status_code=404, detail="Message not found.")
+    conv = _conversation(db, source.conversation_id)
+    row, created = replies.answer_line(db, source)
+    if row is None:
+        return SendResult(
+            conversation=store.conversation_out(db, conv), messages=[], duplicate=True
+        )
+    out = store.conversation_out(db, conv)
+    messages = [store.message_out(row)]
+    if not created:
+        return SendResult(conversation=out, messages=messages, duplicate=True)
+    db.commit()
+    realtime = _announce(request, db, [row], row.correlation_id)
+    return SendResult(conversation=out, messages=messages, realtime=realtime)  # type: ignore[arg-type]
+
+
+@router.post("/floor", response_model=SendResult)
+@store_errors
+def floor(request: Request, db: Session = Depends(get_db)) -> SendResult:
+    """Each desk writes its paper-mode job in English. Nothing here submits an order."""
+
+    _throttle(request)
+    _require(request, "agent_chat")
+    correlation = correlation_id_var.get() or uuid.uuid4().hex
+    rows, created = work.record_floor(db, correlation)
+    conv = store.get_conversation(db, rows[0].conversation_id) if rows else None
+    if conv is None:
+        raise HTTPException(status_code=503, detail=STORE_DOWN)
+    out = store.conversation_out(db, conv)
+    messages = [store.message_out(row) for row in rows]
+    if not created:
+        return SendResult(conversation=out, messages=messages, duplicate=True)
     db.commit()
     realtime = _announce(request, db, rows, correlation)
     return SendResult(conversation=out, messages=messages, realtime=realtime)  # type: ignore[arg-type]

@@ -96,7 +96,7 @@ const registry = AGENT_CODES.map((code) => ({
   code,
   display_name: `${NAMES[code]} desk`,
   desk: "desk",
-  status: "disabled",
+  status: "enabled",
   paper_only: true,
   can_submit_orders: false,
   can_sign: false,
@@ -180,8 +180,8 @@ function install() {
         kind: "reply",
         origin: "tool_verified",
         origin_label: "verified from local records",
-        content: `${NAMES[code]} reads the registry: status disabled, no worker.`,
-        citations: [{ source: "registry", ref: `private.agents/${code}`, label: "Registry status is disabled.", as_of: null, untrusted: false }],
+        content: `${NAMES[code]}, risk desk. Enabled, English. Reading the paper risk policy.`,
+        citations: [{ source: "registry", ref: `private.agents/${code}`, label: "Registry status is enabled.", as_of: null, untrusted: false }],
       });
       backend.stored[id] = [...(backend.stored[id] ?? []), human, reply];
       return Promise.resolve({
@@ -251,7 +251,7 @@ describe("sanctum chat", () => {
     await user.click(within(dialog).getByRole("button", { name: "Send" }));
     const log = await within(dialog).findByRole("log", { name: "Transcript with Aegis" });
     expect(await within(log).findByText("What are you working on?")).toBeInTheDocument();
-    expect(await within(log).findByText(/Aegis reads the registry/)).toBeInTheDocument();
+    expect(await within(log).findByText(/Aegis, risk desk\. Enabled, English/)).toBeInTheDocument();
     expect(within(log).getByText("verified")).toBeInTheDocument();
     expect(within(log).getByText("Sources (1)")).toBeInTheDocument();
     const post = vi.mocked(apiPost).mock.calls.find(([path]) => String(path).endsWith("/messages"));
@@ -265,7 +265,7 @@ describe("sanctum chat", () => {
       },
       { timeout: 3000 },
     );
-    expect(bubble.textContent).toContain("Aegis reads the registry: status disabled, no worker.");
+    expect(bubble.textContent).toContain("Aegis, risk desk. Enabled, English. Reading the paper risk policy.");
     expect(bubble.textContent).toContain("verified");
     expect(document.body.textContent).not.toMatch(/deterministic\. No order/i);
   });
@@ -308,7 +308,7 @@ describe("sanctum chat", () => {
     expect(await within(dialog).findByText(/Too many messages/)).toBeInTheDocument();
     vi.mocked(apiPost).mockImplementation(original);
     await user.click(within(dialog).getByRole("button", { name: "Retry message" }));
-    expect(await within(dialog).findByText(/Nyx reads the registry/)).toBeInTheDocument();
+    expect(await within(dialog).findByText(/Nyx, risk desk\. Enabled, English/)).toBeInTheDocument();
   });
 
   it.each(AGENT_CODES)("opens a direct conversation for %s from the agent list", async (code) => {

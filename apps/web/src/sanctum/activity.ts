@@ -15,7 +15,7 @@ export function isDesk(value: AgentDesk): boolean {
     (AGENT_CODES as readonly string[]).includes(value.code) &&
     value.display_name.trim().length > 0 &&
     value.desk.trim().length > 0 &&
-    (value.status === "disabled" || value.status === "paused") &&
+    (value.status === "disabled" || value.status === "paused" || value.status === "enabled") &&
     value.paper_only === true &&
     value.can_submit_orders === false &&
     value.can_sign === false &&
@@ -74,6 +74,9 @@ export function isFuturesPosture(value: FuturesPostureResponse): boolean {
 export function poseFor(agent: AgentDesk | undefined, reachable: boolean): DeskPose {
   if (!reachable || !agent || !isDesk(agent)) {
     return "error";
+  }
+  if (agent.status === "enabled") {
+    return "working";
   }
   if (agent.status === "disabled" || agent.status === "paused") {
     return "idle";
@@ -217,7 +220,11 @@ export function activityFeed(input: FeedInput): string[] {
     lines.push("Desk activity is not verified.");
   } else {
     for (const agent of input.agents) {
-      lines.push(`${agent.code} is ${agent.status}. Idle. Activity is not verified.`);
+      lines.push(
+        agent.status === "enabled"
+          ? `${agent.code} is enabled. Paper research only. Trading denied. No order submitted.`
+          : `${agent.code} is ${agent.status}. Idle. Activity is not verified.`,
+      );
     }
   }
   lines.push("Verified trading activity: none verified.");

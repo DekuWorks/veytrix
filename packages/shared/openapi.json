@@ -65,7 +65,8 @@
           "status": {
             "enum": [
               "disabled",
-              "paused"
+              "paused",
+              "enabled"
             ],
             "title": "Status",
             "type": "string"
@@ -766,7 +767,7 @@
       },
       "DeskDetailResponse": {
         "additionalProperties": false,
-        "description": "One desk and its deny list. There is no field that enables it.",
+        "description": "One desk and its deny list. Status may be enabled. Trading rights stay denied.",
         "properties": {
           "can_enable": {
             "const": false,
@@ -865,7 +866,8 @@
           "status": {
             "enum": [
               "disabled",
-              "paused"
+              "paused",
+              "enabled"
             ],
             "title": "Status",
             "type": "string"
@@ -1032,6 +1034,12 @@
             },
             "title": "Flags",
             "type": "object"
+          },
+          "language": {
+            "const": "en",
+            "default": "en",
+            "title": "Language",
+            "type": "string"
           },
           "live_execution": {
             "const": false,
@@ -1426,6 +1434,71 @@
           "synthetic"
         ],
         "title": "InstrumentResponse",
+        "type": "object"
+      },
+      "LanguagePosture": {
+        "description": "Shared desk model. No key and no order field.",
+        "properties": {
+          "alpaca_paper": {
+            "default": "disconnected",
+            "title": "Alpaca Paper",
+            "type": "string"
+          },
+          "claude": {
+            "title": "Claude",
+            "type": "string"
+          },
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "credential_present": {
+            "title": "Credential Present",
+            "type": "boolean"
+          },
+          "error_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Class"
+          },
+          "execution_permitted": {
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live": {
+            "default": "disabled",
+            "title": "Live",
+            "type": "string"
+          },
+          "order_submitted": {
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "orders": {
+            "default": "simulated",
+            "title": "Orders",
+            "type": "string"
+          },
+          "speech_origin": {
+            "title": "Speech Origin",
+            "type": "string"
+          }
+        },
+        "required": [
+          "claude",
+          "connected",
+          "credential_present",
+          "speech_origin"
+        ],
+        "title": "LanguagePosture",
         "type": "object"
       },
       "Mac01ChartMarker": {
@@ -6449,6 +6522,72 @@
         ]
       }
     },
+    "/api/v1/comms/floor": {
+      "post": {
+        "description": "Each desk writes its paper-mode job in English. Nothing here submits an order.",
+        "operationId": "floor_api_v1_comms_floor_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Floor",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/messages/{message_id}/answer": {
+      "post": {
+        "description": "One other desk answers a stored line. Calling it again returns the same reply.",
+        "operationId": "answer_message_api_v1_comms_messages__message_id__answer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Message Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Answer Message",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
     "/api/v1/comms/roster": {
       "get": {
         "operationId": "roster_route_api_v1_comms_roster_get",
@@ -6573,6 +6712,28 @@
         "summary": "Health",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/inference/language": {
+      "get": {
+        "description": "Report the shared model. Does not call Claude when the key is absent.",
+        "operationId": "language_posture_api_v1_inference_language_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguagePosture"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Language Posture",
+        "tags": [
+          "inference"
         ]
       }
     },

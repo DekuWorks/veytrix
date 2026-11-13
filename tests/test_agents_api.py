@@ -181,7 +181,7 @@ def test_agents_route_reads_the_local_registry(monkeypatch: pytest.MonkeyPatch) 
     assert listed.status_code == 200
     body = listed.json()
     assert [row["code"] for row in body["agents"]] == sorted(AGENT_CODES)
-    assert all(row["status"] == "disabled" for row in body["agents"])
+    assert all(row["status"] == "enabled" for row in body["agents"])
     assert all(row["can_submit_orders"] is False for row in body["agents"])
     assert body["trading_rights"] == "denied"
     assert status.status_code == 200
@@ -377,7 +377,7 @@ def test_desk_detail_reads_the_local_registry(monkeypatch: pytest.MonkeyPatch) -
     assert detail.status_code == 200
     body = detail.json()
     assert body["code"] == "SUPERVISOR-01"
-    assert body["status"] == "disabled"
+    assert body["status"] == "enabled"
     assert body["can_enable"] is False
     assert body["running"] is False
     assert body["can_submit_orders"] is False

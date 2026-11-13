@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -18,8 +19,19 @@ from veytrix_api.comms import roster
 
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 DEFAULT_MODEL = "claude-haiku-4-5"
+MAX_TOKENS = 160
+TIMEOUT_SECONDS = 20
+MAX_CALLS = 6
+SPEND_CAP_USD = 0.05
+CALL_USD = 0.01
 SpeechOrigin = Literal["simulated", "model_generated"]
 ClaudeState = Literal["connected", "disconnected"]
+_INVENTED = re.compile(
+    r"\b(i researched|i found|i looked up|share price|market cap|earnings|revenue|according to)\b"
+    r"|\d+(?:\.\d+)?\s*%|\$\d"
+    r"|\b(buy|sell)\b.{0,30}\b(order|shares)\b",
+    re.IGNORECASE,
+)
 
 _COMMON = (
     "English only. One short sentence. You have no tools. "
@@ -30,8 +42,7 @@ _COMMON = (
 
 _ROLE = {
     "SUPERVISOR-01": (
-        "You are Roads, the coordinator. You cannot grant permissions, move money, "
-        "or bypass Aegis."
+        "You are Roads, the coordinator. You cannot grant permissions, move money, or bypass Aegis."
     ),
     "DAY-01": "You are Dayvid on the day desk. You read the session. You do not trade.",
     "STOCK-01": "You are Vex on the stock desk. You read stored signals. You do not trade.",
@@ -71,6 +82,8 @@ class Speech:
     claude: ClaudeState
     connected: bool
     error_class: str | None = None
+    model: str | None = None
+    chunks: int = 0
 
 
 @dataclass(frozen=True)
@@ -83,11 +96,27 @@ class Probe:
 
 
 _cached: Probe | None = None
+_calls = 0
+_spent = 0.0
 
 
 def reset() -> None:
-    global _cached
+    global _cached, _calls, _spent
     _cached = None
+    _calls = 0
+    _spent = 0.0
+
+
+def acceptable(text: str) -> bool:
+    """True when a completion does not invent a market fact or an order."""
+
+    cleaned = " ".join(text.split())
+    if not cleaned:
+        return False
+    lowered = cleaned.lower()
+    if "sk-ant" in lowered or "api_key" in lowered or "anthropic_api_key" in lowered:
+        return False
+    return _INVENTED.search(cleaned) is None
 
 
 def credential_present() -> bool:
@@ -160,20 +189,25 @@ def _complete(system: str, user: str, transport) -> str:
 
 
 def probe(transport=None) -> Probe:
-    """One connectivity check. No network call when the key is absent."""
+    """Report the last real result. No network call unless a test passes a transport.
+
+    A present key is not a connection. Only `converse` may mark the cache connected.
+    """
 
     global _cached
     if transport is None and _cached is not None:
         return _cached
-    if not credential_present() and transport is None:
+    if transport is None:
+        present = credential_present()
         result = Probe(
             claude="disconnected",
             connected=False,
-            credential_present=False,
-            error_class=None,
+            credential_present=present,
+            error_class=None if not present else "not_verified",
             speech_origin="simulated",
         )
-        _cached = result
+        if not present:
+            _cached = result
         return result
     try:
         _complete(
@@ -182,24 +216,150 @@ def probe(transport=None) -> Probe:
             transport,
         )
     except ClaudeError as exc:
-        result = Probe(
+        return Probe(
             claude="disconnected",
             connected=False,
             credential_present=True,
             error_class=exc.error_class,
             speech_origin="simulated",
         )
-    else:
-        result = Probe(
+    return Probe(
+        claude="connected",
+        connected=True,
+        credential_present=True,
+        error_class=None,
+        speech_origin="model_generated",
+    )
+
+
+def _complete_stream(system: str, user: str, transport) -> tuple[str, int]:
+    """One streamed Messages call. A test transport still returns one JSON body."""
+
+    global _calls, _spent
+    if transport is not None:
+        return _complete(system, user, transport), 1
+    if _calls >= MAX_CALLS or _spent >= SPEND_CAP_USD:
+        raise ClaudeError("budget_exhausted")
+    _calls += 1
+    _spent += CALL_USD
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not key:
+        raise ClaudeError("missing_key")
+    body = json.dumps(
+        {
+            "model": _model_name(),
+            "max_tokens": MAX_TOKENS,
+            "stream": True,
+            "system": system,
+            "messages": [{"role": "user", "content": user[:1000]}],
+        }
+    ).encode()
+    request = urllib.request.Request(
+        ANTHROPIC_URL,
+        data=body,
+        headers={
+            "content-type": "application/json",
+            "anthropic-version": "2023-06-01",
+            "x-api-key": key,
+        },
+        method="POST",
+    )
+    chunks: list[str] = []
+    try:
+        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+            if response.status != 200:
+                raise ClaudeError(f"HTTPError:{response.status}")
+            for raw in response:
+                line = raw.decode("utf-8", "replace").strip()
+                if not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if not data or data == "[DONE]":
+                    continue
+                try:
+                    event = json.loads(data)
+                except json.JSONDecodeError:
+                    continue
+                if event.get("type") == "error":
+                    raise ClaudeError("provider_error")
+                delta = event.get("delta") if isinstance(event.get("delta"), dict) else {}
+                if delta.get("type") == "text_delta":
+                    chunks.append(str(delta.get("text") or ""))
+    except urllib.error.HTTPError as exc:
+        raise ClaudeError(f"HTTPError:{exc.code}") from None
+    except urllib.error.URLError:
+        raise ClaudeError("URLError") from None
+    except TimeoutError:
+        raise ClaudeError("TimeoutError") from None
+    text = " ".join("".join(chunks).split())
+    if not text:
+        raise ClaudeError("empty_completion")
+    return text[:400], len(chunks)
+
+
+def converse(code: str, user: str, *, facts: str, transport=None) -> Speech:
+    """One founder reply. Failure stays simulated and must not be stored as Claude."""
+
+    global _cached
+    if transport is None and not credential_present():
+        return Speech(
+            origin="simulated",
+            text="",
+            claude="disconnected",
+            connected=False,
+            error_class="missing_key",
+        )
+    role = _ROLE.get(code, "You are a research desk. You do not trade.")
+    system = (
+        f"{role} {_COMMON} "
+        "Answer in plain English, at most two sentences. "
+        "Use only the facts below. If no task is assigned, say so. "
+        "Do not invent work, prices, filings, or news. "
+        "Do not say you researched a company. "
+        f"Facts: {facts[:1500]}"
+    )
+    try:
+        text, chunks = _complete_stream(system, user, transport)
+    except ClaudeError as exc:
+        if transport is None:
+            _cached = Probe(
+                claude="disconnected",
+                connected=False,
+                credential_present=True,
+                error_class=exc.error_class,
+                speech_origin="simulated",
+            )
+        return Speech(
+            origin="simulated",
+            text="",
+            claude="disconnected",
+            connected=False,
+            error_class=exc.error_class,
+        )
+    if not acceptable(text):
+        return Speech(
+            origin="simulated",
+            text="",
+            claude="disconnected",
+            connected=False,
+            error_class="unsupported_claim",
+        )
+    if transport is None:
+        _cached = Probe(
             claude="connected",
             connected=True,
             credential_present=True,
             error_class=None,
             speech_origin="model_generated",
         )
-    if transport is None:
-        _cached = result
-    return result
+    return Speech(
+        origin="model_generated",
+        text=text,
+        claude="connected",
+        connected=True,
+        model=_model_name(),
+        chunks=chunks,
+    )
 
 
 def speak(code: str, transport=None) -> Speech:

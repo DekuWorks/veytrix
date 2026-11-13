@@ -155,7 +155,11 @@ export function ChatPanel({
         ) : null}
       </header>
       <p className="sx-note">
-        {status}. Claude is offline. A verified tag is local records, not a model. No order is sent.
+        {status}.{" "}
+        {messages.some((message) => message.origin === "model_generated")
+          ? "A line labelled model was written by Claude."
+          : "Claude is offline for this thread."}{" "}
+        Each line keeps its own origin. Verified lines are local records. No order is sent.
       </p>
       {loading ? <p className="cx-empty">Opening the conversation…</p> : null}
       {error ? (

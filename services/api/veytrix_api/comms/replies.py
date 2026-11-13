@@ -1,7 +1,9 @@
 """Compose a desk's reply to the user from verified local records.
 
-No language model is configured in this build, so a reply is never `model_generated`.
-It is `tool_verified` when every claim comes from a read of local records, and `scripted`
+Greetings use the shared server-side model. Without a successful Claude probe the
+origin is `simulated`, never `model_generated`. Record answers stay `tool_verified`.
+Desk reports are English (`en`). A reply is `tool_verified` when every claim comes from a
+read of local records, and `scripted`
 when it is fixed text (a glossary entry, a refusal with no registry row, a clarifying
 question). The intent is chosen by plain patterns. Chat text cannot reach anything that
 places an order: this module only reads.
@@ -15,7 +17,7 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 
 from veytrix_api.comms import facts as fx
-from veytrix_api.comms import glossary, roster, safety
+from veytrix_api.comms import glossary, roster, safety, work
 from veytrix_api.comms.envelope import Citation, Level, MessageKind, Origin
 from veytrix_api.models import MessageRow
 
@@ -321,18 +323,30 @@ def compose_reply(
     desk_scoped = fx.desk_only(all_facts)
 
     if intent == "working_on":
-        runs = next((f for f in registry if f.key == "runs"), None)
-        status = next((f for f in registry if f.key == "registry"), None)
-        shown = ([status] if status else []) + ([runs] if runs else [])
-        if not brief:
-            shown += desk_scoped
-        body, cites = _numbered(shown)
-        head = f"{desk.name}, {desk.role}. Nothing is running on this desk: it has no worker."
-        content = f"{head}\n{body}" + (
-            "" if brief else "\nAsk “Show sources” for the records behind this."
-        )
+        from veytrix_api.claude_provider import acceptable, converse
+
+        made = work.report(db, code, brief=brief)
+        content = made.content
+        origin: Origin = "tool_verified" if registry_ok else "scripted"
+        meta_out: dict[str, object] = {**meta, **made.meta}
+        spoken = converse(code, text, facts=made.content)
+        if spoken.origin == "model_generated" and acceptable(spoken.text):
+            content = spoken.text
+            origin = "model_generated"
+            meta_out["model"] = spoken.model or "claude"
+            meta_out["streamed"] = spoken.chunks > 0
+            meta_out["chunk_count"] = spoken.chunks
+            meta_out["local_text"] = made.content
+        elif spoken.error_class and spoken.error_class != "missing_key":
+            meta_out["model"] = "disconnected"
+            meta_out["error_class"] = spoken.error_class
+            meta_out["fallback"] = "local_records"
         return Reply(
-            _cut(content), "reply", "tool_verified" if registry_ok else "scripted", cites, meta
+            _cut(content),
+            "reply",
+            origin,
+            made.citations,
+            meta_out,
         )
 
     if intent == "desk_data":
@@ -352,3 +366,73 @@ def compose_reply(
         [Citation(source="roster", ref=code, label=desk.summary)],
         meta,
     )
+
+
+def answer_line(db: Session, source: MessageRow) -> tuple[MessageRow | None, bool]:
+    """Store one English desk report in reply to another desk. A reply does not get a reply.
+
+    The old simulated “you said” line is not written. Returns `(row, created)`.
+    `created` is false when this line was already answered. `row` is none when the
+    source is itself a reply, so the exchange cannot loop.
+    """
+
+    from veytrix_api.comms import store
+
+    meta = dict(source.meta or {})
+    if meta.get("peer_reply") or source.sender_kind != "agent":
+        return None, False
+    needle = str(source.id)
+    for earlier in store.recent(db, source.conversation_id, 40):
+        if str((earlier.meta or {}).get("responds_to") or "") == needle:
+            return earlier, False
+    conv = store.get_conversation(db, source.conversation_id)
+    if conv is None or conv.status == "archived":
+        return None, False
+    members = [code for code in store.agent_members(db, conv.id) if code != source.sender_id]
+    ranked = roster.relevant_desks(source.content, limit=4, exclude=(source.sender_id,))
+    choice = next((code for code in ranked if code in members), None)
+    if choice is None and members:
+        choice = members[0]
+    if choice is None:
+        others = [code for code in roster.CODES if code != source.sender_id]
+        choice = next((code for code in ranked if code in others), others[0])
+    desk = roster.desk_for(choice)
+    if safety.wants_order(source.content):
+        text = (
+            f"{desk.name}: that asks for an order or a transfer. "
+            "I can't do that, and chat cannot do it either."
+        )
+        cites: list[Citation] = []
+        origin = "scripted"
+        meta_out: dict[str, object] = {
+            "peer_reply": True,
+            "responds_to": needle,
+            "intent": "refusal",
+            "language": work.LANGUAGE,
+            "model": "not_configured",
+        }
+    else:
+        made = work.report(db, choice, brief=True)
+        text = made.content
+        cites = made.citations
+        origin = "tool_verified"
+        meta_out = {
+            **made.meta,
+            "peer_reply": True,
+            "responds_to": needle,
+        }
+    row = store.append_message(
+        db,
+        conv,
+        sender_id=choice,
+        sender_kind="agent",
+        content=text,
+        kind="reply",
+        origin=origin,
+        correlation_id=source.correlation_id,
+        recipients=[source.sender_id],
+        thread_id=source.id,
+        citations=cites,
+        meta=meta_out,
+    )
+    return row, True

@@ -70,6 +70,7 @@ export type Flags = {
   flags: Record<string, boolean>;
   realtime: "not_configured" | "configured";
   model: "not_configured";
+  language: "en";
   note: string;
 };
 
@@ -92,6 +93,9 @@ export type Speech = {
   conversationKind: ConversationKind | "unknown";
   participants: AgentCode[];
   replay: boolean;
+  peerReply: boolean;
+  /** Changes every time this line is shown, so the bubble animation restarts. */
+  token?: number;
 };
 
 /** Short tag shown next to a bubble or a message. Honest about where the words came from. */

@@ -97,6 +97,16 @@ export async function patchConversation(
   return body.conversation;
 }
 
+/** Ask another desk to answer one stored line. The server stores at most one reply. */
+export function answerMessage(messageId: string): Promise<SendResult> {
+  return apiPost<SendResult>(`${BASE}/messages/${messageId}/answer`, {});
+}
+
+/** Each desk writes its current paper-mode job in English. A repeat is the same report. */
+export function startFloor(): Promise<SendResult> {
+  return apiPost<SendResult>(`${BASE}/floor`, {});
+}
+
 export function markRead(conversationId: string, seq: number): Promise<unknown> {
   return apiPost(`${BASE}/conversations/${conversationId}/read`, { seq });
 }
@@ -105,5 +115,5 @@ export async function loadFeed(): Promise<{
   messages: CommsMessage[];
   realtime: "not_configured" | "configured";
 }> {
-  return apiGet(`${BASE}/feed?limit=40`);
+  return apiGet(`${BASE}/feed?limit=100`);
 }

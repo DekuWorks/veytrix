@@ -33,6 +33,30 @@ export function formatTime(iso: string): string {
   return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(date);
 }
 
+function Diagnostics({ message }: { message: CommsMessage }) {
+  const raw = message.meta.diagnostics;
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+  const row = raw as Record<string, unknown>;
+  const records = Array.isArray(row.records) ? row.records.map((item) => String(item)) : [];
+  return (
+    <details className="cx-sources">
+      <summary>Diagnostics</summary>
+      <ul>
+        <li>Registry status: {String(row.registry_status ?? "unread")}</li>
+        <li>Can submit orders: {String(row.can_submit_orders ?? false)}</li>
+        <li>Can sign: {String(row.can_sign ?? false)}</li>
+        <li>Can transfer funds: {String(row.can_transfer_funds ?? false)}</li>
+        <li>Holds credentials: {String(row.holds_credentials ?? false)}</li>
+        {records.map((item, index) => (
+          <li key={`${index}-${item}`}>{item}</li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 function Sources({ message }: { message: CommsMessage }) {
   if (message.citations.length === 0) {
     return null;
@@ -81,6 +105,7 @@ export function MessageItem({ message, highlight }: { message: CommsMessage; hig
         <time dateTime={message.timestamp}>{formatTime(message.timestamp)}</time>
       </header>
       <p>{message.content}</p>
+      <Diagnostics message={message} />
       <Sources message={message} />
       {message.decision_id ? <small className="cx-decision">decision {message.decision_id}</small> : null}
     </li>
@@ -148,7 +173,7 @@ export function ChatThread({ label, messages, pending = null, empty, highlightSe
               <i />
               <i />
             </span>
-            {pending} is reading local records
+            {pending} is writing
           </div>
         ) : null}
       </div>

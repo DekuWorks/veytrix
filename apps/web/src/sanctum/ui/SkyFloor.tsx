@@ -79,6 +79,34 @@ const CREW: {
 ];
 
 const ROUTE_STOPS = [CENTRE, MEETING] as const;
+const ROADS = "SUPERVISOR-01";
+const DAYVID = "DAY-01";
+
+/** The boardroom table. Roads and Dayvid stay off it. */
+function onTable(spot: Spot): boolean {
+  return spot.x > 30 && spot.x < 70 && spot.y > 63;
+}
+
+/** A floor spot beside someone, not on their desk and not on the table. */
+function beside(home: Spot): Spot {
+  const spot = clampSpot({
+    x: home.x < 50 ? home.x + 9 : home.x - 9,
+    y: Math.min(home.y + 4, 58),
+  });
+  return onTable(spot) ? { x: spot.x < 50 ? 22 : 78, y: 50 } : spot;
+}
+
+const ROADS_STOPS: Spot[] = [
+  { x: 22, y: 46 },
+  { x: 50, y: 34 },
+  { x: 80, y: 42 },
+  { x: 18, y: 58 },
+  { x: 78, y: 56 },
+];
+
+const DAYVID_VISITS: Spot[] = CREW.filter((member) => member.code !== DAYVID).map((member) =>
+  beside(member.home),
+);
 
 type Shot = { scale: number; x: number; y: number };
 
@@ -154,10 +182,24 @@ export function SkyFloor({
   onAvatar,
 }: SkyFloorProps) {
   const [spots, setSpots] = useState<Record<string, Spot>>(() =>
-    Object.fromEntries(CREW.map((member) => [member.code, member.home])),
+    Object.fromEntries(
+      CREW.map((member) => [
+        member.code,
+        member.code === ROADS ? ROADS_STOPS[0] : member.code === DAYVID ? DAYVID_VISITS[0] : member.home,
+      ]),
+    ),
   );
-  const goals = useRef<Record<string, Spot>>(Object.fromEntries(CREW.map((member) => [member.code, member.home])));
+  const goals = useRef<Record<string, Spot>>(
+    Object.fromEntries(
+      CREW.map((member) => [
+        member.code,
+        member.code === ROADS ? ROADS_STOPS[1] : member.code === DAYVID ? DAYVID_VISITS[0] : member.home,
+      ]),
+    ),
+  );
   const hop = useRef(0);
+  const roadsHop = useRef(1);
+  const dayvidHop = useRef(1);
   const gathered = useRef<readonly string[]>([]);
   gathered.current = gather;
 
@@ -166,6 +208,13 @@ export function SkyFloor({
 
   useEffect(() => {
     CREW.forEach((member) => {
+      if (member.code === ROADS || member.code === DAYVID) {
+        const current = goals.current[member.code] ?? member.home;
+        if (onTable(current)) {
+          goals.current[member.code] = member.code === ROADS ? ROADS_STOPS[0] : DAYVID_VISITS[0];
+        }
+        return;
+      }
       const seat = gather.indexOf(member.code);
       goals.current[member.code] = seat >= 0 ? seatFor(seat, gather.length) : member.home;
     });
@@ -190,15 +239,25 @@ export function SkyFloor({
     const wander = window.setInterval(() => {
       const member = CREW[hop.current % CREW.length];
       hop.current += 1;
-      if (gathered.current.includes(member.code)) {
+      if (member.code === ROADS || member.code === DAYVID || gathered.current.includes(member.code)) {
         return;
       }
       const stop = hop.current % 3 === 0 ? member.home : ROUTE_STOPS[hop.current % ROUTE_STOPS.length];
       goals.current[member.code] = stop;
     }, 2800);
+    const roads = window.setInterval(() => {
+      goals.current[ROADS] = ROADS_STOPS[roadsHop.current % ROADS_STOPS.length];
+      roadsHop.current += 1;
+    }, 3400);
+    const dayvid = window.setInterval(() => {
+      goals.current[DAYVID] = DAYVID_VISITS[dayvidHop.current % DAYVID_VISITS.length];
+      dayvidHop.current += 1;
+    }, 7000);
     return () => {
       window.clearInterval(move);
       window.clearInterval(wander);
+      window.clearInterval(roads);
+      window.clearInterval(dayvid);
     };
   }, []);
 
@@ -290,18 +349,11 @@ export function SkyFloor({
           {CREW.map((member) => {
             const spot = spots[member.code] ?? member.home;
             return (
-              <div key={member.code} className="bot" style={{ top: `${spot.y}%`, left: `${spot.x}%` }}>
-                {speech[member.code] ? (
-                  <p
-                    className={`thought live${speech[member.code].replay ? " replay" : ""}${spot.x > 62 ? " flip" : ""}`}
-                    data-origin={speech[member.code].origin}
-                    data-message-id={speech[member.code].id}
-                    role="status"
-                  >
-                    {speech[member.code].text}
-                    <span className="cx-bubble-tag">{speech[member.code].label}</span>
-                  </p>
-                ) : null}
+              <div
+                key={member.code}
+                className={`bot${speech[member.code] ? " speaking" : ""}`}
+                style={{ top: `${spot.y}%`, left: `${spot.x}%` }}
+              >
                 <button
                   type="button"
                   aria-pressed={selected === member.code}
@@ -317,6 +369,28 @@ export function SkyFloor({
                   <Figure hair={member.hair} shirt={member.shirt} />
                 </button>
               </div>
+            );
+          })}
+
+          {CREW.map((member) => {
+            const line = speech[member.code];
+            if (!line) {
+              return null;
+            }
+            const spot = spots[member.code] ?? member.home;
+            return (
+              <p
+                key={`${line.id}-${line.token ?? 0}`}
+                className={`thought live overlay${spot.y < 36 ? " below" : ""}${line.replay ? " replay" : ""}`}
+                style={{ top: `${spot.y}%`, left: `${spot.x}%` }}
+                data-origin={line.origin}
+                data-message-id={line.id}
+                data-agent={member.code}
+                role="status"
+              >
+                {line.text}
+                <span className="cx-bubble-tag">{line.label}</span>
+              </p>
             );
           })}
 
@@ -343,7 +417,7 @@ export function SkyFloor({
             </span>
             <span className="board-sub">(Wednesdays)</span>
             <span className="b-room" aria-hidden="true">
-              <span className="b-table">V</span>
+              <span className="b-table" />
             </span>
           </button>
         </div>

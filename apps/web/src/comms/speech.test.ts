@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BUBBLE_MS,
+  FADE_MS,
   GAP_MS,
   LEAD_MS,
   SpeechScheduler,
@@ -105,9 +106,9 @@ describe("speech scheduler", () => {
     const conv = conversation("direct", ["RISK-01"]);
     scheduler.enqueue([talk("a", "RISK-01", conv)]);
     expect(scheduler.tick(0).speech["RISK-01"]?.id).toBe("a");
-    expect(scheduler.tick(BUBBLE_MS - 1).speech["RISK-01"]).toBeDefined();
-    expect(scheduler.tick(BUBBLE_MS + 1).speech["RISK-01"]).toBeUndefined();
-    expect(scheduler.tick(BUBBLE_MS + 1).gather).toEqual([]);
+    expect(scheduler.tick(scheduler.life - 1).speech["RISK-01"]).toBeDefined();
+    expect(scheduler.tick(scheduler.life + 1).speech["RISK-01"]).toBeUndefined();
+    expect(scheduler.tick(scheduler.life + 1).gather).toEqual([]);
   });
 
   it("does not replay history that was marked seen, and ignores duplicates", () => {
@@ -153,5 +154,45 @@ describe("speech scheduler", () => {
     const conv = conversation("direct", ["DAY-01"]);
     scheduler.showNow(talk("z", "DAY-01", conv), 10);
     expect(scheduler.tick(11).speech["DAY-01"]?.id).toBe("z");
+  });
+
+  it("a newer line restarts the 5 second timer", () => {
+    const scheduler = new SpeechScheduler(BUBBLE_MS + FADE_MS);
+    const conv = conversation("direct", ["RISK-01"]);
+    scheduler.showNow(talk("old", "RISK-01", conv), 0);
+    scheduler.showNow(talk("new", "RISK-01", conv), 4000);
+    expect(scheduler.tick(4000 + BUBBLE_MS).speech["RISK-01"]?.id).toBe("new");
+    expect(scheduler.tick(4000 + scheduler.life + 1).speech["RISK-01"]).toBeUndefined();
+  });
+
+  it("repeats each desk's latest stored line once the queue is quiet", () => {
+    const scheduler = new SpeechScheduler(1000);
+    const conv = conversation("direct", ["RISK-01", "DAY-01"]);
+    scheduler.replacePlaylist([talk("a", "RISK-01", conv), talk("b", "DAY-01", conv)]);
+    const first = scheduler.tick(0);
+    expect(first.speech["RISK-01"]?.id).toBe("a");
+    expect(first.speech["DAY-01"]).toBeUndefined();
+    expect(scheduler.tick(1000).speech["RISK-01"]).toBeUndefined();
+    expect(scheduler.tick(1400).speech["DAY-01"]?.id).toBe("b");
+    const again = scheduler.tick(2800);
+    expect(again.speech["RISK-01"]?.id).toBe("a");
+    expect(again.speech["RISK-01"]?.token).not.toBe(first.speech["RISK-01"]?.token);
+  });
+
+  it("plays a new stored line before repeating older lines", () => {
+    const scheduler = new SpeechScheduler();
+    const conv = conversation("direct", ["RISK-01", "DAY-01"]);
+    scheduler.replacePlaylist([talk("old", "RISK-01", conv)]);
+    scheduler.enqueue([talk("new", "DAY-01", conv)]);
+    expect(scheduler.tick(0).speech["DAY-01"]?.id).toBe("new");
+    expect(scheduler.tick(0).speech["RISK-01"]).toBeUndefined();
+  });
+
+  it("reduced motion drops the bubble at 5 seconds with no fade", () => {
+    const scheduler = new SpeechScheduler(BUBBLE_MS);
+    const conv = conversation("direct", ["ETF-01"]);
+    scheduler.showNow(talk("a", "ETF-01", conv), 0);
+    expect(scheduler.tick(BUBBLE_MS - 1).speech["ETF-01"]).toBeDefined();
+    expect(scheduler.tick(BUBBLE_MS + 1).speech["ETF-01"]).toBeUndefined();
   });
 });

@@ -188,7 +188,12 @@ def registry_facts(db: Session, code: str) -> list[Fact]:
                 (
                     f"{runs} recorded runs. The latest says: {safety.clean(last.summary, 160)}"
                     if last is not None
-                    else "0 recorded runs. No worker runs this desk."
+                    else (
+                        "0 recorded runs yet. The desk is enabled for its paper-mode records. "
+                        "No order is submitted from here."
+                        if row.status == "enabled"
+                        else "0 recorded runs. No worker runs this desk."
+                    )
                 ),
                 "registry",
                 f"private.agent_runs/{code}",
@@ -384,8 +389,9 @@ def futures_facts() -> list[Fact]:
     return [
         Fact(
             "futures_posture",
-            "FUTURES-01 is disabled. MES and MNQ are labels only. Topstep automation is off and "
-            "no account is connected. No market data is read.",
+            "Futures research is on for local labels only. MES and MNQ are labels. "
+            "Topstep automation is off and no account is connected. No market data is read. "
+            "No order is sent from this desk.",
             "futures_posture",
             "routers/futures.posture",
             has_data=False,

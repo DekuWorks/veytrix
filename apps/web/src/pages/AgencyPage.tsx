@@ -31,7 +31,7 @@ function isDesk(value: AgentDesk): boolean {
     (AGENT_CODES as readonly string[]).includes(value.code) &&
     value.display_name.trim().length > 0 &&
     value.desk.trim().length > 0 &&
-    (value.status === "disabled" || value.status === "paused") &&
+    (value.status === "disabled" || value.status === "paused" || value.status === "enabled") &&
     value.paper_only === true &&
     value.can_submit_orders === false &&
     value.can_sign === false &&
@@ -108,13 +108,13 @@ function DeskList() {
         <h1 className="vx-title">Agency</h1>
         <p className="vx-lede">{AGENCY_NOTICE}</p>
       </div>
-      <section aria-label="Disabled desks" className="space-y-3">
+      <section aria-label="Desks" className="space-y-3">
         <h2 className="vx-section-title">Desks</h2>
         {registry.status === "loading" ? <p className="text-sm text-muted">Loading desks.</p> : null}
         {registry.status === "unavailable" ? <p className="text-sm text-muted">{REGISTRY_DOWN}</p> : null}
         {registry.status === "ready" ? (
           <table className="w-full border-collapse text-sm">
-            <caption className="sr-only">Disabled desks. Trading rights are denied.</caption>
+            <caption className="sr-only">Desks. Trading rights are denied.</caption>
             <thead>
               <tr className="border-b border-line text-left text-muted">
                 <th className="py-2 pr-4 font-medium">Desk</th>

@@ -165,6 +165,7 @@ class FlagsResponse(Safety):
     flags: dict[str, bool]
     realtime: Literal["not_configured", "configured"]
     model: Literal["not_configured"] = "not_configured"
+    language: Literal["en"] = "en"
     note: str
 
 

@@ -29,6 +29,16 @@ from veytrix_api.settings import Settings
 CODES = list(roster.CODES)
 
 
+@pytest.fixture(autouse=True)
+def _no_claude_during_comms_tests(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Chat tests must not call Anthropic or label a local sentence as Claude."""
+
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    from veytrix_api.claude_provider import reset
+
+    reset()
+
+
 @pytest.fixture(scope="module")
 def database_url() -> str:
     return scratch_database()
@@ -107,6 +117,7 @@ def test_flags_and_live_execution_cannot_be_enabled(
     assert body["flags"]["voice_chat"] is False
     assert body["flags"]["agent_chat"] is True
     assert body["model"] == "not_configured"
+    assert body["language"] == "en"
     assert body["realtime"] == "not_configured"
     assert body["execution_permitted"] is False and body["order_submitted"] is False
     assert not hasattr(Settings, "flag_live_execution")
@@ -154,7 +165,15 @@ def test_every_desk_answers_and_the_reply_is_persisted(client: TestClient, code:
     assert reply["origin"] == "tool_verified"
     assert reply["citations"], "a verified reply names its records"
     assert desk.name in reply["content"]
-    assert "Nothing is running on this desk" in reply["content"]
+    assert "Nothing is running on this desk" not in reply["content"]
+    assert "you said" not in reply["content"]
+    assert "No task is assigned" in reply["content"]
+    assert "available for paper research" in reply["content"]
+    assert "disabled" not in reply["content"].lower()
+    assert reply["meta"]["language"] == "en"
+    assert reply["meta"]["model"] == "not_configured"
+    assert reply["meta"]["diagnostics"]["can_submit_orders"] is False
+    assert reply["meta"]["diagnostics"]["registry_status"] == "enabled"
     assert reply["thread_id"] == human["message_id"]
     assert body["execution_permitted"] is False and body["order_submitted"] is False
     stored = client.get(f"/api/v1/comms/conversations/{conv}/messages").json()
@@ -291,11 +310,15 @@ def test_explain_and_why_did_you_disagree_without_a_discussion(client: TestClien
     assert "rests on" in explained["content"] and "no model reasoning" in explained["content"]
 
 
-def test_futures_desk_says_it_is_disabled(client: TestClient) -> None:
+def test_futures_desk_is_enabled_for_research_and_cannot_trade(client: TestClient) -> None:
     conv = direct(client, "FUTURES-01")
     reply = send(client, conv, "What are you working on?").json()["messages"][1]
-    assert "disabled" in reply["content"]
-    assert "no account is connected" in reply["content"]
+    assert "No Topstep account is connected" in reply["content"]
+    assert "No task is assigned" in reply["content"]
+    assert "No order is sent" in reply["content"]
+    assert "disabled" not in reply["content"].lower()
+    assert reply["meta"]["diagnostics"]["registry_status"] == "enabled"
+    assert reply["meta"]["diagnostics"]["can_submit_orders"] is False
 
 
 # --- validation, idempotency, lifecycle -----------------------------------------------
@@ -1114,3 +1137,109 @@ def test_a_failed_read_does_not_undo_pending_messages(db: Session, monkeypatch) 
     assert facts[0].available is False and "will not guess" in facts[0].text
     db.commit()
     assert store.message_count(db, conv.id) >= 1
+
+
+def test_one_desk_answers_another_once_and_the_answer_does_not_chain(client: TestClient) -> None:
+    conv = direct(client, "STOCK-01")
+    sent = send(client, conv, "What are you working on?").json()
+    spoken = sent["messages"][1]
+    first = client.post(f"/api/v1/comms/messages/{spoken['message_id']}/answer")
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert body["duplicate"] is False
+    reply = body["messages"][0]
+    assert reply["sender_id"] != "STOCK-01"
+    assert reply["origin"] == "tool_verified"
+    assert reply["meta"]["peer_reply"] is True
+    assert reply["meta"]["language"] == "en"
+    assert "you said" not in reply["content"]
+    assert "answering Vex" not in reply["content"]
+    assert "No task is assigned" in reply["content"]
+    assert reply["thread_id"] == spoken["message_id"]
+    again = client.post(f"/api/v1/comms/messages/{spoken['message_id']}/answer").json()
+    assert again["duplicate"] is True
+    assert again["messages"][0]["message_id"] == reply["message_id"]
+    chained = client.post(f"/api/v1/comms/messages/{reply['message_id']}/answer").json()
+    assert chained["messages"] == []
+    assert body["execution_permitted"] is False and body["order_submitted"] is False
+
+
+def test_floor_reports_are_english_verified_and_cannot_trade(client: TestClient) -> None:
+    body = client.post("/api/v1/comms/floor").json()
+    assert body["duplicate"] is False
+    assert body["execution_permitted"] is False and body["order_submitted"] is False
+    messages = body["messages"]
+    assert {m["sender_id"] for m in messages} == set(CODES)
+    assert {m["origin"] for m in messages} == {"tool_verified"}
+    for message in messages:
+        assert message["meta"]["language"] == "en"
+        assert message["meta"]["model"] == "not_configured"
+        assert "task" in message["content"].lower()
+        assert message["meta"]["diagnostics"]["registry_status"] == "enabled"
+        assert message["meta"]["diagnostics"]["can_submit_orders"] is False
+        assert "you said" not in message["content"]
+        assert "Nothing is running" not in message["content"]
+        assert "No order is sent" in message["content"]
+        assert "disabled" not in message["content"].lower()
+    again = client.post("/api/v1/comms/floor").json()
+    assert again["duplicate"] is True
+    assert {m["message_id"] for m in again["messages"]} == {m["message_id"] for m in messages}
+    feed = client.get("/api/v1/comms/feed?limit=100").json()["messages"]
+    assert feed
+    assert all(m["origin"] != "simulated" for m in feed)
+    assert all("you said" not in m["content"] for m in feed)
+    assert any(m["meta"].get("desk_task") is True for m in feed)
+
+
+def test_roads_assigns_astra_and_cipher_and_quotes_stored_replies(
+    client: TestClient, db: Session
+) -> None:
+    before = db.scalar(select(func.count()).select_from(Mac01OrderRow))
+    conv = direct(client, "SUPERVISOR-01")
+    response = send(client, conv, "Have Astra and Cipher research NVIDIA.")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["execution_permitted"] is False and body["order_submitted"] is False
+    senders = [message["sender_id"] for message in body["messages"]]
+    assert senders[0] == "HUMAN"
+    assert "RESEARCH-01" in senders and "DEFI-01" in senders
+    summary = next(message for message in body["messages"] if message["kind"] == "summary")
+    assert summary["sender_id"] == "SUPERVISOR-01"
+    assert summary["origin"] == "tool_verified"
+    assert summary["origin"] != "model_generated"
+    assert "NVIDIA" in summary["content"]
+    assert "quoting stored replies" in summary["content"]
+    for code in ("RESEARCH-01", "DEFI-01"):
+        reply = next(message for message in body["messages"] if message["sender_id"] == code)
+        assert reply["origin"] == "scripted"
+        assert reply["origin"] != "model_generated"
+        assert reply["task_id"]
+        assert "NVIDIA" in reply["content"]
+        assert "no findings" in reply["content"].lower()
+        assert "i researched" not in reply["content"].lower()
+    stored = client.get(f"/api/v1/comms/conversations/{conv}/messages").json()["messages"]
+    assert [message["message_id"] for message in stored] == [
+        message["message_id"] for message in body["messages"]
+    ]
+    rows = db.execute(
+        text(
+            """
+            SELECT assignee_code, subject, status, evidence_message_id IS NOT NULL
+            FROM private.research_tasks
+            ORDER BY assignee_code
+            """
+        )
+    ).all()
+    assert rows == [
+        ("DEFI-01", "NVIDIA", "reported", True),
+        ("RESEARCH-01", "NVIDIA", "reported", True),
+    ]
+    listed = client.get("/api/v1/comms/conversations").json()["conversations"]
+    assert any(item["title"] == "Research: NVIDIA" for item in listed)
+    follow = send(client, direct(client, "RESEARCH-01"), "What are you working on?").json()[
+        "messages"
+    ][1]
+    assert "NVIDIA" in follow["content"]
+    assert follow["origin"] == "tool_verified"
+    assert "i researched" not in follow["content"].lower()
+    assert db.scalar(select(func.count()).select_from(Mac01OrderRow)) == before

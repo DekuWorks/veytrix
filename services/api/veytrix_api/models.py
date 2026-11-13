@@ -573,7 +573,10 @@ class AgentRow(Base):
             ")",
             name="ck_agents_code",
         ),
-        CheckConstraint("status IN ('disabled', 'paused')", name="ck_agents_status"),
+        CheckConstraint(
+            "status IN ('disabled', 'paused', 'enabled')",
+            name="ck_agents_status",
+        ),
         CheckConstraint("paper_only", name="ck_agents_paper_only"),
         CheckConstraint("can_submit_orders = false", name="ck_agents_cannot_submit"),
         CheckConstraint("can_sign = false", name="ck_agents_cannot_sign"),
@@ -671,6 +674,52 @@ class AgentRunRow(Base):
     finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     summary: Mapped[str] = mapped_column(String(500), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class ResearchTaskRow(Base):
+    """A research assignment from Roads. Not an order and not a broker instruction."""
+
+    __tablename__ = "research_tasks"
+    __table_args__ = (
+        CheckConstraint(
+            "assignee_code IN ("
+            "'SUPERVISOR-01', 'DAY-01', 'STOCK-01', 'CRYPTO-01', 'DEFI-01', "
+            "'ETF-01', 'FUTURES-01', 'RESEARCH-01', 'RISK-01', 'TREASURY-01'"
+            ")",
+            name="ck_research_tasks_assignee",
+        ),
+        CheckConstraint("assigned_by = 'SUPERVISOR-01'", name="ck_research_tasks_assigner"),
+        CheckConstraint(
+            "status IN ('assigned', 'reported', 'blocked')",
+            name="ck_research_tasks_status",
+        ),
+        CheckConstraint("char_length(subject) BETWEEN 1 AND 80", name="ck_research_tasks_subject"),
+        CheckConstraint(
+            "char_length(instruction) BETWEEN 1 AND 500",
+            name="ck_research_tasks_instruction",
+        ),
+        Index("ix_research_tasks_assignee", "assignee_code", "created_at"),
+        {"schema": "private"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    assignee_code: Mapped[str] = mapped_column(String(32), nullable=False)
+    assigned_by: Mapped[str] = mapped_column(String(32), nullable=False)
+    subject: Mapped[str] = mapped_column(String(80), nullable=False)
+    instruction: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("private.conversations.id", name="fk_research_tasks_conversation"),
+        nullable=True,
+    )
+    evidence_message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 

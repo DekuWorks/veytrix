@@ -46,6 +46,7 @@ const speech: Speech = {
   conversationKind: "direct",
   participants: ["RISK-01"],
   replay: false,
+  peerReply: false,
 };
 
 describe("sky floor speech and movement", () => {
@@ -65,7 +66,7 @@ describe("sky floor speech and movement", () => {
     const { container } = render(floor({ speech: { "RISK-01": speech } }));
     const bubbles = container.querySelectorAll(".thought");
     expect(bubbles).toHaveLength(1);
-    expect(bot(container, "Aegis").contains(bubbles[0])).toBe(true);
+    expect(bubbles[0].getAttribute("data-agent")).toBe("RISK-01");
     expect(bubbles[0].textContent).toContain("Aegis, Risk desk. Nothing is running on this desk.");
     expect(bubbles[0].querySelector(".cx-bubble-tag")?.textContent).toBe("verified");
     expect(bubbles[0].getAttribute("data-origin")).toBe("tool_verified");
@@ -118,6 +119,25 @@ describe("sky floor speech and movement", () => {
     fireEvent.click(bot(container, "Astra").querySelector("button")!);
     expect(onDesk).toHaveBeenCalledWith("RESEARCH-01");
     expect(onAvatar).toHaveBeenCalledWith("RESEARCH-01");
+  });
+
+  it("walks Roads off the table and Dayvid off his desk toward other people", () => {
+    const { container, rerender } = render(floor());
+    const table = (spot: { x: number; y: number }) => spot.x > 30 && spot.x < 70 && spot.y > 63;
+    expect(table(position(bot(container, "Roads")))).toBe(false);
+    expect(position(bot(container, "Dayvid"))).not.toEqual({ x: 36, y: 64 });
+    act(() => {
+      vi.advanceTimersByTime(220 * 30);
+    });
+    expect(table(position(bot(container, "Roads")))).toBe(false);
+    expect(position(bot(container, "Roads")).y).toBeLessThan(63);
+    rerender(floor({ gather: ["SUPERVISOR-01", "DAY-01", "RISK-01"] }));
+    act(() => {
+      vi.advanceTimersByTime(220 * 80);
+    });
+    expect(table(position(bot(container, "Roads")))).toBe(false);
+    expect(table(position(bot(container, "Dayvid")))).toBe(false);
+    expect(position(bot(container, "Dayvid")).y).toBeLessThan(63);
   });
 
   it("centres the camera on a followed desk without changing the floor", () => {

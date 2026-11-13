@@ -750,7 +750,7 @@ class AgentDesk(BaseModel):
     code: AgentCode
     display_name: str = Field(min_length=1, max_length=64)
     desk: str = Field(min_length=1, max_length=32)
-    status: Literal["disabled", "paused"]
+    status: Literal["disabled", "paused", "enabled"]
     paper_only: Literal[True]
     can_submit_orders: Literal[False]
     can_sign: Literal[False]
@@ -822,14 +822,14 @@ class DeniedTool(BaseModel):
 
 
 class DeskDetailResponse(BaseModel):
-    """One desk and its deny list. There is no field that enables it."""
+    """One desk and its deny list. Status may be enabled. Trading rights stay denied."""
 
     model_config = ConfigDict(extra="forbid")
 
     code: AgentCode
     display_name: str = Field(min_length=1, max_length=64)
     desk: str = Field(min_length=1, max_length=32)
-    status: Literal["disabled", "paused"]
+    status: Literal["disabled", "paused", "enabled"]
     paper_only: Literal[True]
     can_submit_orders: Literal[False]
     can_sign: Literal[False]

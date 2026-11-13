@@ -28,7 +28,7 @@ function desk(code: AgentCode, displayName: string, name: string): AgentDesk {
     code,
     display_name: displayName,
     desk: name,
-    status: "disabled",
+    status: "enabled",
     paper_only: true,
     can_submit_orders: false,
     can_sign: false,
@@ -134,6 +134,7 @@ describe("sanctum route", () => {
           flags: { agent_chat: true, group_chat: true, autonomous_discussions: false, voice_chat: false, live_execution: false },
           realtime: "not_configured",
           model: "not_configured",
+          language: "en",
           note: "",
         });
       }
@@ -158,7 +159,8 @@ describe("sanctum route", () => {
               task_id: null,
               decision_id: null,
               tool_call_id: null,
-              content: "Aegis, Risk desk. Nothing is running on this desk.",
+              content:
+                "Aegis, risk desk. Enabled, English. Reading the paper risk policy. Registry status is enabled. No order is sent.",
               status: "delivered",
               visibility: "conversation",
               citations: [],
@@ -201,7 +203,9 @@ describe("sanctum route", () => {
     expect(screen.queryByText(/Reviewing Topstep rules/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Monitoring exposure limits/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconciling balances/)).not.toBeInTheDocument();
-    expect(await screen.findAllByText(/Aegis · RISK-01: Aegis, Risk desk\. Nothing is running/)).not.toHaveLength(0);
+    expect(await screen.findAllByText(/Aegis · RISK-01: Aegis, risk desk\. Enabled, English/)).not.toHaveLength(0);
+    expect(screen.queryByText(/you said/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\[simulated\]/)).not.toBeInTheDocument();
     expect(screen.getAllByText(/\[verified\]/).length).toBeGreaterThan(0);
     for (const name of ["Roads", "Dayvid", "Vex", "Nyx", "Cipher", "Lyra", "Astra", "Aegis", "Midas", "Futures"]) {
       expect(screen.getAllByText(name).length).toBeGreaterThan(0);

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentCode } from "../api/types";
 import { openCommsChannel } from "../sanctum/realtime";
-import { getFlags, listConversations, loadFeed } from "./api";
-import { SpeechScheduler, toSpeech, type SpeechFrame } from "./speech";
+import { getFlags, listConversations, loadFeed, startFloor } from "./api";
+import { BUBBLE_MS, FADE_MS, SpeechScheduler, toSpeech, type SpeechFrame } from "./speech";
 import type { CommsMessage, Conversation, Flags, SendResult } from "./types";
 
 export type RealtimeState = "not_configured" | "connecting" | "connected" | "polling";
 
 const POLL_MS = 3000;
 const POLL_WITH_DOORBELL_MS = 20_000;
-const FEED_KEEP = 12;
+const FEED_KEEP = 100;
 
 function sameFrame(a: SpeechFrame, b: SpeechFrame): boolean {
   const ids = (frame: SpeechFrame) =>
@@ -37,7 +37,10 @@ export type CommsState = {
 
 /** Polls the local API for stored messages, optionally rings a Realtime doorbell, and plays them. */
 export function useComms(): CommsState {
-  const scheduler = useRef(new SpeechScheduler());
+  const reduceMotion =
+    typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const scheduler = useRef(new SpeechScheduler(BUBBLE_MS + (reduceMotion ? 0 : FADE_MS)));
+  const shifted = useRef(false);
   const first = useRef(true);
   const lastByCode = useRef<Map<string, CommsMessage>>(new Map());
   const convs = useRef<Map<string, Conversation>>(new Map());
@@ -62,18 +65,41 @@ export function useComms(): CommsState {
 
   const refresh = useCallback(async () => {
     try {
+      if (!shifted.current) {
+        shifted.current = true;
+        try {
+          await startFloor();
+        } catch {
+          // The feed still loads. A failed report is not a reason to invent speech.
+        }
+      }
       const [feedBody, list] = await Promise.all([loadFeed(), listConversations()]);
       list.forEach((conv) => convs.current.set(conv.conversation_id, conv));
       setConversations(list);
       remember(feedBody.messages);
+      const speeches = feedBody.messages
+        .map((message) => toSpeech(message, convs.current.get(message.conversation_id)))
+        .filter((item): item is NonNullable<typeof item> => item !== null);
+      const latest = new Map<string, (typeof speeches)[number]>();
+      for (const item of speeches) {
+        latest.set(item.code, item);
+      }
+      scheduler.current.replacePlaylist([...latest.values()]);
       if (first.current) {
         scheduler.current.markSeen(feedBody.messages.map((m) => m.message_id));
+        const newestTask = [...feedBody.messages]
+          .reverse()
+          .find((message) => message.meta.desk_task === true);
+        const spoken = newestTask
+          ? toSpeech(newestTask, convs.current.get(newestTask.conversation_id))
+          : speeches[speeches.length - 1];
+        if (spoken) {
+          scheduler.current.showNow(spoken, Date.now());
+        }
         first.current = false;
+        setFrame(scheduler.current.tick(Date.now()));
       } else {
-        const items = feedBody.messages
-          .map((message) => toSpeech(message, convs.current.get(message.conversation_id)))
-          .filter((item): item is NonNullable<typeof item> => item !== null);
-        scheduler.current.enqueue(items);
+        scheduler.current.enqueue(speeches);
       }
       setFeed(feedBody.messages.slice(-FEED_KEEP));
       setAvailable(true);
@@ -153,6 +179,7 @@ export function useComms(): CommsState {
         .map((message) => toSpeech(message, result.conversation))
         .filter((item): item is NonNullable<typeof item> => item !== null);
       scheduler.current.enqueue(items);
+      scheduler.current.upsertPlaylist(items);
     },
     [remember],
   );

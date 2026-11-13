@@ -52,8 +52,9 @@ describe("sanctum floor", () => {
 });
 
 describe("sanctum poses", () => {
-  it("keeps a denied desk idle and treats a failed read as an error", () => {
+  it("keeps a denied desk idle and treats an enabled paper desk as working", () => {
     expect(poseFor(desk, true)).toBe("idle");
+    expect(poseFor({ ...desk, status: "enabled" }, true)).toBe("working");
     expect(poseFor(desk, false)).toBe("error");
     expect(poseFor(undefined, true)).toBe("error");
   });

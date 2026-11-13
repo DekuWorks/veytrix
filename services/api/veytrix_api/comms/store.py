@@ -322,10 +322,19 @@ def latest_objection(db: Session, code: str) -> tuple[MessageRow, str] | None:
 
 
 def feed(db: Session, *, limit: int = 40, after: datetime | None = None) -> list[MessageRow]:
-    """Latest agent and system messages across all conversations, oldest first."""
+    """Latest agent and system messages across all conversations, oldest first.
+
+    Simulated peer chatter and the old “nothing is running” / disabled placeholders
+    stay in the transcript. They are not the live floor.
+    """
 
     stmt = select(MessageRow).where(
-        MessageRow.sender_kind != "human", MessageRow.visibility == "conversation"
+        MessageRow.sender_kind != "human",
+        MessageRow.visibility == "conversation",
+        MessageRow.origin != "simulated",
+        ~MessageRow.content.ilike("%you said%"),
+        ~MessageRow.content.ilike("%Nothing is running on this desk%"),
+        ~MessageRow.content.ilike("%Registry status is disabled%"),
     )
     if after is not None:
         stmt = stmt.where(MessageRow.created_at > after)
