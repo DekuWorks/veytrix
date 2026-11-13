@@ -91,6 +91,23 @@ Floors F2–F9 and B1 are not scenes. There is no elevator and no cutaway buildi
 
 FastAPI under `services/api`. Boot refuses a truthy `VEYTRIX_ENABLE_LIVE_BROKER`, any `VEYTRIX_ENV` other than `local`, and a database host other than `127.0.0.1`, `localhost`, or `postgres`. There is no auth gateway.
 
+`VEYTRIX_MODE` is a second switch. It defaults to `development`. `paper` boots on the same local rules and does not mean a broker is connected. `live` refuses boot. `LIVE_OWNER_AUTHORIZATION` in `settings.py` is a constant `False`, not an environment variable; setting it `True` also refuses boot. `live_execution` on the provider posture is false. The running process on port 8000 was not restarted, so it still serves the preview tree and does not include this route.
+
+`GET /api/v1/providers/posture` is the label for providers:
+
+| Slot | Development | Paper, until a connectivity test |
+| --- | --- | --- |
+| Model | Mock reply, origin `simulated`, production `disconnected` | Same mock. Production stays `disconnected`. |
+| Market | `simulated`, price null | `disconnected`, price null |
+| Broker simulated channel | `simulated` | `simulated` |
+| Broker paper execution | `disconnected` | `disconnected` |
+| Broker live | `disabled` | `disabled` |
+| Supabase | `not_used` | `disconnected` |
+
+The mock does not use origin `model_generated` or `tool_verified`. Claude, Supabase, and Alpaca were not connectivity-tested. The API does not read Alpaca keys. It checks `ANTHROPIC_API_KEY` for presence only and does not send it anywhere. Placeholders are in `config/runtime.example`. Development does not need those accounts.
+
+`GET /api/v1/diagnostics` still returns `trading_mode: paper`. That is the older "not a live broker" flag. It is not a claim that provider data is an Alpaca paper feed. Sample bars stay synthetic.
+
 The live OpenAPI document had 55 paths. Groups that exist today:
 
 - Health, ready, diagnostics, system status, submission evidence.
@@ -117,7 +134,9 @@ Schema `private` holds the registry. An earlier audit recorded RLS on those tabl
 
 Registry codes, from the live `GET /api/v1/agents`: `SUPERVISOR-01`, `DAY-01`, `STOCK-01`, `CRYPTO-01`, `DEFI-01`, `ETF-01`, `RESEARCH-01`, `RISK-01`, `TREASURY-01`, `FUTURES-01`. All `paper_only`, all `enabled`, none able to submit, sign, transfer, or hold credentials.
 
-The preview UI and `services/api/veytrix_api/model_router.py` use these display names: Roads, Dayvid, Vex, Nyx, Cipher, Lyra, Astra, Aegis, Midas. `FUTURES-01` is "Futures" on the sky floor and is absent from the inference persona map. There is no YIELD identity. `docs/phase-0/agent-roster.md` on this branch still says Astra and Dayvid are not paired to codes. The preview has paired them. This audit does not change either pairing.
+The preview UI and `services/api/veytrix_api/model_router.py` use these display names: Roads, Dayvid, Vex, Nyx, Cipher, Lyra, Astra, Aegis, Midas. `FUTURES-01` is "Futures" on the sky floor and is absent from the inference persona map. `docs/phase-0/agent-roster.md` on this branch still says Astra and Dayvid are not paired to codes. The preview has paired them. This pass does not change either pairing.
+
+Decision, not yet a row: keep `FUTURES-01`. F6 desks are Dayvid, Nyx, Astra, Lyra, Vex, and Futures. F7 is YIELD (dividend investing, reinvestment, wealth management). Futures stays research and simulation until a compatible broker and an independent risk check are approved. No YIELD migration was written or applied. Existing registry rows were not edited.
 
 `GET /api/v1/futures/posture` is hardcoded: desk status `disabled`, Topstep automation `disabled`, account `not_connected`, orders `absent`, market data `not_read`. That posture does not read the registry row, which is why it can say disabled while the registry says enabled.
 

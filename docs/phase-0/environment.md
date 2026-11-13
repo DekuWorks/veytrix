@@ -10,8 +10,10 @@ Class: **config** is safe to share, **secret** must never be committed or logged
 
 | Variable | Read by | Class | Default or expected value | Notes |
 | --- | --- | --- | --- | --- |
-| `VEYTRIX_ENV` | API settings, Alembic, `infra/docker/api-entrypoint.sh` | gate | `local` | Any other value refuses boot. |
+| `VEYTRIX_ENV` | API settings, Alembic, `infra/docker/api-entrypoint.sh` | gate | `local` | Any other value refuses boot. This is the process gate, not the runtime mode. |
+| `VEYTRIX_MODE` | API settings | config | `development` | `development`, `paper`, or `live`. Default `development`. `live` refuses boot. Development does not need Claude, Supabase, or Alpaca. |
 | `VEYTRIX_ENABLE_LIVE_BROKER` | API settings | gate | unset or `0` | Truthy refuses boot. Never set it. |
+| `ANTHROPIC_API_KEY` | `veytrix_api/providers.py` (presence only) | secret | unset | The API checks that a non-empty value exists and does not log or return it. Unset means the mock path. A set value is still not a connection. No request is sent. |
 | `DATABASE_URL` | API settings, MAC-01 CLI, swapbot (via API settings) | secret | `postgresql+psycopg://veytrix:local-dev-only@127.0.0.1:5432/veytrix` | Host must be `127.0.0.1`, `localhost`, or `postgres`. On this machine the Veytrix database is port 5433; 5432 is `daypilot-db`. |
 | `VEYTRIX_RATE_LIMIT_PER_MINUTE` | API settings | config | loopback default | Process-local limiter. |
 | `VEYTRIX_LOG_LEVEL` | API settings | config | `INFO` | |
@@ -36,7 +38,7 @@ Class: **config** is safe to share, **secret** must never be committed or logged
 
 The swapbot also refuses to start when any variable ending in `PRIVATE_KEY`, `MNEMONIC`, or `SEED_PHRASE` holds a value (`veytrix_ai/guards.py`). Those are refusal patterns, not inputs. `SWAPBOT_PRIVATE_KEY` above is one such name: it exists only for the unused Foundry script, and setting it makes the CLI refuse.
 
-Not present anywhere in the tree: a model provider key (Anthropic, OpenAI, or other), a WhatsApp or Twilio token, a DayPilot credential, a TradingView webhook secret, a Supabase service-role key, AWS credentials, and any bank or payment credential.
+`ANTHROPIC_API_KEY` is named above so the presence check is visible. No key value is stored in the tree. The API does not read Alpaca keys, a Supabase URL, or a Supabase service-role key. Also absent: an OpenAI key, a WhatsApp or Twilio token, a DayPilot credential, a TradingView webhook secret, AWS credentials, and any bank or payment credential.
 
 ## Boundaries
 

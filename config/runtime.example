@@ -1,0 +1,23 @@
+# Development is the default. Placeholders only. Do not put a real key here or in chat.
+# Copy the names you need into a gitignored .env. This file is not loaded by the API.
+
+VEYTRIX_ENV=local
+VEYTRIX_MODE=development
+VEYTRIX_ENABLE_LIVE_BROKER=0
+POSTGRES_PASSWORD=local-dev-only
+DATABASE_URL=postgresql+psycopg://veytrix:local-dev-only@127.0.0.1:5433/veytrix
+VEYTRIX_RATE_LIMIT_PER_MINUTE=360
+VEYTRIX_LOG_LEVEL=INFO
+VITE_API_BASE_URL=http://127.0.0.1:8000
+
+# Optional. Leave unset for development.
+# ANTHROPIC_API_KEY=
+# ALPACA_PAPER_API_KEY=
+# ALPACA_PAPER_SECRET_KEY=
+# VITE_SUPABASE_URL=
+# VITE_SUPABASE_ANON_KEY=
+
+# Live stays off.
+# Do not set VEYTRIX_MODE=live.
+# Do not set VEYTRIX_ENABLE_LIVE_BROKER.
+# Do not set ALPACA_LIVE_API_KEY, ALPACA_LIVE_SECRET_KEY, or MAC01_LIVE_CONFIRM.

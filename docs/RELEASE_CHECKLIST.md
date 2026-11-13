@@ -2,9 +2,19 @@
 
 Date: 13 November 2026. This list is the gate for a **paper-trading** release on this machine. Live trading is a separate gate at the bottom and is not approved.
 
-Nothing in this list is ticked because a paper release happened. The ticks are evidence from the 13 November audit. A paper release is not ready.
+Nothing in this list is ticked because a paper release happened. The ticks are evidence from the 13 November audit, plus the runtime-mode seam added after it. A paper release is not ready.
 
-Paper mode stays the default. `live_execution` stays false. Do not set `VEYTRIX_ENABLE_LIVE_BROKER` to a truthy value. Do not add an order route to the API.
+Development is the API default (`VEYTRIX_MODE=development`). It does not need Alpaca, Claude, or Supabase. Paper credentials are for the paper runtime only, and that runtime stays `disconnected` until a connectivity test succeeds. Do not treat development fixtures as paper or live.
+
+`live_execution` stays false. Do not set `VEYTRIX_MODE=live`. Do not set `VEYTRIX_ENABLE_LIVE_BROKER` to a truthy value. Do not add an order route to the API.
+
+## Development — does not wait on paper credentials
+
+| Check | State |
+| --- | --- |
+| Boots with `VEYTRIX_ENV=local`, `VEYTRIX_MODE=development`, and a loopback database | Required. Covered by `tests/test_runtime_providers.py` when those credential variables are unset. |
+| Mock model, simulated market, simulated broker channel | Required for local work. Origin stays `simulated`. |
+| Real Claude, Supabase, and Alpaca paper | Not required. Missing credentials must not stop the headquarters. |
 
 ## Paper release — current evidence
 
@@ -24,7 +34,7 @@ Paper mode stays the default. `live_execution` stays false. Do not set `VEYTRIX_
 | Swaps cannot sign | Met by design | Paper-swap CLI refuses a private key. API has no swap submit route. |
 | No secret in the frontend bundle path | Met for the running Vite process | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_API_BASE_URL` were unset. No `.env` file in either tree. |
 | Auth and CSRF | Not met, and not claimed | `auth` `not_configured`, `csrf` `not_implemented`. Safe only while the process stays local. |
-| Alpaca paper account connected | Not met | Paper key variables unset in the API process and in this shell. No paper order has been sent by this build. |
+| Alpaca paper account connected | Not met | Not required for development. Paper execution on `GET /api/v1/providers/posture` is `disconnected`. The API does not read Alpaca keys. No paper order has been sent. |
 | Broker reconciliation | Not met | Local ledger only. A stored broker id is not a match. |
 | Independent Aegis approval of a paper order | Not met | Previews withhold release. There is no approval gateway in front of a broker. |
 | Scheduler running a paper session | Not met | Schedule route reports a clock. It cannot start a run. |

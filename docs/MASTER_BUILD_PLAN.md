@@ -10,6 +10,21 @@ Status words: `done`, `partial`, `not-started`.
 
 Dependencies are "what must be true first". A blocked row stays blocked until the owner supplies the missing account or written approval. Do not paste secrets into chat.
 
+## Decisions recorded 13 November 2026
+
+These override the earlier "blocked until Supabase / Claude / Alpaca exist" rule for local work. They do not mark Phases 1–10 done.
+
+| Decision | Status |
+| --- | --- |
+| Three runtimes: `development` (default), `paper`, `live`. Development uses the local database, a deterministic mock model, simulated market data, and simulated orders. | partial. `VEYTRIX_MODE` defaults to `development`. `GET /api/v1/providers/posture` reports it. The running preview process was not restarted, so it does not serve this route yet. |
+| Paper means real Supabase, Claude, and Alpaca paper, and only after a connectivity test. Until then those providers stay `disconnected`. | partial. Paper mode boots locally and reports disconnected. No connectivity test was run. |
+| Live stays disabled. Separate from paper. `live_execution` stays false. | done for this gate. `VEYTRIX_MODE=live` refuses boot. `LIVE_OWNER_AUTHORIZATION` is false and is not an environment variable. Setting that constant true also refuses boot. `VEYTRIX_ENABLE_LIVE_BROKER` is still refused. No order route. |
+| Keep `FUTURES-01`. Add YIELD as F7 later. F6 desks are Dayvid, Nyx, Astra, Lyra, Vex, and Futures. Futures stays research and simulation until a broker and an independent risk check are approved. | not-started as data. No migration was written or applied. Existing rows were not renamed. |
+| Claude is the preferred production model, behind a server-side adapter. Development uses the mock. Cursor is the IDE, not the provider. | partial. The mock implements `ModelProvider`. A Claude client is not constructed and was not called. |
+| Supabase and Alpaca are optional in development. Missing Alpaca disables real paper execution only. Missing Claude disables real inference only. | partial for the API seam. The preview UI was not rewritten. |
+
+`docs/architecture.md` still calls `trading_mode: paper` on `/diagnostics` the legacy "this API is not a live broker" flag. Provider data uses `simulated`, `disconnected`, or `disabled`. This increment does not label a mock reply as paper, live, `model_generated`, or `tool_verified`.
+
 ## Order
 
 ```text
@@ -53,7 +68,7 @@ Goal: shared contracts, auth that is real, and a local stack that matches the ru
 | --- | --- | --- | --- |
 | TypeScript frontend and FastAPI without an unnecessary rewrite | partial | Phase 0 | `apps/web` and `services/api` already run. A later change keeps those processes and the paper boot rules. |
 | Shared schemas for agents, floors, tasks, messages, alerts, orders, and audit events | partial | none | Pydantic models and `apps/web/src/api/types.ts` cover agents, messages, and audit shapes. Floors, alerts, and an order command schema do not exist. An order schema must not add an order route. |
-| Supabase migrations and development seed data | not-started | owner: organisation, region, cost | No Veytrix Supabase project. Alembic on local Postgres is the migration tool. Do not reuse nexgrail, gridlock, or avyro. |
+| Supabase migrations and development seed data | not-started | owner: organisation, region, cost | No Veytrix Supabase project. Development boots on local Postgres without one. Alembic remains the local tool. Do not reuse nexgrail, gridlock, or avyro. |
 | Authentication, RBAC, and row-level security | not-started | Supabase or another auth design you approve | Diagnostics say `auth` `not_configured`. RLS policies from migration `0009` are not an API control while the login can bypass them. Do not document RBAC as present. |
 | Organisation, user, member, and agent identities | partial | auth | Ten agent rows exist. There is no organisation, user, or member table. |
 | Redis or an equivalent durable job queue | not-started | a host decision | No `REDIS_URL`. No worker process. |
@@ -93,7 +108,7 @@ Goal: a server-side model adapter whose output cannot trade. Cursor is for writi
 
 | Task | Status | Depends on | Acceptance |
 | --- | --- | --- | --- |
-| Server-side Anthropic Claude adapter | not-started | owner: provider account and model ids | No adapter module. `ANTHROPIC_API_KEY` unset. `GET /api/v1/inference/posture` says paid inference is off. |
+| Server-side Anthropic Claude adapter | partial | owner: provider account and model ids, then a connectivity test | `ModelProvider` exists. The only implementation is `MockModel` (`origin` `simulated`). Claude is named as the preferred production provider and is not constructed. A set key would still be `not_tested`. The preview inference route is unchanged. |
 | Model configuration and per-agent model selection | not-started | the adapter | `model_router.py` refuses paid providers. It does not select a Claude model. |
 | Identities for Roads, Dayvid, Nyx, Astra, Lyra, Vex, Cipher, Aegis, Midas, and YIELD | partial | a written pairing | Preview names exist for nine desks. YIELD does not. `FUTURES-01` is Futures. The Phase 0 roster doc still leaves Astra and Dayvid unassigned. |
 | Role prompts and capability boundaries | not-started | identities | No system prompts. Boundaries today are registry flags and a deny list, not prompts. |
@@ -125,7 +140,7 @@ Goal: the rest of the building, each room honest about its data. Not started as 
 | F5 Aegis risk centre, limits, exposure, and kill switch | partial | Phase 7 | Risk page and MAC-01 kill-switch engage exist. Aegis is not a separate deterministic gateway in front of a broker. The kill switch is a flag, not a floor. |
 | F6 five trading desks and strategy / position dashboards | partial | Phase 7 | Desk rows and a Strategy page exist. They are not five floor scenes. |
 | F6 sessions, orders, signals, and paper / live status | partial | a paper connection for live numbers | Signals and orders routes read the local MAC-01 ledger. Live status stays impossible. Paper broker numbers are absent. |
-| F7 YIELD investments and dividend analytics | not-started | a decision that YIELD is a new desk | No YIELD code. Do not rename `FUTURES-01` in passing. |
+| F7 YIELD investments and dividend analytics | not-started | a non-destructive migration, not a rename of `FUTURES-01` | Decision: keep both. F6 is Dayvid, Nyx, Astra, Lyra, Vex, and Futures. F7 is YIELD. No YIELD row was added in this pass. |
 | F8 AI Ops directory, task queue, and permission requests | partial | Phase 3 | Agency page lists desks. There is no task queue and no permission grant. |
 | F9 founder office, Roads station, boardroom, and meeting history | partial | the preview boardroom | The sky view has a boardroom table and a gather animation in comms. It is not F9, and it does not book a meeting. |
 | F9 Wednesday meetings and a potluck scoreboard | partial | a confirmed time | Reminder dates exist. Meeting time is `unconfirmed`. No scoreboard. |
@@ -186,7 +201,7 @@ Goal: Alpaca **paper**, MAC-01, and a deterministic risk check that can say no. 
 
 | Task | Status | Depends on | Acceptance |
 | --- | --- | --- | --- |
-| Alpaca paper connectivity and credential isolation | partial | regenerated paper keys, not pasted into chat | Adapter exists in the CLI only. Paper key variables were unset. The API does not read them. |
+| Alpaca paper connectivity and credential isolation | partial | regenerated paper keys, not pasted into chat, then a connectivity test | CLI adapter only. The API does not read Alpaca keys. `GET /api/v1/providers/posture` keeps `broker.paper` at `disconnected` and `broker.simulated` at `simulated`. No paper call was made. |
 | MAC-01 20/50 EMA long-only strategy | partial | a written change if you want EMA | The built rule is SMA 20/50, long only, AAPL. EMA is not implemented. Do not relabel SMA as EMA. |
 | Backtest with fees, slippage, and a market calendar | partial | calendar data | Fixture backtest is hypothetical. `calendar` on the schedule route stays `not_read`. |
 | No look-ahead, no leakage, no invalid historical signals | partial | the backtest | The crossover uses completed closes in the unit tests. A leakage audit of a stored series was not run. |

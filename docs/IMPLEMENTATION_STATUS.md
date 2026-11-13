@@ -1,6 +1,10 @@
 # Implementation status
 
-Date: 13 November 2026. Branch under audit for this file: `feature/phase-0-reconnaissance` at `21aab82`, plus the live worktree `feature/agent-communication` at `86e9d7d` with uncommitted files. This pass wrote the plan and this status. It did not build Phases 1–10.
+Date: 13 November 2026. Branch: `feature/phase-0-reconnaissance`. The audit commit was `7090490`. A later commit on the same branch adds the runtime-mode seam described below. The live worktree `feature/agent-communication` at `86e9d7d` still has uncommitted files. Phases 1–10 were not rebuilt.
+
+## This increment
+
+`VEYTRIX_MODE` defaults to `development`. Live mode refuses to boot. `GET /api/v1/providers/posture` reports a mock model (`origin` `simulated`), a simulated or disconnected market view, and a broker view whose paper execution stays `disconnected` while the simulated channel stays `simulated`. Claude, Supabase, and Alpaca were not called. The preview Vite and API processes were not restarted, so port 8000 does not serve this route until that process is replaced on purpose. No migration was applied. YIELD was not inserted. `FUTURES-01` was not removed.
 
 Read `docs/ARCHITECTURE.md` for the two trees. Read `docs/MASTER_BUILD_PLAN.md` for task-level status. Nothing below is a claim that paper trading is in production.
 
@@ -26,7 +30,7 @@ These responded or are present in the running preview. "Working" means the behav
 | Live submission evidence | `GET /api/v1/system/submission`: 0 of 8 conditions met, `live_submission_possible` false, `order_route` `absent` | Does not read the broker account |
 | Registry for paper research | Live `GET /api/v1/agents`: 10 desks, `status` `enabled`, all four trading flags false | This branch's API code returns 503 for the same rows. See Broken. |
 | Comms flags | `GET /api/v1/comms/flags`: chat flags on, `live_execution` false, `model` `not_configured`, `realtime` `not_configured` | Replies are not a model |
-| Inference posture | `paid_inference_enabled` false, Cursor does not run agents, Ollama off | `POST /api/v1/inference/route` was not called |
+| Inference posture | `paid_inference_enabled` false, Cursor does not run agents, Ollama off | `POST /api/v1/inference/route` was not called. The new mock seam is a different route and is not on the running process. |
 | Sky view page | Preview `SanctumPage.tsx` renders `SkyFloor` (HTML/CSS). Vite returned HTTP 200. | Browser was not driven. Not React Three Fiber. |
 | Speech bubbles and feed | Preview CSS: `.thought.live.overlay` fades in about 5.4s; `.sx-feed` scrolls. Chat panel source is present. | Not re-checked by clicking |
 | Roads and Dayvid | Preview `SkyFloor.tsx` and `SkyFloor.test.tsx` keep both off the table and move Dayvid. Uncommitted. | Tests in the preview were not run this pass |
@@ -40,7 +44,7 @@ These responded or are present in the running preview. "Working" means the behav
 | Item | What it actually is |
 | --- | --- |
 | SAMPLE bars | Generated in memory. Not a market price. |
-| Comms replies | `tool_verified`, `scripted`, or `simulated`. Origin `model_generated` is a schema value and is not written. No Anthropic client. |
+| Comms replies | `tool_verified`, `scripted`, or `simulated`. Origin `model_generated` is a schema value and is not written. No Anthropic client. The new mock reply is also `simulated`, and it is not stored in the comms tables. |
 | Inference router | Returns a refusal or a local decision. Opens no network connection to a model. |
 | Supabase | `@supabase/supabase-js` is a web dependency. Live flags say `realtime` `not_configured`. Polling is the path. |
 | Phaser floor | Still in `apps/web/src/sanctum/game.ts` and still what this branch's page mounts. The running page does not mount it. |
