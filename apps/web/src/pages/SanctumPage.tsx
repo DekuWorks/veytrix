@@ -18,6 +18,16 @@ import { ORIGIN_TAG } from "../comms/types";
 import { Icon } from "../sanctum/ui/Icon";
 import { LogPanel, type SanctumLog } from "../sanctum/ui/LogPanel";
 import { SkyFloor } from "../sanctum/ui/SkyFloor";
+import {
+  type CameraName,
+  type RailId,
+  SHOTS,
+  SKY_VIEW,
+  type Shot,
+  loadView,
+  returnToSky,
+  saveView,
+} from "../sanctum/viewPreference";
 import "../sanctum/ui/sanctum.css";
 
 const NAV = [
@@ -41,8 +51,6 @@ const RAIL = [
   { id: "talk", label: "Conversations", icon: "book" },
   { id: "logs", label: "Logs", icon: "list" },
 ] as const;
-
-type RailId = (typeof RAIL)[number]["id"];
 
 const ROSTER: Record<string, { name: string; role: string }> = {
   "SUPERVISOR-01": { name: "Roads", role: "AI Commander" },
@@ -86,18 +94,6 @@ const ZONES = [
   { label: "Lounge & workspaces (shared)", color: "#c4a574" },
 ];
 
-type Shot = { scale: number; x: number; y: number };
-
-const SHOTS: Record<string, Shot> = {
-  sky: { scale: 1, x: 0, y: 0 },
-  floor: { scale: 1.2, x: 0, y: 10 },
-  center: { scale: 1.55, x: 0, y: -10 },
-  meeting: { scale: 1.65, x: 0, y: -90 },
-  trading: { scale: 1.4, x: 0, y: 20 },
-};
-
-type CameraName = keyof typeof SHOTS | "custom";
-
 function formatClock(date: Date): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
@@ -138,11 +134,20 @@ function readSidebarCollapsed(): boolean {
   }
 }
 
+function readInitialView() {
+  try {
+    return loadView(window.localStorage);
+  } catch {
+    return SKY_VIEW;
+  }
+}
+
 export function SanctumPage() {
-  const [rail, setRail] = useState<RailId>("sky");
+  const [view] = useState(readInitialView);
+  const [rail, setRail] = useState<RailId>(view.rail);
   const [navCollapsed, setNavCollapsed] = useState(readSidebarCollapsed);
-  const [shot, setShot] = useState<Shot>(SHOTS.sky);
-  const [camera, setCamera] = useState<CameraName>("sky");
+  const [shot, setShot] = useState<Shot>(view.shot);
+  const [camera, setCamera] = useState<CameraName>(view.camera);
   const [selected, setSelected] = useState<AgentCode>("SUPERVISOR-01");
   const [deskOpen, setDeskOpen] = useState(false);
   const [registryDown, setRegistryDown] = useState(false);
@@ -162,6 +167,14 @@ export function SanctumPage() {
       // Storage can be blocked. The choice still applies for this visit.
     }
   }, [navCollapsed]);
+
+  useEffect(() => {
+    try {
+      saveView(window.localStorage, { rail, camera, shot });
+    } catch {
+      // Storage can be blocked. The choice still applies for this visit.
+    }
+  }, [rail, camera, shot]);
 
   useEffect(() => {
     document.title = "Sanctum · Veytrix";
@@ -359,7 +372,7 @@ export function SanctumPage() {
           </span>
           <span className="sx-view-label">
             <Icon name="camera" />
-            Sky View
+            {RAIL.find((item) => item.id === rail)?.label ?? "Sky View"}
           </span>
           <span className="sx-clock">{clock}</span>
         </div>
@@ -585,8 +598,19 @@ export function SanctumPage() {
               </button>
             </div>
             <div className="sx-presets">
-              <button type="button" aria-pressed={camera === "sky"} onClick={() => applyCamera("sky", "sky")}>
-                Full Floor
+              <button
+                type="button"
+                aria-label="Return to Sky View"
+                aria-pressed={camera === "sky" && rail === "sky"}
+                onClick={() => {
+                  const next = returnToSky();
+                  setShot(next.shot);
+                  setCamera(next.camera);
+                  setRail(next.rail);
+                  setDeskOpen(false);
+                }}
+              >
+                Sky View
               </button>
               <button type="button" aria-pressed={camera === "center"} onClick={() => applyCamera("center", "cameras")}>
                 Center
