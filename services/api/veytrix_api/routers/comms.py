@@ -12,11 +12,21 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from veytrix_api.comms import delegate, discussion, replies, roster, safety, store, work
+from veytrix_api.comms import (
+    delegate,
+    discussion,
+    replies,
+    roster,
+    safety,
+    store,
+    stream_chat,
+    work,
+)
 from veytrix_api.comms.envelope import (
     Citation,
     ConversationEnvelope,
@@ -27,18 +37,22 @@ from veytrix_api.comms.envelope import (
     MessageListResponse,
     Moderate,
     PatchConversation,
+    PresenceOut,
+    PresenceResponse,
     ReadMark,
     RosterEntry,
     RosterResponse,
     SendMessage,
     SendResult,
     StartDiscussion,
+    TaskListResponse,
+    TaskOut,
     TriggerBody,
 )
 from veytrix_api.comms.realtime import Notifier
 from veytrix_api.db import get_db
 from veytrix_api.logging_config import correlation_id_var
-from veytrix_api.models import ConversationRow, MessageRow
+from veytrix_api.models import AgentPresenceRow, ConversationRow, MessageRow, ResearchTaskRow
 from veytrix_api.ratelimit import ProcessLocalRateLimiter
 from veytrix_api.schemas import DENIED_TOOLS
 from veytrix_api.settings import Settings
@@ -490,6 +504,97 @@ def send_message(
         errors=errors,
         realtime=realtime,  # type: ignore[arg-type]
     )
+
+
+@router.post("/conversations/{conversation_id}/messages/stream")
+@store_errors
+def stream_message(
+    conversation_id: uuid.UUID,
+    body: SendMessage,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
+    """Stream one desk reply. Delegation only queues tasks; the worker answers later."""
+
+    _throttle(request)
+    conv = _conversation(db, conversation_id)
+    _require(request, "agent_chat" if conv.kind == "direct" else "group_chat")
+    if conv.status == "archived":
+        raise HTTPException(status_code=409, detail="Conversation is archived.")
+    if body.thread_id is not None:
+        parent = db.get(MessageRow, body.thread_id)
+        if parent is None or parent.conversation_id != conv.id:
+            raise HTTPException(status_code=422, detail="thread_id is not in this conversation.")
+    responders = _responders(db, conv, body.content)
+    correlation = _correlation()
+
+    def events():
+        try:
+            yield from stream_chat.iter_chat_events(db, conv, body, correlation, responders)
+        except store.StoreError as exc:
+            db.rollback()
+            yield stream_chat.sse("error", {"detail": str(exc)})
+        except SQLAlchemyError:
+            db.rollback()
+            yield stream_chat.sse("error", {"detail": STORE_DOWN})
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.get("/tasks", response_model=TaskListResponse)
+@store_errors
+def list_tasks(
+    conversation_id: uuid.UUID | None = None,
+    db: Session = Depends(get_db),
+) -> TaskListResponse:
+    stmt = select(ResearchTaskRow).order_by(ResearchTaskRow.created_at.desc()).limit(50)
+    if conversation_id is not None:
+        stmt = stmt.where(ResearchTaskRow.conversation_id == conversation_id)
+    rows = list(db.scalars(stmt))
+    return TaskListResponse(
+        tasks=[
+            TaskOut(
+                id=row.id,
+                assignee_code=row.assignee_code,
+                subject=row.subject,
+                status=row.status,  # type: ignore[arg-type]
+                kind=row.kind,  # type: ignore[arg-type]
+                evidence_message_id=row.evidence_message_id,
+                blocked_reason=row.blocked_reason,
+                attempt_count=row.attempt_count,
+            )
+            for row in rows
+        ]
+    )
+
+
+@router.get("/presence", response_model=PresenceResponse)
+@store_errors
+def worker_presence(db: Session = Depends(get_db)) -> PresenceResponse:
+    """Online only when a worker heartbeat is fresh. A chat state is not a heartbeat."""
+
+    from veytrix_api.worker import fresh
+
+    rows = {row.agent_code: row for row in db.scalars(select(AgentPresenceRow))}
+    agents: list[PresenceOut] = []
+    for code in roster.CODES:
+        row = rows.get(code)
+        is_fresh = bool(row and fresh(row.heartbeat_at, row.worker_id))
+        lifecycle = row.lifecycle if row is not None and is_fresh else "offline"
+        agents.append(
+            PresenceOut(
+                agent_code=code,
+                lifecycle=lifecycle,  # type: ignore[arg-type]
+                heartbeat_fresh=is_fresh,
+                worker_id=row.worker_id if row is not None and is_fresh else None,
+                task_id=row.task_id if row is not None and is_fresh else None,
+            )
+        )
+    return PresenceResponse(agents=agents)
 
 
 @router.post("/discussions", response_model=SendResult)

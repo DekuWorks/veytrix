@@ -160,6 +160,9 @@ export function SanctumPage() {
   const [clock, setClock] = useState("");
   const [following, setFollowing] = useState(false);
   const [monitorFollow, setMonitorFollow] = useState<string | null>(null);
+  const [activity, setActivity] = useState<Record<string, string>>({});
+  const [taskNotes, setTaskNotes] = useState<{ id: string; text: string }[]>([]);
+  const [acked, setAcked] = useState<string[]>([]);
   const comms = useComms();
 
   useEffect(() => {
@@ -177,6 +180,50 @@ export function SanctumPage() {
       // Storage can be blocked. The choice still applies for this visit.
     }
   }, [rail, camera, shot]);
+
+  useEffect(() => {
+    let stop = false;
+    const tick = () => {
+      void apiGet<{ agents: { agent_code: string; lifecycle: string; heartbeat_fresh: boolean }[] }>(
+        "/api/v1/comms/presence",
+      )
+        .then((body) => {
+          if (stop) {
+            return;
+          }
+          const next: Record<string, string> = {};
+          for (const agent of body.agents) {
+            next[agent.agent_code] = agent.heartbeat_fresh ? agent.lifecycle : "offline";
+          }
+          setActivity(next);
+        })
+        .catch(() => undefined);
+      void apiGet<{ tasks: { id: string; assignee_code: string; subject: string; status: string }[] }>(
+        "/api/v1/comms/tasks",
+      )
+        .then((body) => {
+          if (stop) {
+            return;
+          }
+          setTaskNotes(
+            body.tasks
+              .filter((task) => task.status === "blocked" || task.status === "failed" || task.status === "completed")
+              .slice(0, 4)
+              .map((task) => ({
+                id: task.id,
+                text: `${task.assignee_code} · ${task.subject} is ${task.status}.`,
+              })),
+          );
+        })
+        .catch(() => undefined);
+    };
+    tick();
+    const id = window.setInterval(tick, 4000);
+    return () => {
+      stop = true;
+      window.clearInterval(id);
+    };
+  }, []);
 
   useEffect(() => {
     document.title = "Sanctum · Veytrix";
@@ -452,7 +499,23 @@ export function SanctumPage() {
               onAvatar={(code) => {
                 comms.speakLast(code);
               }}
+              activity={activity}
             />
+          ) : null}
+          {showFloor && taskNotes.some((note) => !acked.includes(note.id)) ? (
+            <div className="sx-task-alert" role="status">
+              {taskNotes
+                .filter((note) => !acked.includes(note.id))
+                .slice(0, 2)
+                .map((note) => (
+                  <span key={note.id}>
+                    {note.text}{" "}
+                    <button type="button" className="vx-btn" onClick={() => setAcked((current) => [...current, note.id])}>
+                      Acknowledge
+                    </button>
+                  </span>
+                ))}
+            </div>
           ) : null}
           {showFloor && comms.notice ? <p className="cx-floor-note">{comms.notice}</p> : null}
           {showFloor && rail === "floor" ? (

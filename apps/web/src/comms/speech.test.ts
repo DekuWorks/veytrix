@@ -7,6 +7,7 @@ import {
   SpeechScheduler,
   toSpeech,
   truncate,
+  twoSentences,
 } from "./speech";
 import type { CommsMessage, Conversation } from "./types";
 
@@ -94,6 +95,10 @@ describe("speech from persisted messages", () => {
     expect(text.length).toBeLessThanOrEqual(40);
     expect(text.endsWith("…")).toBe(true);
     expect(truncate("short")).toBe("short");
+  });
+
+  it("keeps a bubble to two sentences", () => {
+    expect(twoSentences("One. Two. Three stays in the transcript.")).toBe("One. Two.");
   });
 });
 

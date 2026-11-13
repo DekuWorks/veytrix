@@ -253,3 +253,30 @@ class ReadMark(BaseModel):
 
 class TriggerBody(BaseModel):
     task: Literal["reconcile", "risk_check", "position_size", "sma_crossover", "treasury_split"]
+
+
+class TaskOut(BaseModel):
+    id: uuid.UUID
+    assignee_code: str
+    subject: str
+    status: Literal["queued", "running", "blocked", "completed", "failed"]
+    kind: Literal["research", "review"]
+    evidence_message_id: uuid.UUID | None
+    blocked_reason: str | None
+    attempt_count: int
+
+
+class TaskListResponse(Safety):
+    tasks: list[TaskOut]
+
+
+class PresenceOut(BaseModel):
+    agent_code: str
+    lifecycle: Literal["idle", "queued", "working", "blocked", "offline", "failed"]
+    heartbeat_fresh: bool
+    worker_id: str | None
+    task_id: uuid.UUID | None
+
+
+class PresenceResponse(Safety):
+    agents: list[PresenceOut]

@@ -692,8 +692,17 @@ class ResearchTaskRow(Base):
         ),
         CheckConstraint("assigned_by = 'SUPERVISOR-01'", name="ck_research_tasks_assigner"),
         CheckConstraint(
-            "status IN ('assigned', 'reported', 'blocked')",
+            "status IN ('queued', 'running', 'blocked', 'completed', 'failed')",
             name="ck_research_tasks_status",
+        ),
+        CheckConstraint("kind IN ('research', 'review')", name="ck_research_tasks_kind"),
+        CheckConstraint(
+            "attempt_count BETWEEN 0 AND 3 AND max_attempts BETWEEN 1 AND 3",
+            name="ck_research_tasks_attempts",
+        ),
+        CheckConstraint(
+            "status <> 'completed' OR evidence_message_id IS NOT NULL",
+            name="ck_research_tasks_completed_needs_evidence",
         ),
         CheckConstraint("char_length(subject) BETWEEN 1 AND 80", name="ck_research_tasks_subject"),
         CheckConstraint(
@@ -701,6 +710,7 @@ class ResearchTaskRow(Base):
             name="ck_research_tasks_instruction",
         ),
         Index("ix_research_tasks_assignee", "assignee_code", "created_at"),
+        Index("ix_research_tasks_status", "status", "created_at"),
         {"schema": "private"},
     )
 
@@ -710,6 +720,12 @@ class ResearchTaskRow(Base):
     subject: Mapped[str] = mapped_column(String(80), nullable=False)
     instruction: Mapped[str] = mapped_column(String(500), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False, default="research")
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    worker_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    blocked_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     conversation_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("private.conversations.id", name="fk_research_tasks_conversation"),
@@ -720,6 +736,56 @@ class ResearchTaskRow(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class TaskEventRow(Base):
+    """Append-only progress for a research task. Not an order."""
+
+    __tablename__ = "task_events"
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('state', 'chunk', 'retry', 'heartbeat')",
+            name="ck_task_events_kind",
+        ),
+        CheckConstraint("char_length(body) BETWEEN 1 AND 500", name="ck_task_events_body"),
+        Index("ix_task_events_task", "task_id", "created_at"),
+        {"schema": "private"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    task_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("private.research_tasks.id", name="fk_task_events_task"),
+        nullable=False,
+    )
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    body: Mapped[str] = mapped_column(String(500), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class ModelCallRow(Base):
+    """One attempted language-model call. The key is never stored."""
+
+    __tablename__ = "model_calls"
+    __table_args__ = (
+        CheckConstraint("estimated_usd >= 0", name="ck_model_calls_spend"),
+        Index("ix_model_calls_created", "created_at"),
+        {"schema": "private"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    agent_code: Mapped[str] = mapped_column(String(32), nullable=False)
+    model: Mapped[str] = mapped_column(String(64), nullable=False)
+    provider_message_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    estimated_usd: Mapped[Decimal] = mapped_column(
+        Numeric(6, 4), nullable=False, default=Decimal(0)
+    )
+    error_class: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
@@ -866,12 +932,20 @@ class AgentPresenceRow(Base):
             "state IN ('idle', 'listening', 'composing', 'speaking', 'meeting')",
             name="ck_presence_state",
         ),
+        CheckConstraint(
+            "lifecycle IN ('idle', 'queued', 'working', 'blocked', 'offline', 'failed')",
+            name="ck_presence_lifecycle",
+        ),
         {"schema": "private"},
     )
 
     agent_code: Mapped[str] = mapped_column(String(32), primary_key=True)
     state: Mapped[str] = mapped_column(String(24), nullable=False)
     conversation_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    lifecycle: Mapped[str] = mapped_column(String(16), nullable=False, default="offline")
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    worker_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    task_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

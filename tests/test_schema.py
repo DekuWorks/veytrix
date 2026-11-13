@@ -37,6 +37,8 @@ def test_metadata_matches_the_baseline_tables() -> None:
         "private.agent_permissions",
         "private.agent_runs",
         "private.research_tasks",
+        "private.task_events",
+        "private.model_calls",
         "private.conversations",
         "private.conversation_members",
         "private.messages",
@@ -558,7 +560,9 @@ def test_alembic_upgrade_on_postgres_16(monkeypatch: pytest.MonkeyPatch) -> None
         "conversations": (True, True),
         "message_events": (True, True),
         "messages": (True, True),
+        "model_calls": (True, True),
         "research_tasks": (True, True),
+        "task_events": (True, True),
     }
     assert view_options is not None
     assert "security_invoker=true" in (view_options[0] or [])

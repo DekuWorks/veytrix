@@ -112,6 +112,7 @@ type Backend = {
 };
 
 let backend: Backend;
+let fetchMock: ReturnType<typeof vi.fn>;
 
 function install() {
   vi.mocked(apiGet).mockImplementation((path: string) => {
@@ -215,6 +216,45 @@ function install() {
     }
     return Promise.reject(new Error(path));
   });
+  fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const path = String(input).replace(/^https?:\/\/[^/]+/, "");
+    const payload = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+    const send = /\/conversations\/([^/]+)\/messages\/stream$/.exec(path);
+    if (!send) {
+      return new Response("missing", { status: 404 });
+    }
+    const id = send[1];
+    const code = id.replace("c-", "") as AgentCode;
+    const seq = (backend.stored[id]?.length ?? 0) + 1;
+    const human = msg({ message_id: `h-${seq}`, conversation_id: id, seq, content: String(payload.content) });
+    const reply = msg({
+      message_id: `r-${seq}`,
+      conversation_id: id,
+      seq: seq + 1,
+      sender_id: code,
+      sender_name: NAMES[code],
+      sender_kind: "agent",
+      kind: "reply",
+      origin: "tool_verified",
+      origin_label: "verified from local records",
+      content: `${NAMES[code]}, risk desk. Enabled, English. Reading the paper risk policy.`,
+      citations: [{ source: "registry", ref: `private.agents/${code}`, label: "Registry status is enabled.", as_of: null, untrusted: false }],
+    });
+    backend.stored[id] = [...(backend.stored[id] ?? []), human, reply];
+    const result = {
+      conversation: conv({ conversation_id: id, title: NAMES[code], message_count: seq + 1 }),
+      messages: [human, reply],
+      duplicate: false,
+      held: null,
+      errors: [],
+      realtime: "not_configured",
+      execution_permitted: false,
+      order_submitted: false,
+    };
+    const raw = `event: chunk\ndata: ${JSON.stringify({ text: "Aegis", sender: code })}\n\nevent: done\ndata: ${JSON.stringify(result)}\n\n`;
+    return new Response(raw, { status: 200, headers: { "Content-Type": "text/event-stream" } });
+  });
+  vi.stubGlobal("fetch", fetchMock);
 }
 
 function renderSanctum() {
@@ -254,8 +294,10 @@ describe("sanctum chat", () => {
     expect(await within(log).findByText(/Aegis, risk desk\. Enabled, English/)).toBeInTheDocument();
     expect(within(log).getByText("verified")).toBeInTheDocument();
     expect(within(log).getByText("Sources (1)")).toBeInTheDocument();
-    const post = vi.mocked(apiPost).mock.calls.find(([path]) => String(path).endsWith("/messages"));
-    expect(post?.[1]).toMatchObject({ content: "What are you working on?" });
+    const streamed = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/messages/stream"));
+    expect(JSON.parse(String((streamed?.[1] as RequestInit | undefined)?.body))).toMatchObject({
+      content: "What are you working on?",
+    });
     // The bubble above the avatar is the stored message, not a generated line.
     const bubble = await waitFor(
       () => {
@@ -265,7 +307,9 @@ describe("sanctum chat", () => {
       },
       { timeout: 3000 },
     );
-    expect(bubble.textContent).toContain("Aegis, risk desk. Enabled, English. Reading the paper risk policy.");
+    expect(bubble.textContent).toContain("Aegis, risk desk.");
+    expect(bubble.textContent).toContain("Enabled, English.");
+    expect(bubble.textContent).not.toContain("Reading the paper risk policy.");
     expect(bubble.textContent).toContain("verified");
     expect(document.body.textContent).not.toMatch(/deterministic\. No order/i);
   });
@@ -301,12 +345,12 @@ describe("sanctum chat", () => {
     await user.click(screen.getByRole("button", { name: /Nyx\s*Crypto desk/ }));
     const dialog = await screen.findByRole("dialog", { name: "Chat with Nyx" });
     const box = await within(dialog).findByRole("textbox", { name: "Message Nyx" });
-    const original = vi.mocked(apiPost).getMockImplementation()!;
-    vi.mocked(apiPost).mockImplementationOnce(() => Promise.reject(new ApiError(429, { detail: "Too many messages. Slow down." })));
+    const original = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementationOnce(() => Promise.reject(new ApiError(429, { detail: "Too many messages. Slow down." })));
     await user.type(box, "latest bars");
     await user.click(within(dialog).getByRole("button", { name: "Send" }));
     expect(await within(dialog).findByText(/Too many messages/)).toBeInTheDocument();
-    vi.mocked(apiPost).mockImplementation(original);
+    fetchMock.mockImplementation(original);
     await user.click(within(dialog).getByRole("button", { name: "Retry message" }));
     expect(await within(dialog).findByText(/Nyx, risk desk\. Enabled, English/)).toBeInTheDocument();
   });

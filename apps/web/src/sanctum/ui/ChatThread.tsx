@@ -117,11 +117,20 @@ type ChatThreadProps = {
   messages: CommsMessage[];
   /** Name of a desk that is composing, or null. */
   pending?: string | null;
+  /** Text already received from the stream, before the stored row arrives. */
+  liveText?: string;
   empty?: ReactNode;
   highlightSeq?: number | null;
 };
 
-export function ChatThread({ label, messages, pending = null, empty, highlightSeq = null }: ChatThreadProps) {
+export function ChatThread({
+  label,
+  messages,
+  pending = null,
+  liveText = "",
+  empty,
+  highlightSeq = null,
+}: ChatThreadProps) {
   const viewport = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
   const [atBottom, setAtBottom] = useState(true);
@@ -131,7 +140,7 @@ export function ChatThread({ label, messages, pending = null, empty, highlightSe
     if (el && pinned.current) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [messages.length, pending]);
+  }, [messages.length, pending, liveText]);
 
   useEffect(() => {
     const el = viewport.current;
@@ -168,6 +177,7 @@ export function ChatThread({ label, messages, pending = null, empty, highlightSe
         </ul>
         {pending ? (
           <div className="cx-typing" role="status">
+            {liveText ? <p className="cx-live-draft">{liveText}</p> : null}
             <span aria-hidden="true">
               <i />
               <i />

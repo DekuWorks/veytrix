@@ -3624,6 +3624,96 @@
         "title": "PatchConversation",
         "type": "object"
       },
+      "PresenceOut": {
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "heartbeat_fresh": {
+            "title": "Heartbeat Fresh",
+            "type": "boolean"
+          },
+          "lifecycle": {
+            "enum": [
+              "idle",
+              "queued",
+              "working",
+              "blocked",
+              "offline",
+              "failed"
+            ],
+            "title": "Lifecycle",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "worker_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Id"
+          }
+        },
+        "required": [
+          "agent_code",
+          "lifecycle",
+          "heartbeat_fresh",
+          "worker_id",
+          "task_id"
+        ],
+        "title": "PresenceOut",
+        "type": "object"
+      },
+      "PresenceResponse": {
+        "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/PresenceOut"
+            },
+            "title": "Agents",
+            "type": "array"
+          },
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "agents"
+        ],
+        "title": "PresenceResponse",
+        "type": "object"
+      },
       "ReadMark": {
         "properties": {
           "seq": {
@@ -5318,6 +5408,115 @@
         "title": "SystemStatusUnavailable",
         "type": "object"
       },
+      "TaskListResponse": {
+        "properties": {
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskOut"
+            },
+            "title": "Tasks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tasks"
+        ],
+        "title": "TaskListResponse",
+        "type": "object"
+      },
+      "TaskOut": {
+        "properties": {
+          "assignee_code": {
+            "title": "Assignee Code",
+            "type": "string"
+          },
+          "attempt_count": {
+            "title": "Attempt Count",
+            "type": "integer"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "evidence_message_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Message Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "research",
+              "review"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "blocked",
+              "completed",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "assignee_code",
+          "subject",
+          "status",
+          "kind",
+          "evidence_message_id",
+          "blocked_reason",
+          "attempt_count"
+        ],
+        "title": "TaskOut",
+        "type": "object"
+      },
       "TickerResponse": {
         "properties": {
           "ask": {
@@ -6292,6 +6491,58 @@
         ]
       }
     },
+    "/api/v1/comms/conversations/{conversation_id}/messages/stream": {
+      "post": {
+        "description": "Stream one desk reply. Delegation only queues tasks; the worker answers later.",
+        "operationId": "stream_message_api_v1_comms_conversations__conversation_id__messages_stream_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stream Message",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
     "/api/v1/comms/conversations/{conversation_id}/moderate": {
       "post": {
         "operationId": "moderate_api_v1_comms_conversations__conversation_id__moderate_post",
@@ -6588,6 +6839,28 @@
         ]
       }
     },
+    "/api/v1/comms/presence": {
+      "get": {
+        "description": "Online only when a worker heartbeat is fresh. A chat state is not a heartbeat.",
+        "operationId": "worker_presence_api_v1_comms_presence_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Worker Presence",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
     "/api/v1/comms/roster": {
       "get": {
         "operationId": "roster_route_api_v1_comms_roster_get",
@@ -6604,6 +6877,56 @@
           }
         },
         "summary": "Roster Route",
+        "tags": [
+          "comms"
+        ]
+      }
+    },
+    "/api/v1/comms/tasks": {
+      "get": {
+        "operationId": "list_tasks_api_v1_comms_tasks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "conversation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Tasks",
         "tags": [
           "comms"
         ]

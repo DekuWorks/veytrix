@@ -122,6 +122,8 @@ type SkyFloorProps = {
   gather: readonly string[];
   /** A desk to keep centred in the camera, or null. */
   follow: AgentCode | null;
+  /** Worker lifecycle from a fresh heartbeat. Missing or stale stays offline. */
+  activity?: Record<string, string>;
   /** Fired when an avatar is clicked, after the desk detail opens. */
   onAvatar: (code: AgentCode) => void;
 };
@@ -180,6 +182,7 @@ export function SkyFloor({
   gather,
   follow,
   onAvatar,
+  activity = {},
 }: SkyFloorProps) {
   const [spots, setSpots] = useState<Record<string, Spot>>(() =>
     Object.fromEntries(
@@ -351,7 +354,8 @@ export function SkyFloor({
             return (
               <div
                 key={member.code}
-                className={`bot${speech[member.code] ? " speaking" : ""}`}
+                className={`bot${speech[member.code] || activity[member.code] === "working" ? " speaking" : ""}`}
+                data-lifecycle={activity[member.code] ?? "offline"}
                 style={{ top: `${spot.y}%`, left: `${spot.x}%` }}
               >
                 <button
@@ -379,18 +383,20 @@ export function SkyFloor({
             }
             const spot = spots[member.code] ?? member.home;
             return (
-              <p
+              <button
                 key={`${line.id}-${line.token ?? 0}`}
-                className={`thought live overlay${spot.y < 36 ? " below" : ""}${line.replay ? " replay" : ""}`}
+                type="button"
+                className={`thought live overlay${spot.y < 38 ? " below" : ""}${line.replay ? " replay" : ""}`}
                 style={{ top: `${spot.y}%`, left: `${spot.x}%` }}
                 data-origin={line.origin}
                 data-message-id={line.id}
                 data-agent={member.code}
-                role="status"
+                aria-label={`Open ${member.name} transcript`}
+                onClick={() => onDesk(member.code)}
               >
                 {line.text}
                 <span className="cx-bubble-tag">{line.label}</span>
-              </p>
+              </button>
             );
           })}
 

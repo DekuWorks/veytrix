@@ -113,6 +113,36 @@ def _mine(history: list[MessageRow], code: str) -> MessageRow | None:
     return None
 
 
+def apply_speech(made: work.Report, spoken, meta: dict[str, object], *, registry_ok: bool) -> Reply:
+    """Keep a model label only when the provider returned a message id."""
+
+    from veytrix_api.claude_provider import acceptable
+
+    content = made.content
+    origin: Origin = "tool_verified" if registry_ok else "scripted"
+    meta_out: dict[str, object] = {**meta, **made.meta}
+    if (
+        spoken.origin == "model_generated"
+        and spoken.provider_message_id
+        and acceptable(spoken.text)
+    ):
+        content = spoken.text
+        origin = "model_generated"
+        meta_out["model"] = spoken.model or "claude"
+        meta_out["provider"] = "anthropic"
+        meta_out["provider_message_id"] = spoken.provider_message_id
+        meta_out["input_tokens"] = spoken.input_tokens
+        meta_out["output_tokens"] = spoken.output_tokens
+        meta_out["streamed"] = spoken.chunks > 0
+        meta_out["chunk_count"] = spoken.chunks
+        meta_out["local_text"] = made.content
+    elif spoken.error_class and spoken.error_class != "missing_key":
+        meta_out["model"] = "disconnected"
+        meta_out["error_class"] = spoken.error_class
+        meta_out["fallback"] = "local_records"
+    return Reply(_cut(content), "reply", origin, made.citations, meta_out)
+
+
 def compose_reply(
     db: Session,
     code: str,
@@ -323,31 +353,11 @@ def compose_reply(
     desk_scoped = fx.desk_only(all_facts)
 
     if intent == "working_on":
-        from veytrix_api.claude_provider import acceptable, converse
+        from veytrix_api.claude_provider import converse
 
         made = work.report(db, code, brief=brief)
-        content = made.content
-        origin: Origin = "tool_verified" if registry_ok else "scripted"
-        meta_out: dict[str, object] = {**meta, **made.meta}
         spoken = converse(code, text, facts=made.content)
-        if spoken.origin == "model_generated" and acceptable(spoken.text):
-            content = spoken.text
-            origin = "model_generated"
-            meta_out["model"] = spoken.model or "claude"
-            meta_out["streamed"] = spoken.chunks > 0
-            meta_out["chunk_count"] = spoken.chunks
-            meta_out["local_text"] = made.content
-        elif spoken.error_class and spoken.error_class != "missing_key":
-            meta_out["model"] = "disconnected"
-            meta_out["error_class"] = spoken.error_class
-            meta_out["fallback"] = "local_records"
-        return Reply(
-            _cut(content),
-            "reply",
-            origin,
-            made.citations,
-            meta_out,
-        )
+        return apply_speech(made, spoken, meta, registry_ok=registry_ok)
 
     if intent == "desk_data":
         body, cites = _numbered(desk_scoped or all_facts)

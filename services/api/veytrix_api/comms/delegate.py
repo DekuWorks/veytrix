@@ -1,7 +1,7 @@
-"""Roads assigns research. The summary may quote only stored replies.
+"""Roads queues research. The worker writes the replies. This module does not.
 
 No function here submits an order, signs, or transfers. A desk cannot claim it
-researched a subject unless this module stored both the task and the reply.
+researched a subject unless a task row and a reply row both exist.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ import uuid
 
 from sqlalchemy.orm import Session
 
-from veytrix_api.claude_provider import acceptable, converse
 from veytrix_api.comms import roster, safety, store, tasks
 from veytrix_api.comms.envelope import Citation
 from veytrix_api.models import ConversationRow, MessageRow, ResearchTaskRow
@@ -20,83 +19,69 @@ _ASSIGN = re.compile(
     r"\b(?:have|ask|tell|get|assign)\b.+?\bresearch\b\s+(?P<subject>.+)$",
     re.IGNORECASE | re.DOTALL,
 )
+_COORD = re.compile(
+    r"\bcoordinate\b\s+(?:an?\s+|the\s+)?(?P<subject>[A-Za-z0-9][\w.&-]{0,40})"
+    r"\s+research\s+review\b",
+    re.IGNORECASE,
+)
+_COORD_OF = re.compile(
+    r"\bcoordinate\b.+\bresearch\s+review\s+(?:of|on|for)\s+(?P<subject>[A-Za-z0-9][\w.& -]{0,40})",
+    re.IGNORECASE,
+)
+MAX_ASSIGNEES = 3
 
 
 def matches(text: str) -> bool:
-    return _ASSIGN.search(text.strip()) is not None and not safety.wants_order(text)
+    stripped = text.strip()
+    if safety.wants_order(stripped):
+        return False
+    return _ASSIGN.search(stripped) is not None or _subject(stripped) is not None
 
 
-def parse(text: str) -> tuple[list[str], str] | None:
-    """Desk codes and a short subject. None when the sentence is not an assignment."""
-
-    found = _ASSIGN.search(text.strip())
-    if found is None or safety.wants_order(text):
+def _subject(text: str) -> str | None:
+    found = _COORD.search(text) or _COORD_OF.search(text) or _ASSIGN.search(text)
+    if found is None:
         return None
     subject = re.sub(r"\s+", " ", found.group("subject")).strip(" .?!\"'")
+    subject = re.sub(r"^(?:an|a|the)\s+", "", subject, flags=re.IGNORECASE)
     subject = subject[:80]
     if not subject or safety.wants_order(subject):
         return None
-    desks = _named(text)
-    if not desks:
-        return None
-    return desks, subject
+    return subject
 
 
 def _named(text: str) -> list[str]:
     mentioned, everyone = roster.mentions(text)
     if everyone:
-        return [code for code in roster.CODES if code != roster.SUPERVISOR]
+        return [code for code in roster.CODES if code not in {roster.SUPERVISOR, roster.RISK}]
     if mentioned:
-        return [code for code in mentioned if code != roster.SUPERVISOR]
+        return [code for code in mentioned if code not in {roster.SUPERVISOR, roster.RISK}]
     lowered = text.lower()
     found: list[str] = []
     for desk in roster.DESKS:
-        if desk.code == roster.SUPERVISOR:
+        if desk.code in {roster.SUPERVISOR, roster.RISK}:
             continue
         if re.search(rf"\b{re.escape(desk.name.lower())}\b", lowered):
             found.append(desk.code)
     return found
 
 
-def _local_reply(name: str, subject: str) -> str:
-    return (
-        f"{name}: Roads assigned me {subject}. "
-        "I have no stored source for it, so I have no findings to report. "
-        "I will not invent any. No order is sent."
-    )
+def parse(text: str) -> tuple[list[str], str] | None:
+    """At most two research desks plus Aegis. None when this is not an assignment."""
 
-
-def _reply_for(code: str, subject: str, task_id: str) -> tuple[str, str, dict[str, object]]:
-    desk = roster.desk_for(code)
-    local = _local_reply(desk.name, subject)
-    facts = (
-        f"Task {task_id} is assigned to {desk.name} ({code}). "
-        f"Subject: {subject}. Status: assigned. "
-        "No stored source and no external findings exist yet. "
-        "Trading, signing, and transfers are off."
-    )
-    spoken = converse(
-        code,
-        f"You were assigned research on {subject}. What can you report?",
-        facts=facts,
-    )
-    meta: dict[str, object] = {
-        "intent": "research_report",
-        "language": "en",
-        "task_id": task_id,
-        "subject": subject,
-        "external_research": False,
-    }
-    if spoken.origin == "model_generated" and acceptable(spoken.text):
-        meta["model"] = spoken.model or "claude"
-        meta["streamed"] = spoken.chunks > 1
-        meta["chunk_count"] = spoken.chunks
-        return spoken.text, "model_generated", meta
-    meta["model"] = "disconnected" if spoken.error_class != "missing_key" else "not_configured"
-    if spoken.error_class:
-        meta["error_class"] = spoken.error_class
-    meta["fallback"] = "scripted"
-    return local, "scripted", meta
+    stripped = text.strip()
+    if safety.wants_order(stripped):
+        return None
+    subject = _subject(stripped)
+    if subject is None:
+        return None
+    named = _named(stripped)
+    research = named[:2] if named else ["RESEARCH-01", "DEFI-01"]
+    codes: list[str] = []
+    for code in [*research, roster.RISK]:
+        if code not in codes:
+            codes.append(code)
+    return codes[:MAX_ASSIGNEES], subject
 
 
 def assign(
@@ -106,17 +91,23 @@ def assign(
     correlation_id: str,
     thread_id: uuid.UUID | None,
 ) -> list[MessageRow]:
-    """Create task rows, store each desk's reply, then quote those replies."""
+    """Queue the tasks and store Roads's assignment. Replies come from the worker."""
 
     parsed = parse(text)
     if parsed is None:
-        raise store.StoreError("Name the desks and the research subject. No order was sent.")
+        raise store.StoreError("Name the research subject. No order was sent.")
     codes, subject = parsed
-    if store.message_count(db, conv.id) + 1 + (len(codes) * 2) > conv.max_messages:
+    if store.message_count(db, conv.id) + 2 > conv.max_messages:
         raise store.StoreError("This conversation is full. No order was sent.")
 
     created: list[tuple[str, ResearchTaskRow]] = []
     for code in codes:
+        kind = "review" if code == roster.RISK else "research"
+        instruction = (
+            f"Review the risks and limitations of {subject}. Use only stored task rows."
+            if kind == "review"
+            else f"Research {subject}. Report only stored evidence."
+        )
         created.append(
             (
                 code,
@@ -124,21 +115,25 @@ def assign(
                     db,
                     assignee_code=code,
                     subject=subject,
-                    instruction=f"Research {subject}. Report only stored evidence.",
+                    instruction=instruction,
                     conversation_id=conv.id,
+                    kind=kind,
+                    correlation_id=correlation_id,
                 ),
             )
         )
 
-    names = ", ".join(roster.name_of(code) for code in codes)
+    research_names = ", ".join(
+        roster.name_of(code) for code, task in created if task.kind == "research"
+    )
     assignment = store.append_message(
         db,
         conv,
         sender_id=roster.SUPERVISOR,
         sender_kind="agent",
         content=(
-            f"I assigned {names} to research {subject}. "
-            "Each desk will answer from stored records only. No order is sent."
+            f"I queued {research_names} to research {subject}, and I asked Aegis to review "
+            "the risks separately. They will answer from stored records only. No order is sent."
         ),
         kind="assignment",
         origin="tool_verified",
@@ -146,7 +141,7 @@ def assign(
         recipients=codes,
         thread_id=thread_id,
         citations=[
-            Citation(source="research_tasks", ref=str(task.id), label=f"{code} assigned {subject}")
+            Citation(source="research_tasks", ref=str(task.id), label=f"{code} queued {subject}")
             for code, task in created
         ],
         meta={
@@ -155,85 +150,21 @@ def assign(
             "model": "not_configured",
             "subject": subject,
             "assignees": codes,
-        },
-    )
-
-    replies: list[tuple[str, MessageRow]] = []
-    for code, task in created:
-        content, origin, meta = _reply_for(code, subject, str(task.id))
-        row = store.append_message(
-            db,
-            conv,
-            sender_id=code,
-            sender_kind="agent",
-            content=content,
-            kind="reply",
-            origin=origin,
-            correlation_id=correlation_id,
-            recipients=[roster.SUPERVISOR, store.HUMAN],
-            thread_id=assignment.id,
-            citations=[
-                Citation(
-                    source="research_tasks",
-                    ref=str(task.id),
-                    label=f"Assigned task {subject}",
-                )
-            ],
-            meta=meta,
-            task_id=str(task.id),
-        )
-        tasks.mark_reported(db, task, row.id)
-        replies.append((code, row))
-
-    quoted = []
-    for code, row in replies:
-        if row.id is None or not row.content:
-            continue
-        quoted.append(f"{roster.name_of(code)} ({row.origin}): {row.content}")
-    summary_text = (
-        f"Summary for {subject}. I am quoting stored replies only. "
-        + " ".join(quoted)
-        + " No desk reported an external finding. No order is sent."
-    )
-    summary = store.append_message(
-        db,
-        conv,
-        sender_id=roster.SUPERVISOR,
-        sender_kind="agent",
-        content=safety.clean(summary_text, 3900),
-        kind="summary",
-        origin="tool_verified",
-        correlation_id=correlation_id,
-        recipients=[store.HUMAN],
-        thread_id=assignment.id,
-        citations=[
-            Citation(source="messages", ref=str(row.id), label=f"{roster.name_of(code)} reply")
-            for code, row in replies
-        ],
-        meta={
-            "intent": "delegate_summary",
-            "language": "en",
-            "model": "not_configured",
-            "subject": subject,
-            "evidence_message_ids": [str(row.id) for _, row in replies],
             "external_research": False,
         },
     )
-    _copy_to_group(db, subject, correlation_id, assignment, replies, summary)
-    return [assignment, *[row for _, row in replies], summary]
+    return [assignment]
 
 
-def _copy_to_group(
+def copy_exchange(
     db: Session,
     subject: str,
     correlation_id: str,
-    assignment: MessageRow,
-    replies: list[tuple[str, MessageRow]],
-    summary: MessageRow,
+    messages: list[MessageRow],
 ) -> None:
-    """A second transcript so the desks have the exchange after the founder leaves."""
+    """A second transcript so the desks keep the exchange after the founder leaves."""
 
-    agents = [roster.SUPERVISOR, *[code for code, _row in replies]]
+    agents = list(dict.fromkeys([roster.SUPERVISOR, *[row.sender_id for row in messages]]))
     group = store.create_conversation(
         db,
         kind="group",
@@ -244,8 +175,7 @@ def _copy_to_group(
         max_messages=200,
         moderator=roster.SUPERVISOR,
     )
-    copies = [assignment, *[row for _, row in replies], summary]
-    for source in copies:
+    for source in messages:
         store.append_message(
             db,
             group,

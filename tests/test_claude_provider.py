@@ -45,8 +45,16 @@ def test_successful_probe_marks_speech_model_generated(monkeypatch: pytest.Monke
     def transport(system: str, user: str):
         systems.append(system)
         if "ready" in user:
-            return 200, {"content": [{"type": "text", "text": "ready"}]}
-        return 200, {"content": [{"type": "text", "text": "Reading the local research notes."}]}
+            return 200, {
+                "id": "msg_probe",
+                "model": "claude-haiku-4-5",
+                "content": [{"type": "text", "text": "ready"}],
+            }
+        return 200, {
+            "id": "msg_speak",
+            "model": "claude-haiku-4-5",
+            "content": [{"type": "text", "text": "Reading the local research notes."}],
+        }
 
     status = probe(transport)
     roads = speak("SUPERVISOR-01", transport)
@@ -102,7 +110,12 @@ def test_converse_uses_the_founder_message(monkeypatch: pytest.MonkeyPatch) -> N
 
     def transport(_system: str, user: str):
         seen.append(user)
-        return 200, {"content": [{"type": "text", "text": "No task is assigned to me."}]}
+        return 200, {
+            "id": "msg_test_1",
+            "model": "claude-haiku-4-5",
+            "usage": {"input_tokens": 4, "output_tokens": 2},
+            "content": [{"type": "text", "text": "No task is assigned to me."}],
+        }
 
     spoken = converse(
         "RESEARCH-01",
@@ -115,7 +128,29 @@ def test_converse_uses_the_founder_message(monkeypatch: pytest.MonkeyPatch) -> N
     assert spoken.origin == "model_generated"
     assert spoken.text == "No task is assigned to me."
     assert spoken.model == "claude-haiku-4-5"
+    assert spoken.provider_message_id == "msg_test_1"
+    assert spoken.input_tokens == 4
     assert "test-key" not in spoken.text
+
+
+def test_a_completion_without_a_provider_id_is_not_model_generated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-a-real-secret")
+
+    def transport(_system: str, _user: str):
+        return 200, {"content": [{"type": "text", "text": "No task is assigned to me."}]}
+
+    spoken = converse(
+        "RESEARCH-01",
+        "What are you working on?",
+        facts="No task is assigned.",
+        transport=transport,
+    )
+
+    assert spoken.origin != "model_generated"
+    assert spoken.error_class == "missing_provider_id"
+    assert spoken.text == ""
 
 
 def test_invented_market_claim_is_not_stored_as_claude(monkeypatch: pytest.MonkeyPatch) -> None:

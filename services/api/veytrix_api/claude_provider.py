@@ -84,6 +84,20 @@ class Speech:
     error_class: str | None = None
     model: str | None = None
     chunks: int = 0
+    provider_message_id: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    networked: bool = False
+
+
+@dataclass(frozen=True)
+class Completion:
+    text: str
+    provider_message_id: str | None
+    model: str | None
+    input_tokens: int | None
+    output_tokens: int | None
+    chunks: int
 
 
 @dataclass(frozen=True)
@@ -139,7 +153,44 @@ def _model_name() -> str:
     return raw or DEFAULT_MODEL
 
 
-def _complete(system: str, user: str, transport) -> str:
+def _ints(usage: object, key: str) -> int | None:
+    if not isinstance(usage, dict) or key not in usage:
+        return None
+    try:
+        return int(usage[key])
+    except (TypeError, ValueError):
+        return None
+
+
+def _from_payload(payload: dict) -> Completion:
+    text = ""
+    content = payload.get("content")
+    if isinstance(content, list):
+        for part in content:
+            if isinstance(part, dict) and part.get("type") == "text":
+                text += str(part.get("text") or "")
+    text = " ".join(text.split())
+    if not text:
+        raise ClaudeError("empty_completion")
+    message_id = str(payload.get("id") or "").strip() or None
+    model = str(payload.get("model") or "").strip() or None
+    usage = payload.get("usage") if isinstance(payload.get("usage"), dict) else {}
+    return Completion(
+        text=text[:400],
+        provider_message_id=message_id,
+        model=model,
+        input_tokens=_ints(usage, "input_tokens"),
+        output_tokens=_ints(usage, "output_tokens"),
+        chunks=1,
+    )
+
+
+def _piece(text: str) -> list[str]:
+    words = text.split()
+    return [" ".join(words[index : index + 2]) for index in range(0, len(words), 2)]
+
+
+def _complete(system: str, user: str, transport) -> Completion:
     if transport is not None:
         status, payload = transport(system, user)
     else:
@@ -176,16 +227,7 @@ def _complete(system: str, user: str, transport) -> str:
             raise ClaudeError("TimeoutError") from None
     if status != 200 or not isinstance(payload, dict):
         raise ClaudeError(f"HTTPError:{status}")
-    text = ""
-    content = payload.get("content")
-    if isinstance(content, list):
-        for part in content:
-            if isinstance(part, dict) and part.get("type") == "text":
-                text += str(part.get("text") or "")
-    text = " ".join(text.split())
-    if not text:
-        raise ClaudeError("empty_completion")
-    return text[:400]
+    return _from_payload(payload)
 
 
 def probe(transport=None) -> Probe:
@@ -210,7 +252,7 @@ def probe(transport=None) -> Probe:
             _cached = result
         return result
     try:
-        _complete(
+        done = _complete(
             _COMMON,
             "Reply with the single English word ready.",
             transport,
@@ -223,6 +265,14 @@ def probe(transport=None) -> Probe:
             error_class=exc.error_class,
             speech_origin="simulated",
         )
+    if not done.provider_message_id:
+        return Probe(
+            claude="disconnected",
+            connected=False,
+            credential_present=True,
+            error_class="missing_provider_id",
+            speech_origin="simulated",
+        )
     return Probe(
         claude="connected",
         connected=True,
@@ -232,19 +282,89 @@ def probe(transport=None) -> Probe:
     )
 
 
-def _complete_stream(system: str, user: str, transport) -> tuple[str, int]:
-    """One streamed Messages call. A test transport still returns one JSON body."""
+def _system_for(code: str, facts: str) -> str:
+    role = _ROLE.get(code, "You are a research desk. You do not trade.")
+    return (
+        f"{role} {_COMMON} "
+        "Answer in plain English, at most two sentences. "
+        "Use only the facts below. If no task is assigned, say so. "
+        "Do not invent work, prices, filings, or news. "
+        "Do not say you researched a company. "
+        f"Facts: {facts[:1500]}"
+    )
 
-    global _calls, _spent
+
+def _offline(error_class: str, *, networked: bool) -> Speech:
+    return Speech(
+        origin="simulated",
+        text="",
+        claude="disconnected",
+        connected=False,
+        error_class=error_class,
+        networked=networked,
+    )
+
+
+def _finish(done: Completion, *, networked: bool, transport) -> Speech:
+    """A model label requires the provider message id from the response body."""
+
+    global _cached
+    if not acceptable(done.text):
+        return _offline("unsupported_claim", networked=networked)
+    if not done.provider_message_id:
+        return _offline("missing_provider_id", networked=networked)
+    if transport is None:
+        _cached = Probe(
+            claude="connected",
+            connected=True,
+            credential_present=True,
+            error_class=None,
+            speech_origin="model_generated",
+        )
+    return Speech(
+        origin="model_generated",
+        text=done.text,
+        claude="connected",
+        connected=True,
+        model=done.model or _model_name(),
+        chunks=done.chunks,
+        provider_message_id=done.provider_message_id,
+        input_tokens=done.input_tokens,
+        output_tokens=done.output_tokens,
+        networked=networked,
+    )
+
+
+def stream_converse(code: str, user: str, *, facts: str, transport=None):
+    """Yield `("chunk", text)` then `("final", Speech)`.
+
+    `model_generated` is set only when the response includes a provider message id.
+    """
+
+    global _cached, _calls, _spent
+    if transport is None and not credential_present():
+        yield ("final", _offline("missing_key", networked=False))
+        return
+    system = _system_for(code, facts)
     if transport is not None:
-        return _complete(system, user, transport), 1
+        try:
+            done = _complete(system, user, transport)
+        except ClaudeError as exc:
+            yield ("final", _offline(exc.error_class, networked=False))
+            return
+        for piece in _piece(done.text):
+            yield ("chunk", piece)
+        yield ("final", _finish(done, networked=False, transport=transport))
+        return
     if _calls >= MAX_CALLS or _spent >= SPEND_CAP_USD:
-        raise ClaudeError("budget_exhausted")
+        yield ("final", _offline("budget_exhausted", networked=False))
+        return
     _calls += 1
     _spent += CALL_USD
     key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not key:
-        raise ClaudeError("missing_key")
+        yield ("final", _offline("missing_key", networked=False))
+        return
     body = json.dumps(
         {
             "model": _model_name(),
@@ -264,7 +384,11 @@ def _complete_stream(system: str, user: str, transport) -> tuple[str, int]:
         },
         method="POST",
     )
-    chunks: list[str] = []
+    parts: list[str] = []
+    message_id = ""
+    model_seen = ""
+    input_tokens: int | None = None
+    output_tokens: int | None = None
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
             if response.status != 200:
@@ -282,44 +406,18 @@ def _complete_stream(system: str, user: str, transport) -> tuple[str, int]:
                     continue
                 if event.get("type") == "error":
                     raise ClaudeError("provider_error")
+                if event.get("type") == "message_start":
+                    message = event.get("message") if isinstance(event.get("message"), dict) else {}
+                    message_id = str(message.get("id") or "")
+                    model_seen = str(message.get("model") or "")
+                    input_tokens = _ints(message.get("usage"), "input_tokens")
+                if event.get("type") == "message_delta":
+                    output_tokens = _ints(event.get("usage"), "output_tokens") or output_tokens
                 delta = event.get("delta") if isinstance(event.get("delta"), dict) else {}
-                if delta.get("type") == "text_delta":
-                    chunks.append(str(delta.get("text") or ""))
-    except urllib.error.HTTPError as exc:
-        raise ClaudeError(f"HTTPError:{exc.code}") from None
-    except urllib.error.URLError:
-        raise ClaudeError("URLError") from None
-    except TimeoutError:
-        raise ClaudeError("TimeoutError") from None
-    text = " ".join("".join(chunks).split())
-    if not text:
-        raise ClaudeError("empty_completion")
-    return text[:400], len(chunks)
-
-
-def converse(code: str, user: str, *, facts: str, transport=None) -> Speech:
-    """One founder reply. Failure stays simulated and must not be stored as Claude."""
-
-    global _cached
-    if transport is None and not credential_present():
-        return Speech(
-            origin="simulated",
-            text="",
-            claude="disconnected",
-            connected=False,
-            error_class="missing_key",
-        )
-    role = _ROLE.get(code, "You are a research desk. You do not trade.")
-    system = (
-        f"{role} {_COMMON} "
-        "Answer in plain English, at most two sentences. "
-        "Use only the facts below. If no task is assigned, say so. "
-        "Do not invent work, prices, filings, or news. "
-        "Do not say you researched a company. "
-        f"Facts: {facts[:1500]}"
-    )
-    try:
-        text, chunks = _complete_stream(system, user, transport)
+                if delta.get("type") == "text_delta" and delta.get("text"):
+                    piece = str(delta.get("text"))
+                    parts.append(piece)
+                    yield ("chunk", piece)
     except ClaudeError as exc:
         if transport is None:
             _cached = Probe(
@@ -329,37 +427,49 @@ def converse(code: str, user: str, *, facts: str, transport=None) -> Speech:
                 error_class=exc.error_class,
                 speech_origin="simulated",
             )
-        return Speech(
-            origin="simulated",
-            text="",
-            claude="disconnected",
-            connected=False,
-            error_class=exc.error_class,
-        )
-    if not acceptable(text):
-        return Speech(
-            origin="simulated",
-            text="",
-            claude="disconnected",
-            connected=False,
-            error_class="unsupported_claim",
-        )
-    if transport is None:
+        yield ("final", _offline(exc.error_class, networked=True))
+        return
+    except urllib.error.HTTPError as exc:
         _cached = Probe(
-            claude="connected",
-            connected=True,
+            claude="disconnected",
+            connected=False,
             credential_present=True,
-            error_class=None,
-            speech_origin="model_generated",
+            error_class=f"HTTPError:{exc.code}",
+            speech_origin="simulated",
         )
-    return Speech(
-        origin="model_generated",
-        text=text,
-        claude="connected",
-        connected=True,
-        model=_model_name(),
-        chunks=chunks,
+        yield ("final", _offline(f"HTTPError:{exc.code}", networked=True))
+        return
+    except urllib.error.URLError:
+        yield ("final", _offline("URLError", networked=True))
+        return
+    except TimeoutError:
+        yield ("final", _offline("TimeoutError", networked=True))
+        return
+    text = " ".join("".join(parts).split())
+    if not text:
+        yield ("final", _offline("empty_completion", networked=True))
+        return
+    done = Completion(
+        text=text[:400],
+        provider_message_id=message_id.strip() or None,
+        model=model_seen.strip() or _model_name(),
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        chunks=len(parts),
     )
+    yield ("final", _finish(done, networked=True, transport=None))
+
+
+def converse(code: str, user: str, *, facts: str, transport=None) -> Speech:
+    """One founder reply. Failure stays simulated and must not be stored as Claude."""
+
+    final: Speech | None = None
+    for kind, payload in stream_converse(code, user, facts=facts, transport=transport):
+        if kind == "final" and isinstance(payload, Speech):
+            final = payload
+    if final is None:
+        return _offline("empty_completion", networked=False)
+    return final
 
 
 def speak(code: str, transport=None) -> Speech:
@@ -376,7 +486,7 @@ def speak(code: str, transport=None) -> Speech:
         )
     role = _ROLE.get(code, "You are a research desk. You do not trade.")
     try:
-        text = _complete(
+        done = _complete(
             f"{role} {_COMMON}",
             "State your current paper-research task in one English sentence.",
             transport,
@@ -389,9 +499,22 @@ def speak(code: str, transport=None) -> Speech:
             connected=False,
             error_class=exc.error_class,
         )
+    if not done.provider_message_id:
+        return Speech(
+            origin="simulated",
+            text=mock_line(code),
+            claude="disconnected",
+            connected=False,
+            error_class="missing_provider_id",
+        )
     return Speech(
         origin="model_generated",
-        text=text,
+        text=done.text,
         claude="connected",
         connected=True,
+        model=done.model or _model_name(),
+        provider_message_id=done.provider_message_id,
+        input_tokens=done.input_tokens,
+        output_tokens=done.output_tokens,
+        chunks=done.chunks,
     )

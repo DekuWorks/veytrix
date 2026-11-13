@@ -21,6 +21,13 @@ export function truncate(text: string, limit = BUBBLE_CHARS): string {
   return flat.length <= limit ? flat : `${flat.slice(0, limit - 1).trimEnd()}…`;
 }
 
+/** At most two sentences, so a bubble cannot cover the floor with a paragraph. */
+export function twoSentences(text: string): string {
+  const flat = truncate(text, 280);
+  const parts = flat.split(/(?<=[.!?])\s+/).filter(Boolean);
+  return parts.slice(0, 2).join(" ");
+}
+
 function isAgentCode(value: string): value is AgentCode {
   return (AGENT_CODES as readonly string[]).includes(value);
 }
@@ -40,7 +47,7 @@ export function toSpeech(
   return {
     id: message.message_id,
     code: message.sender_id,
-    text: truncate(message.content),
+    text: twoSentences(message.content),
     origin: message.origin,
     label: ORIGIN_TAG[message.origin],
     conversationId: message.conversation_id,

@@ -1194,45 +1194,64 @@ def test_floor_reports_are_english_verified_and_cannot_trade(client: TestClient)
 def test_roads_assigns_astra_and_cipher_and_quotes_stored_replies(
     client: TestClient, db: Session
 ) -> None:
+    from veytrix_api.worker import drain
+
     before = db.scalar(select(func.count()).select_from(Mac01OrderRow))
     conv = direct(client, "SUPERVISOR-01")
     response = send(client, conv, "Have Astra and Cipher research NVIDIA.")
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["execution_permitted"] is False and body["order_submitted"] is False
-    senders = [message["sender_id"] for message in body["messages"]]
-    assert senders[0] == "HUMAN"
-    assert "RESEARCH-01" in senders and "DEFI-01" in senders
-    summary = next(message for message in body["messages"] if message["kind"] == "summary")
+    assert [message["sender_id"] for message in body["messages"]][:2] == ["HUMAN", "SUPERVISOR-01"]
+    assert body["messages"][1]["kind"] == "assignment"
+    assert body["messages"][1]["origin"] == "tool_verified"
+    queued = db.execute(
+        text(
+            """
+            SELECT status FROM private.research_tasks
+            WHERE conversation_id = :cid
+            """
+        ),
+        {"cid": conv},
+    ).all()
+    assert queued and {row[0] for row in queued} == {"queued"}
+    drain(db)
+    stored = client.get(f"/api/v1/comms/conversations/{conv}/messages").json()["messages"]
+    senders = [message["sender_id"] for message in stored]
+    assert "RESEARCH-01" in senders and "DEFI-01" in senders and "RISK-01" in senders
+    summary = next(message for message in stored if message["kind"] == "summary")
     assert summary["sender_id"] == "SUPERVISOR-01"
     assert summary["origin"] == "tool_verified"
     assert summary["origin"] != "model_generated"
-    assert "NVIDIA" in summary["content"]
+    assert "Verified findings: none" in summary["content"]
     assert "quoting stored replies" in summary["content"]
+    aegis = next(message for message in stored if message["sender_id"] == "RISK-01")
+    assert aegis["kind"] == "risk_assessment"
+    assert aegis["origin"] != "model_generated"
+    assert "Aegis:" in aegis["content"]
     for code in ("RESEARCH-01", "DEFI-01"):
-        reply = next(message for message in body["messages"] if message["sender_id"] == code)
+        reply = next(message for message in stored if message["sender_id"] == code)
         assert reply["origin"] == "scripted"
         assert reply["origin"] != "model_generated"
         assert reply["task_id"]
         assert "NVIDIA" in reply["content"]
         assert "no findings" in reply["content"].lower()
         assert "i researched" not in reply["content"].lower()
-    stored = client.get(f"/api/v1/comms/conversations/{conv}/messages").json()["messages"]
-    assert [message["message_id"] for message in stored] == [
-        message["message_id"] for message in body["messages"]
-    ]
     rows = db.execute(
         text(
             """
             SELECT assignee_code, subject, status, evidence_message_id IS NOT NULL
             FROM private.research_tasks
+            WHERE conversation_id = :cid
             ORDER BY assignee_code
             """
-        )
+        ),
+        {"cid": conv},
     ).all()
     assert rows == [
-        ("DEFI-01", "NVIDIA", "reported", True),
-        ("RESEARCH-01", "NVIDIA", "reported", True),
+        ("DEFI-01", "NVIDIA", "blocked", True),
+        ("RESEARCH-01", "NVIDIA", "blocked", True),
+        ("RISK-01", "NVIDIA", "completed", True),
     ]
     listed = client.get("/api/v1/comms/conversations").json()["conversations"]
     assert any(item["title"] == "Research: NVIDIA" for item in listed)
@@ -1243,3 +1262,177 @@ def test_roads_assigns_astra_and_cipher_and_quotes_stored_replies(
     assert follow["origin"] == "tool_verified"
     assert "i researched" not in follow["content"].lower()
     assert db.scalar(select(func.count()).select_from(Mac01OrderRow)) == before
+
+
+def test_stream_sends_a_chunk_before_the_stored_reply(client: TestClient) -> None:
+    conv = direct(client, "RESEARCH-01")
+    with client.stream(
+        "POST",
+        f"/api/v1/comms/conversations/{conv}/messages/stream",
+        json={"content": "What are you working on?"},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+    assert body.index("event: chunk") < body.index("event: done")
+    assert '"origin": "model_generated"' not in body
+    assert '"origin": "tool_verified"' in body
+    assert '"execution_permitted": false' in body
+    again = client.get(f"/api/v1/comms/conversations/{conv}/messages").json()["messages"]
+    assert again[-1]["origin"] == "tool_verified"
+    assert again[-1]["meta"].get("provider_message_id") is None
+
+
+def test_provider_failure_retries_then_stays_honest(client: TestClient, db: Session) -> None:
+    from veytrix_api.claude_provider import ClaudeError
+    from veytrix_api.worker import drain
+
+    before = db.scalar(select(func.count()).select_from(Mac01OrderRow))
+    conv = direct(client, "SUPERVISOR-01")
+    sent = send(client, conv, "coordinate an NVIDIA research review")
+    assert sent.status_code == 200, sent.text
+    calls = {"n": 0}
+
+    def transport(_system: str, _user: str):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise ClaudeError("HTTPError:500")
+        return 200, {
+            "id": "msg_retry_1",
+            "model": "claude-haiku-4-5",
+            "usage": {"input_tokens": 2, "output_tokens": 3},
+            "content": [{"type": "text", "text": "No stored source. No findings."}],
+        }
+
+    drain(db, transport=transport)
+    rows = db.execute(
+        text(
+            """
+            SELECT assignee_code, status, attempt_count, evidence_message_id IS NOT NULL
+            FROM private.research_tasks
+            WHERE conversation_id = :cid
+            ORDER BY assignee_code
+            """
+        ),
+        {"cid": conv},
+    ).all()
+    assert {row[0] for row in rows} == {"DEFI-01", "RESEARCH-01", "RISK-01"}
+    assert any(row[2] >= 1 for row in rows)
+    assert all(row[1] != "completed" or row[0] == "RISK-01" for row in rows)
+    assert all(row[3] for row in rows)
+    stored = client.get(f"/api/v1/comms/conversations/{conv}/messages").json()["messages"]
+    model_lines = [message for message in stored if message["origin"] == "model_generated"]
+    assert model_lines
+    assert all(
+        message["meta"].get("provider_message_id") == "msg_retry_1" for message in model_lines
+    )
+    assert all(message["meta"].get("provider") == "anthropic" for message in model_lines)
+    summary = next(message for message in stored if message["kind"] == "summary")
+    assert summary["origin"] == "tool_verified"
+    assert "Verified findings" in summary["content"]
+    assert db.scalar(select(func.count()).select_from(Mac01OrderRow)) == before
+
+
+def test_repeated_provider_failure_ends_failed_without_a_model_label(
+    client: TestClient, db: Session
+) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    from veytrix_api.claude_provider import ClaudeError
+    from veytrix_api.worker import drain
+
+    conv = direct(client, "SUPERVISOR-01")
+    assert send(client, conv, "coordinate a SOL research review").status_code == 200
+
+    def transport(_system: str, _user: str):
+        raise ClaudeError("HTTPError:500")
+
+    drain(db, transport=transport, limit=8)
+    rows = db.execute(
+        text(
+            """
+            SELECT status FROM private.research_tasks
+            WHERE conversation_id = :cid
+            """
+        ),
+        {"cid": conv},
+    ).all()
+    assert rows and {row[0] for row in rows} == {"failed"}
+    stored = client.get(f"/api/v1/comms/conversations/{conv}/messages").json()["messages"]
+    assert all(message["origin"] != "model_generated" for message in stored)
+    with pytest.raises(IntegrityError):
+        db.execute(
+            text(
+                """
+                UPDATE private.research_tasks
+                SET status = 'completed', evidence_message_id = NULL
+                WHERE conversation_id = :cid
+                """
+            ),
+            {"cid": conv},
+        )
+        db.commit()
+    db.rollback()
+
+
+def test_heartbeat_is_offline_until_a_worker_writes_one(client: TestClient, db: Session) -> None:
+    from veytrix_api.worker import beat_floor
+
+    db.execute(text("DELETE FROM private.agent_presence"))
+    db.commit()
+    cold = client.get("/api/v1/comms/presence").json()
+    assert cold["execution_permitted"] is False and cold["order_submitted"] is False
+    assert all(agent["lifecycle"] == "offline" for agent in cold["agents"])
+    assert all(agent["heartbeat_fresh"] is False for agent in cold["agents"])
+    beat_floor(db, "worker-test")
+    db.commit()
+    warm = client.get("/api/v1/comms/presence").json()
+    assert all(agent["heartbeat_fresh"] is True for agent in warm["agents"])
+    assert all(agent["lifecycle"] != "offline" for agent in warm["agents"])
+    db.execute(
+        text("UPDATE private.agent_presence SET heartbeat_at = now() - interval '2 minutes'")
+    )
+    db.commit()
+    stale = client.get("/api/v1/comms/presence").json()
+    assert all(agent["lifecycle"] == "offline" for agent in stale["agents"])
+    assert all(agent["heartbeat_fresh"] is False for agent in stale["agents"])
+
+
+def test_a_contradictory_model_review_is_not_stored_as_claude(
+    client: TestClient, db: Session
+) -> None:
+    from veytrix_api.worker import drain
+
+    conv = direct(client, "SUPERVISOR-01")
+    assert send(client, conv, "coordinate a MEMO research review").status_code == 200
+
+    def transport(_system: str, _user: str):
+        return 200, {
+            "id": "msg_contradicts",
+            "model": "claude-haiku-4-5",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "No task is assigned. I cannot provide a review.",
+                }
+            ],
+        }
+
+    drain(db, transport=transport)
+    stored = client.get(f"/api/v1/comms/conversations/{conv}/messages").json()["messages"]
+    aegis = next(message for message in stored if message["sender_id"] == "RISK-01")
+    assert aegis["origin"] != "model_generated"
+    assert aegis["meta"].get("provider_message_id") is None
+    assert "blocked" in aegis["content"].lower()
+    assert "no task is assigned" not in aegis["content"].lower()
+    rows = db.execute(
+        text(
+            """
+            SELECT assignee_code, status FROM private.research_tasks
+            WHERE conversation_id = :cid
+            """
+        ),
+        {"cid": conv},
+    ).all()
+    assert ("RESEARCH-01", "blocked") in rows
+    assert ("DEFI-01", "blocked") in rows
+    assert ("RISK-01", "completed") in rows

@@ -1,5 +1,6 @@
 import { apiGet, apiPatch, apiPost } from "../api/client";
 import type { AgentCode } from "../api/types";
+import { takeEvents } from "./stream";
 import type {
   CommsMessage,
   Conversation,
@@ -8,6 +9,7 @@ import type {
 } from "./types";
 
 const BASE = "/api/v1/comms";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 type MessagePage = {
   conversation_id: string;
@@ -69,6 +71,76 @@ export function sendMessage(conversationId: string, content: string): Promise<Se
     content,
     client_message_id: crypto.randomUUID().replace(/-/g, "").slice(0, 32),
   });
+}
+
+export type TaskRow = {
+  id: string;
+  assignee_code: string;
+  subject: string;
+  status: "queued" | "running" | "blocked" | "completed" | "failed";
+  kind: "research" | "review";
+  evidence_message_id: string | null;
+  blocked_reason: string | null;
+  attempt_count: number;
+};
+
+export function loadTasks(conversationId?: string): Promise<TaskRow[]> {
+  const suffix = conversationId ? `?conversation_id=${conversationId}` : "";
+  return apiGet<{ tasks: TaskRow[] }>(`${BASE}/tasks${suffix}`).then((body) => body.tasks);
+}
+
+export async function sendMessageStream(
+  conversationId: string,
+  content: string,
+  handlers: {
+    onChunk: (text: string) => void;
+    signal?: AbortSignal;
+  },
+): Promise<SendResult> {
+  const response = await fetch(`${API_BASE}${BASE}/conversations/${conversationId}/messages/stream`, {
+    method: "POST",
+    headers: {
+      Accept: "text/event-stream",
+      "Content-Type": "application/json",
+      "X-Correlation-ID": crypto.randomUUID(),
+    },
+    body: JSON.stringify({
+      content,
+      client_message_id: crypto.randomUUID().replace(/-/g, "").slice(0, 32),
+    }),
+    credentials: "omit",
+    signal: handlers.signal,
+  });
+  if (!response.ok || response.body === null) {
+    throw new Error(`The stream answered ${response.status}.`);
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: SendResult | null = null;
+  while (true) {
+    const step = await reader.read();
+    if (step.done) {
+      break;
+    }
+    buffer += decoder.decode(step.value, { stream: true });
+    const taken = takeEvents(buffer);
+    buffer = taken.rest;
+    for (const item of taken.events) {
+      const payload = JSON.parse(item.data) as Record<string, unknown>;
+      if (item.event === "chunk" && typeof payload.text === "string") {
+        handlers.onChunk(payload.text);
+      } else if (item.event === "error") {
+        throw new Error(typeof payload.detail === "string" ? payload.detail : "The stream failed.");
+      } else if (item.event === "done") {
+        result = payload as unknown as SendResult;
+      }
+    }
+  }
+  if (result === null) {
+    throw new Error("The stream ended before a stored reply.");
+  }
+  return result;
 }
 
 export function startDiscussion(

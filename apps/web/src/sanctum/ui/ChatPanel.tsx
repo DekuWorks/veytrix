@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ApiError, errorDetail } from "../../api/client";
 import type { AgentCode } from "../../api/types";
-import { loadMessages, markRead, openDirect, sendMessage } from "../../comms/api";
+import { loadMessages, loadTasks, markRead, openDirect, sendMessageStream, type TaskRow } from "../../comms/api";
 import type { CommsMessage, Conversation, SendResult } from "../../comms/types";
 import { ChatThread } from "./ChatThread";
 import "./comms.css";
@@ -47,6 +47,8 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<CommsMessage[]>([]);
+  const [live, setLive] = useState("");
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,7 @@ export function ChatPanel({
   const [failed, setFailed] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
+  const abort = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -85,6 +88,34 @@ export function ChatPanel({
     }
   }, [loading, error, code]);
 
+  useEffect(() => {
+    if (!conversation) {
+      return;
+    }
+    let stop = false;
+    const tick = () => {
+      void loadTasks(conversation.conversation_id)
+        .then((rows) => {
+          if (!stop) {
+            setTasks(rows);
+          }
+        })
+        .catch(() => undefined);
+      void loadMessages(conversation.conversation_id)
+        .then((rows) => {
+          if (!stop && rows.length > 0) {
+            setMessages((current) => (rows.length >= current.length ? rows : current));
+          }
+        })
+        .catch(() => undefined);
+    };
+    const id = window.setInterval(tick, 2000);
+    return () => {
+      stop = true;
+      window.clearInterval(id);
+    };
+  }, [conversation]);
+
   async function send(text: string) {
     const content = text.trim();
     if (!content || busy) {
@@ -93,27 +124,45 @@ export function ChatPanel({
     setBusy(true);
     setFailed(null);
     setNote(null);
+    setLive("");
+    const controller = new AbortController();
+    abort.current = controller;
     try {
       const conv = conversation ?? (await openDirect(code));
       if (!conversation) {
         setConversation(conv);
         setError(null);
       }
-      const result = await sendMessage(conv.conversation_id, content);
+      const result = await sendMessageStream(conv.conversation_id, content, {
+        signal: controller.signal,
+        onChunk: (piece) => setLive((current) => `${current}${piece}`),
+      });
       setConversation(result.conversation);
       setMessages((current) => {
         const known = new Set(current.map((m) => m.message_id));
         return [...current, ...result.messages.filter((m) => !known.has(m.message_id))];
       });
       setDraft("");
+      setLive("");
       onResult(result);
       if (result.errors.length > 0) {
         setNote(`Not every reply was written: ${result.errors.join(", ")}.`);
       }
     } catch (caught) {
-      setFailed(content);
-      setNote(failure(caught));
+      if (controller.signal.aborted) {
+        setNote("Cancelled. No second model call was started.");
+        if (conversation) {
+          void loadMessages(conversation.conversation_id).then(setMessages).catch(() => undefined);
+        }
+      } else {
+        setFailed(content);
+        setNote(failure(caught));
+        if (conversation) {
+          void loadMessages(conversation.conversation_id).then(setMessages).catch(() => undefined);
+        }
+      }
     } finally {
+      abort.current = null;
       setBusy(false);
     }
   }
@@ -175,8 +224,17 @@ export function ChatPanel({
             label={`Transcript with ${name}`}
             messages={messages}
             pending={busy ? name : null}
+            liveText={live}
             empty={`No messages with ${name} yet. Ask a question below.`}
           />
+          {tasks.some((task) => task.status === "queued" || task.status === "running") ? (
+            <p className="cx-note" role="status">
+              {tasks
+                .filter((task) => task.status === "queued" || task.status === "running")
+                .map((task) => `${task.assignee_code} is ${task.status}`)
+                .join(". ")}
+            </p>
+          ) : null}
           <div className="task-row" role="group" aria-label="Quick questions">
             {QUICK.map((question) => (
               <button
@@ -221,6 +279,15 @@ export function ChatPanel({
             <button type="submit" className="vx-btn" disabled={busy || draft.trim().length === 0}>
               {busy ? "Sending…" : "Send"}
             </button>
+            {busy ? (
+              <button
+                type="button"
+                className="vx-btn"
+                onClick={() => abort.current?.abort()}
+              >
+                Cancel
+              </button>
+            ) : null}
           </form>
       </>
     </section>
