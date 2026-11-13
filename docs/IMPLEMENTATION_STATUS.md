@@ -6,7 +6,22 @@ Date: 13 November 2026. Branch: `feature/phase-0-reconnaissance`. The audit comm
 
 The registry read path accepts `status` `enabled` as well as `disabled` and `paused`. Trading flags stay false. No Alembic revision was added or applied, because the live database is already at the preview's `0012` and this branch does not contain `0011`. F1 Skyview was not started: it lives on the other branch, and merging the two trees was not part of this change.
 
-The earlier runtime seam is unchanged: `VEYTRIX_MODE` defaults to `development`, live mode refuses to boot, and the provider posture stays simulated or disconnected. Claude, Supabase, and Alpaca were not called. YIELD was not inserted. `FUTURES-01` was not removed. Vite and the API were not restarted.
+The earlier runtime seam is unchanged: `VEYTRIX_MODE` defaults to `development`, live mode refuses to boot, and the provider posture stays simulated or disconnected. YIELD was not inserted. `FUTURES-01` was not removed.
+
+## Connectivity check, 13 November 2026
+
+The API on `127.0.0.1:8000` was down and was started again from the preview worktree. `VEYTRIX_ENV=local`. Live broker was not enabled. The database host used is loopback. No credential value is written here.
+
+| Provider | Present | Test | Result | Evidence |
+| --- | --- | --- | --- | --- |
+| PostgreSQL | yes, loopback | yes | connected | `GET /api/v1/ready` 200, `database` `up`. `GET /api/v1/agents` 200, 10 rows, status `enabled`, all four trading flags false. |
+| Claude (`ANTHROPIC_API_KEY` on the API process) | no | no | disconnected | `GET /api/v1/inference/language` 200, `credential_present` false, `speech_origin` `simulated`. No Anthropic call. |
+| Supabase server (`VEYTRIX_REALTIME_URL`, `VEYTRIX_REALTIME_SERVER_KEY`) | no | no | disconnected | `GET /api/v1/comms/flags` `realtime` `not_configured`. |
+| Supabase browser (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) | no | no | disconnected | Both missing in the Vite process. No role claim to decode. |
+| Alpaca paper (`ALPACA_PAPER_API_KEY`, `ALPACA_PAPER_SECRET_KEY`) | no | no | disconnected | Those names are missing. No account or clock call. Simulated orders stay available. |
+| Live brokerage | not enabled | no | disabled | `VEYTRIX_ENABLE_LIVE_BROKER` was not set. `MAC01_LIVE_CONFIRM` was not set. `GET /api/v1/strategies/mac-01/schedule` `running` false, `can_start` false. |
+
+Roads floor task: `POST /api/v1/comms/floor` returned 200, `duplicate` true, 10 messages, origin `tool_verified`, `order_submitted` false. That is the existing local-record report, not a Claude run. No schedule daemon was started. No YIELD row. The branches were not merged.
 
 Read `docs/ARCHITECTURE.md` for the two trees. Read `docs/MASTER_BUILD_PLAN.md` for task-level status. Nothing below is a claim that paper trading is in production.
 
