@@ -37,7 +37,7 @@ where = ["services/api", "services/market-data", "services/risk", "services/quan
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
-pythonpath = ["services/api", "services/market-data", "services/risk", "services/quant", "services/ai-research", "scripts", "apps/grok-assistant"]
+pythonpath = ["services/api", "services/market-data", "services/risk", "services/quant", "services/ai-research", "services/execution", "apps/grok-assistant", "scripts"]
 
 [tool.ruff]
 target-version = "py312"
@@ -51,7 +51,7 @@ select = ["E", "F", "I", "UP", "B"]
 "services/api/alembic/env.py" = ["E402"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["veytrix_ai", "veytrix_api", "veytrix_market", "veytrix_quant", "veytrix_risk"]
+known-first-party = ["veytrix_ai", "veytrix_api", "veytrix_market", "veytrix_quant", "veytrix_risk", "veytrix_execution", "grok_assistant"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["Depends", "Query", "Path", "fastapi.Depends", "fastapi.Query"]
