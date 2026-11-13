@@ -951,6 +951,105 @@ class AgentPresenceRow(Base):
     )
 
 
+class DeskRunRow(Base):
+    """One desk's latest paper cycle. Active only when a fresh source was read."""
+
+    __tablename__ = "desk_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "state IN ('active', 'idle', 'blocked', 'failed')",
+            name="ck_desk_runs_state",
+        ),
+        CheckConstraint("char_length(source_id) BETWEEN 1 AND 64", name="ck_desk_runs_source"),
+        {"schema": "private"},
+    )
+
+    agent_code: Mapped[str] = mapped_column(String(32), primary_key=True)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    heartbeat_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    data_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    block_reason: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    paper_fill_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    worker_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class PaperFillRow(Base):
+    """A local simulated fill. This row is not a broker order."""
+
+    __tablename__ = "paper_fills"
+    __table_args__ = (
+        UniqueConstraint("symbol", "bar_start", name="uq_paper_fills_bar"),
+        CheckConstraint("symbol = 'BTC-USD'", name="ck_paper_fills_symbol"),
+        CheckConstraint("price > 0", name="ck_paper_fills_price"),
+        CheckConstraint("quantity > 0", name="ck_paper_fills_quantity"),
+        CheckConstraint(
+            "execution_permitted = false AND order_submitted = false",
+            name="ck_paper_fills_not_a_broker_order",
+        ),
+        CheckConstraint("source_id = 'coinbase-exchange'", name="ck_paper_fills_source"),
+        {"schema": "private"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    agent_code: Mapped[str] = mapped_column(String(32), nullable=False)
+    symbol: Mapped[str] = mapped_column(String(16), nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(24, 8), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(24, 8), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    bar_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    execution_permitted: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    order_submitted: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class AlertAckRow(Base):
+    """The founder saw an alert. Acknowledging it does not change the task."""
+
+    __tablename__ = "alert_acks"
+    __table_args__ = {"schema": "private"}
+
+    task_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("private.research_tasks.id", name="fk_alert_acks_task"),
+        primary_key=True,
+    )
+    acked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SignalAuditRow(Base):
+    """A webhook that was recorded and rejected. No broker call is stored here."""
+
+    __tablename__ = "signal_audits"
+    __table_args__ = (
+        UniqueConstraint("fingerprint", name="uq_signal_audits_fingerprint"),
+        CheckConstraint(
+            "provider IN ('traderspost', 'signalstack')",
+            name="ck_signal_audits_provider",
+        ),
+        CheckConstraint(
+            "outcome IN ("
+            "'rejected_disabled', 'rejected_route', 'rejected_payload', "
+            "'rejected_duplicate', 'rejected_timeout', 'rejected_broker'"
+            ")",
+            name="ck_signal_audits_outcome",
+        ),
+        {"schema": "private"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    detail: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class ConversationSummaryRow(Base):
     __tablename__ = "conversation_summaries"
     __table_args__ = (

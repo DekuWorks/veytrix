@@ -56,3 +56,34 @@ The key was unset for pytest. One Roads stream and two specialist model calls we
 ## Not claimed
 
 Claude is connected for the calls above. The NVIDIA research workflow did not produce evidence-backed findings. Live trading is disabled.
+
+## Paper desk activation
+
+Branch `feature/paper-desk-activation` in this worktree, based on `b30d292`. Not pushed. Alembic on `127.0.0.1:5433` is `0015_desk_runs`. Port 5432 was not used.
+
+CRYPTO-01 is the only desk marked `active`. A live cycle read Coinbase daily candles, source `coinbase-exchange`, bar start `2026-11-13T00:00:00+00:00`. The close did not rise against the previous candle, so the rule wrote no fill. `paper_fills` stayed at 0 and `mac01_orders` stayed at 0. `VEYTRIX_ENABLE_LIVE_BROKER` stayed false. A unit cycle with a rising pair wrote one `BTC-USD` fill and a second cycle did not add another. That fill has `execution_permitted` false and `order_submitted` false.
+
+STOCK-01 and ETF-01 are `idle` with source `synthetic-sample` and reason `alpaca_market_data_absent`. They are not active. FUTURES-01 is `blocked` / `market_data_not_read`. DEFI-01 is `blocked` / `no_fresh_quote`. YIELD, NFT, TAX-LIEN, and LAND are `blocked` / `no_provider`. They are not registry desks and they have no prices.
+
+Acknowledging an alert inserts `private.alert_acks` and leaves the research task `blocked`. TraderPost and SignalStack adapters default to `rejected_disabled`. One selected route rejects the other provider. A valid payload is still `rejected_broker`. Market Gear and the Alpaca CLI are documented only. The CLI is not invoked.
+
+The market page already plots Coinbase candles with Lightweight Charts. SAMPLE stays labelled synthetic.
+
+Obsidian search and edit confirmation live in `apps/obsidian-assistant` and do not open a port. The Grok module in `apps/grok-assistant` keeps tenants apart, rate-limits, and does not call xAI or import trading code.
+
+| Check | Result |
+| --- | --- |
+| `npm --prefix apps/web ci` | PASS |
+| `npm --prefix apps/web run typecheck` | PASS |
+| `npm --prefix apps/web test` | PASS, 288 tests |
+| `npm --prefix apps/web run build` | PASS |
+| `ruff check` and `pytest` | PASS, 466 tests |
+| `scripts/scan_secrets.py` | PASS, no findings |
+| `node --test apps/obsidian-assistant/vault.test.mjs` | PASS, 3 tests |
+| Paper soak on the scratch database | PASS, one fill then no duplicate, ack leaves the task blocked |
+| Live Coinbase cycle | PASS for a fresh read. No fill, because the close did not rise |
+| Alpaca paper read | BLOCKED, paper keys are absent |
+| YIELD, NFT, tax liens, land | BLOCKED, `no_provider` |
+| Broker order | Not sent |
+
+This is not 100 percent complete. Stock, ETF, futures, and DeFi desks have no fresh feed. No live-money order was sent.

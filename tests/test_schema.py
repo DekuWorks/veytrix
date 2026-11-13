@@ -39,6 +39,10 @@ def test_metadata_matches_the_baseline_tables() -> None:
         "private.research_tasks",
         "private.task_events",
         "private.model_calls",
+        "private.desk_runs",
+        "private.paper_fills",
+        "private.alert_acks",
+        "private.signal_audits",
         "private.conversations",
         "private.conversation_members",
         "private.messages",
@@ -560,8 +564,12 @@ def test_alembic_upgrade_on_postgres_16(monkeypatch: pytest.MonkeyPatch) -> None
         "conversations": (True, True),
         "message_events": (True, True),
         "messages": (True, True),
+        "alert_acks": (True, True),
+        "desk_runs": (True, True),
         "model_calls": (True, True),
+        "paper_fills": (True, True),
         "research_tasks": (True, True),
+        "signal_audits": (True, True),
         "task_events": (True, True),
     }
     assert view_options is not None

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { apiGet } from "../api/client";
+import { apiGet, apiPost } from "../api/client";
 import {
   type AgentCode,
   type AgentDesk,
@@ -163,6 +163,7 @@ export function SanctumPage() {
   const [activity, setActivity] = useState<Record<string, string>>({});
   const [taskNotes, setTaskNotes] = useState<{ id: string; text: string }[]>([]);
   const [acked, setAcked] = useState<string[]>([]);
+  const [deskLine, setDeskLine] = useState("Desk status unread.");
   const comms = useComms();
 
   useEffect(() => {
@@ -214,6 +215,22 @@ export function SanctumPage() {
                 text: `${task.assignee_code} · ${task.subject} is ${task.status}.`,
               })),
           );
+        })
+        .catch(() => undefined);
+      void apiGet<{ desks: { agent_code: string; state: string; block_reason: string | null }[] }>(
+        "/api/v1/desks/runs",
+      )
+        .then((body) => {
+          if (stop) {
+            return;
+          }
+          const crypto = body.desks.find((row) => row.agent_code === "CRYPTO-01");
+          if (!crypto) {
+            setDeskLine("CRYPTO-01 has not reported. No order is sent.");
+            return;
+          }
+          const reason = crypto.block_reason ? ` (${crypto.block_reason})` : "";
+          setDeskLine(`CRYPTO-01 is ${crypto.state}${reason}. Paper only. No order is sent.`);
         })
         .catch(() => undefined);
     };
@@ -510,7 +527,15 @@ export function SanctumPage() {
                 .map((note) => (
                   <span key={note.id}>
                     {note.text}{" "}
-                    <button type="button" className="vx-btn" onClick={() => setAcked((current) => [...current, note.id])}>
+                    <button
+                      type="button"
+                      className="vx-btn"
+                      onClick={() => {
+                        void apiPost<{ status: string }>(`/api/v1/desks/alerts/${note.id}/ack`, {}).then(() => {
+                          setAcked((current) => [...current, note.id]);
+                        });
+                      }}
+                    >
                       Acknowledge
                     </button>
                   </span>
@@ -519,7 +544,9 @@ export function SanctumPage() {
           ) : null}
           {showFloor && comms.notice ? <p className="cx-floor-note">{comms.notice}</p> : null}
           {showFloor && rail === "floor" ? (
-            <p className="floor-caption">Floor view. The desks stay clickable. No order is sent.</p>
+            <p className="floor-caption">
+              Floor view. The desks stay clickable. {deskLine}
+            </p>
           ) : null}
           {showFloor && rail === "cameras" ? (
             <p className="floor-caption">Cameras frame the floor. Pan and zoom stay on the floor. No order is sent.</p>

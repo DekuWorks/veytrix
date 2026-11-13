@@ -1,6 +1,48 @@
 {
   "components": {
     "schemas": {
+      "AckResult": {
+        "properties": {
+          "acknowledged": {
+            "title": "Acknowledged",
+            "type": "boolean"
+          },
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "format": "uuid",
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "status",
+          "acknowledged"
+        ],
+        "title": "AckResult",
+        "type": "object"
+      },
       "AgentDesk": {
         "description": "One registry row. The literals below cannot be flipped by a response.",
         "properties": {
@@ -903,6 +945,105 @@
           "tools"
         ],
         "title": "DeskDetailResponse",
+        "type": "object"
+      },
+      "DeskRunList": {
+        "properties": {
+          "desks": {
+            "items": {
+              "$ref": "#/components/schemas/DeskRunOut"
+            },
+            "title": "Desks",
+            "type": "array"
+          },
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "desks"
+        ],
+        "title": "DeskRunList",
+        "type": "object"
+      },
+      "DeskRunOut": {
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "block_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Reason"
+          },
+          "data_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data At"
+          },
+          "heartbeat_at": {
+            "title": "Heartbeat At",
+            "type": "string"
+          },
+          "paper_fill_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paper Fill Id"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_code",
+          "state",
+          "source_id",
+          "block_reason",
+          "data_at",
+          "paper_fill_id",
+          "heartbeat_at"
+        ],
+        "title": "DeskRunOut",
         "type": "object"
       },
       "DiagnosticsResponse": {
@@ -4703,6 +4844,53 @@
         "title": "ShieldPreviewResponse",
         "type": "object"
       },
+      "SignalResult": {
+        "properties": {
+          "broker_called": {
+            "const": "false",
+            "default": "false",
+            "title": "Broker Called",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "outcome",
+          "detail"
+        ],
+        "title": "SignalResult",
+        "type": "object"
+      },
       "SizeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -6974,6 +7162,71 @@
         ]
       }
     },
+    "/api/v1/desks/alerts/{task_id}/ack": {
+      "post": {
+        "description": "Record that the founder saw the alert. The task status is not changed.",
+        "operationId": "acknowledge_api_v1_desks_alerts__task_id__ack_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AckResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Acknowledge",
+        "tags": [
+          "desks"
+        ]
+      }
+    },
+    "/api/v1/desks/runs": {
+      "get": {
+        "operationId": "list_runs_api_v1_desks_runs_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeskRunList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Runs",
+        "tags": [
+          "desks"
+        ]
+      }
+    },
     "/api/v1/diagnostics": {
       "get": {
         "operationId": "diagnostics_api_v1_diagnostics_get",
@@ -7824,6 +8077,80 @@
         "summary": "Size Endpoint",
         "tags": [
           "risk"
+        ]
+      }
+    },
+    "/api/v1/signals/{provider}": {
+      "post": {
+        "operationId": "receive_api_v1_signals__provider__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "strategy",
+            "required": false,
+            "schema": {
+              "default": "unset",
+              "title": "Strategy",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "account",
+            "required": false,
+            "schema": {
+              "default": "unset",
+              "title": "Account",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Payload",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Receive",
+        "tags": [
+          "signals"
         ]
       }
     },

@@ -7,6 +7,7 @@ import { AppRoutes } from "../App";
 
 vi.mock("../api/client", () => ({
   apiGet: vi.fn(),
+  apiPost: vi.fn(),
 }));
 
 vi.mock("../sanctum/game", () => ({
@@ -171,6 +172,13 @@ describe("sanctum route", () => {
       }
       if (path.startsWith("/api/v1/comms/conversations")) {
         return Promise.resolve({ conversations: [] });
+      }
+      if (path === "/api/v1/desks/runs") {
+        return Promise.resolve({
+          desks: [{ agent_code: "CRYPTO-01", state: "blocked", block_reason: "coinbase_unavailable" }],
+          execution_permitted: false,
+          order_submitted: false,
+        });
       }
       return Promise.reject(new Error(path));
     });

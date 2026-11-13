@@ -36,7 +36,7 @@ def _reachable(url: str) -> bool:
         return False
 
 
-def scratch_database() -> str:
+def scratch_database(name: str = SCRATCH) -> str:
     """Return the scratch URL after migrating it, or skip the calling test module."""
 
     source = os.environ.get("DATABASE_URL", DEFAULT)
@@ -55,17 +55,15 @@ def scratch_database() -> str:
 
     from veytrix_api.settings import get_settings
 
-    url = _swap(source, SCRATCH)
+    url = _swap(source, name)
     raw_admin = admin.replace("postgresql+psycopg://", "postgresql://", 1)
     raw_test = url.replace("postgresql+psycopg://", "postgresql://", 1)
     with psycopg.connect(raw_admin, autocommit=True, connect_timeout=2) as connection:
         if (
-            connection.execute(
-                "SELECT 1 FROM pg_database WHERE datname = %s", (SCRATCH,)
-            ).fetchone()
+            connection.execute("SELECT 1 FROM pg_database WHERE datname = %s", (name,)).fetchone()
             is None
         ):
-            connection.execute(f"CREATE DATABASE {SCRATCH}")
+            connection.execute(f"CREATE DATABASE {name}")
     with psycopg.connect(raw_test, autocommit=True, connect_timeout=2) as connection:
         connection.execute("DROP SCHEMA IF EXISTS private CASCADE")
         connection.execute("DROP SCHEMA public CASCADE")

@@ -37,7 +37,7 @@ where = ["services/api", "services/market-data", "services/risk", "services/quan
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
-pythonpath = ["services/api", "services/market-data", "services/risk", "services/quant", "services/ai-research", "scripts"]
+pythonpath = ["services/api", "services/market-data", "services/risk", "services/quant", "services/ai-research", "scripts", "apps/grok-assistant"]
 
 [tool.ruff]
 target-version = "py312"

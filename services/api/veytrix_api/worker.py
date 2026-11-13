@@ -651,6 +651,23 @@ def drain(db: Session, *, transport=None, worker_id: str = "local", limit: int =
     return done
 
 
+def _cycle_desks(db: Session, worker_id: str) -> None:
+    """One paper cycle. A Coinbase failure is stored as failed and does not raise."""
+
+    from veytrix_api.desks import cycle_desks
+    from veytrix_market.coinbase import get_daily
+
+    def fetch() -> list[tuple[datetime, Decimal]]:
+        series = get_daily("BTC-USD", limit=5)
+        return [(bar.bar_start, bar.close) for bar in series.bars]
+
+    try:
+        cycle_desks(db, fetch=fetch, worker_id=worker_id)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
 def main() -> None:
     """Loop until SIGINT or SIGTERM. `--once` still drains a single batch for tests."""
 
@@ -669,6 +686,7 @@ def main() -> None:
     while not stop:
         with Session(engine) as db:
             drain(db, worker_id=worker_id)
+            _cycle_desks(db, worker_id)
         if once or stop:
             return
         for _ in range(4):
