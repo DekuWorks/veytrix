@@ -8,6 +8,14 @@ The registry read path accepts `status` `enabled` as well as `disabled` and `pau
 
 The earlier runtime seam is unchanged: `VEYTRIX_MODE` defaults to `development`, live mode refuses to boot, and the provider posture stays simulated or disconnected. YIELD was not inserted. `FUTURES-01` was not removed.
 
+## Founder-to-Roads chat, 13 November 2026
+
+Clicking Roads on the preview sky view opens the existing chat. A stored hello is answered with origin `scripted` and the words "Claude is offline". It is not `model_generated`. `ANTHROPIC_API_KEY` is missing, so no Claude call was made. `live_execution` stays false. Test: `tests/test_roads_offline.py`.
+
+Identity was not changed. Nyx is already `CRYPTO-01`. Cipher is still `DEFI-01` and Vex is still `STOCK-01`. Swapping them would break the pinned roster. YIELD was not added. `ck_agents_code` allows ten codes only, and the roster tests require those ten. `FUTURES-01` stays. There is no heartbeat, so enabled is registry status, not online or working.
+
+Not done: boardroom UI expansion, always-on jobs, a conversation with every desk, and voice.
+
 ## Connectivity check, 13 November 2026
 
 The API on `127.0.0.1:8000` was down and was started again from the preview worktree. `VEYTRIX_ENV=local`. Live broker was not enabled. The database host used is loopback. No credential value is written here.

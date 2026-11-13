@@ -102,6 +102,8 @@ Preserve while changing this phase: scrollable Live Activity Feed, `.thought.liv
 
 Phase 2 gate: not met. The live page is a 2D room, not the 3D headquarters.
 
+Founder-to-Roads chat is partial as of 13 November 2026: the existing panel stores a message and, with no Claude key, replies `scripted` that Claude is offline. Boardroom UI expansion, always-on jobs, every-desk conversations, and voice are not done.
+
 ## Phase 3 — Claude agent runtime
 
 Goal: a server-side model adapter whose output cannot trade. Cursor is for writing code, not for production inference. There is no Anthropic adapter and no model key. Do not invent `model_generated` text.
