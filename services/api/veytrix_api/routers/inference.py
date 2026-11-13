@@ -7,6 +7,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
+from veytrix_api.claude_provider import probe
 from veytrix_api.model_router import PERSONAS, RouteDecision, route_task
 from veytrix_api.settings import Settings
 
@@ -23,6 +24,21 @@ class InferencePosture(BaseModel):
     execution_permitted: bool = False
     order_submitted: bool = False
     auto_purchase: bool = False
+
+
+class LanguagePosture(BaseModel):
+    """Shared desk model. No key and no order field."""
+
+    claude: str
+    connected: bool
+    credential_present: bool
+    speech_origin: str
+    orders: str = "simulated"
+    alpaca_paper: str = "disconnected"
+    live: str = "disabled"
+    error_class: str | None = None
+    execution_permitted: bool = False
+    order_submitted: bool = False
 
 
 class InferenceRequest(BaseModel):
@@ -70,6 +86,20 @@ def inference_posture(request: Request) -> InferencePosture:
         spent_usd=Decimal("0"),
         ollama_configured=bool(settings.ollama_url),
         personas=dict(PERSONAS),
+    )
+
+
+@router.get("/language", response_model=LanguagePosture)
+def language_posture() -> LanguagePosture:
+    """Report the shared model. Does not call Claude when the key is absent."""
+
+    status = probe()
+    return LanguagePosture(
+        claude=status.claude,
+        connected=status.connected,
+        credential_present=status.credential_present,
+        speech_origin=status.speech_origin,
+        error_class=status.error_class,
     )
 
 

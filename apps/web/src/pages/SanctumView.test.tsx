@@ -31,6 +31,10 @@ describe("sanctum sky view memory", () => {
 
     expect(screen.getByRole("heading", { name: "Wednesday boardroom" })).toBeInTheDocument();
     expect(screen.getByText(/No calendar event is created/)).toBeInTheDocument();
+    expect(screen.getByText("Claude: disconnected")).toBeInTheDocument();
+    expect(screen.getByText("Model speech: simulated")).toBeInTheDocument();
+    expect(screen.getByText("Alpaca paper: disconnected")).toBeInTheDocument();
+    expect(screen.queryByText("Claude: connected")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Return to Sky View" }));
 

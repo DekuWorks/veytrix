@@ -155,6 +155,8 @@ export function SanctumPage() {
   const [personas, setPersonas] = useState(PERSONAS);
   const [logs, setLogs] = useState<SanctumLog[]>([]);
   const [health, setHealth] = useState<string>("unread");
+  const [claude, setClaude] = useState("disconnected");
+  const [speechOrigin, setSpeechOrigin] = useState("simulated");
   const [clock, setClock] = useState("");
   const [following, setFollowing] = useState(false);
   const [monitorFollow, setMonitorFollow] = useState<string | null>(null);
@@ -196,6 +198,29 @@ export function SanctumPage() {
       .catch(() => {
         if (!cancelled) {
           setRegistryDown(true);
+        }
+      });
+    void apiGet<{
+      claude?: string;
+      connected?: boolean;
+      speech_origin?: string;
+    }>("/api/v1/inference/language")
+      .then((body) => {
+        if (cancelled) {
+          return;
+        }
+        if (body.connected === true && body.claude === "connected" && body.speech_origin === "model_generated") {
+          setClaude("connected");
+          setSpeechOrigin("model_generated");
+          return;
+        }
+        setClaude("disconnected");
+        setSpeechOrigin("simulated");
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setClaude("disconnected");
+          setSpeechOrigin("simulated");
         }
       });
     void apiGet<{ personas?: Record<string, string> }>("/api/v1/inference/posture")
@@ -291,7 +316,7 @@ export function SanctumPage() {
         ]
       : [...comms.feed]
           .reverse()
-          .slice(0, 5)
+          .slice(0, 100)
           .map((message) => ({
             id: message.message_id,
             message: `${message.sender_name} · ${message.sender_id}: ${truncate(message.content, 84)} [${ORIGIN_TAG[message.origin]}]`,
@@ -558,6 +583,18 @@ export function SanctumPage() {
             <p className="sx-note" style={{ marginTop: 6 }}>
               No order is sent.
             </p>
+          </section>
+          <section className="sx-block" aria-label="Environment">
+            <h2>Environment</h2>
+            <ul className="sx-zones">
+              <li className="sx-zone">Mode: development</li>
+              <li className="sx-zone">Model speech: {speechOrigin}</li>
+              <li className="sx-zone">Claude: {claude}</li>
+              <li className="sx-zone">Orders: simulated</li>
+              <li className="sx-zone">Alpaca paper: disconnected</li>
+              <li className="sx-zone">Live: disabled</li>
+            </ul>
+            <p className="sx-note">Stored record answers stay labelled from the ledger. No order is sent.</p>
           </section>
           <section className="sx-block">
             <h2>Live Activity Feed</h2>
