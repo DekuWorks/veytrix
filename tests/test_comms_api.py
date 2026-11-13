@@ -1251,7 +1251,7 @@ def test_roads_assigns_astra_and_cipher_and_quotes_stored_replies(
     assert rows == [
         ("DEFI-01", "NVIDIA", "blocked", True),
         ("RESEARCH-01", "NVIDIA", "blocked", True),
-        ("RISK-01", "NVIDIA", "completed", True),
+        ("RISK-01", "NVIDIA", "blocked", True),
     ]
     listed = client.get("/api/v1/comms/conversations").json()["conversations"]
     assert any(item["title"] == "Research: NVIDIA" for item in listed)
@@ -1317,7 +1317,7 @@ def test_provider_failure_retries_then_stays_honest(client: TestClient, db: Sess
     ).all()
     assert {row[0] for row in rows} == {"DEFI-01", "RESEARCH-01", "RISK-01"}
     assert any(row[2] >= 1 for row in rows)
-    assert all(row[1] != "completed" or row[0] == "RISK-01" for row in rows)
+    assert all(row[1] != "completed" for row in rows)
     assert all(row[3] for row in rows)
     stored = client.get(f"/api/v1/comms/conversations/{conv}/messages").json()["messages"]
     model_lines = [message for message in stored if message["origin"] == "model_generated"]
@@ -1435,4 +1435,4 @@ def test_a_contradictory_model_review_is_not_stored_as_claude(
     ).all()
     assert ("RESEARCH-01", "blocked") in rows
     assert ("DEFI-01", "blocked") in rows
-    assert ("RISK-01", "completed") in rows
+    assert ("RISK-01", "blocked") in rows

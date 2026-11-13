@@ -8,6 +8,7 @@ a stored source mentions the subject and the reply cites that source.
 from __future__ import annotations
 
 import os
+import signal
 import sys
 import time
 import uuid
@@ -35,8 +36,8 @@ from veytrix_api.settings import BootRefused, get_settings
 
 HEARTBEAT_SECONDS = 30
 STALE_SECONDS = 90
-DAILY_CALLS = 8
-DAILY_USD = Decimal("0.10")
+DAILY_CALLS = 12
+DAILY_USD = Decimal("0.12")
 CALL_USD = Decimal("0.01")
 TRANSIENT_PREFIXES = ("HTTPError", "URLError", "TimeoutError", "provider_error", "empty_completion")
 
@@ -513,12 +514,18 @@ def run_task(db: Session, task: ResearchTaskRow, *, transport=None, worker_id: s
     if row is None:
         db.commit()
         return
-    if task.kind == "review" and citations:
+    findings = [item for item in siblings if item.kind == "research" and item.status == "completed"]
+    if task.kind == "review" and findings and citations:
         tasks.mark_completed(db, task, row.id)
     elif task.kind == "research" and evidence:
         tasks.mark_completed(db, task, row.id)
     else:
-        reason = "no_stored_source" if not evidence else (spoken.error_class or "no_evidence")
+        if task.kind == "review" and not findings:
+            reason = "no_findings"
+        elif not evidence:
+            reason = "no_stored_source"
+        else:
+            reason = spoken.error_class or "no_evidence"
         tasks.mark_blocked(db, task, row.id, reason)
     _event(db, task.id, "state", task.status)
     db.commit()
@@ -645,16 +652,29 @@ def drain(db: Session, *, transport=None, worker_id: str = "local", limit: int =
 
 
 def main() -> None:
+    """Loop until SIGINT or SIGTERM. `--once` still drains a single batch for tests."""
+
     assert_veytrix_database()
     once = "--once" in sys.argv
+    stop = False
+
+    def _stop(_signum: int, _frame: object) -> None:
+        nonlocal stop
+        stop = True
+
+    signal.signal(signal.SIGINT, _stop)
+    signal.signal(signal.SIGTERM, _stop)
     engine = create_db_engine(get_settings())
     worker_id = f"local-{os.getpid()}"
-    while True:
+    while not stop:
         with Session(engine) as db:
             drain(db, worker_id=worker_id)
-        if once:
+        if once or stop:
             return
-        time.sleep(2)
+        for _ in range(4):
+            if stop:
+                return
+            time.sleep(0.5)
 
 
 if __name__ == "__main__":
