@@ -129,15 +129,32 @@ def compose_reply(
     meta: dict[str, object] = {"intent": intent}
 
     if intent == "greeting" or intent == "help":
-        content = (
-            f"{desk.name}, {desk.role}. {desk.summary} Try: “What are you working on?”, "
-            "“Show sources”, “What actions were actually executed?”, or “What is a stop loss?”. "
-            "No language model is configured, so I answer from local records."
-        )
+        from veytrix_api.claude_provider import probe, speak
+
+        status = probe()
+        if not status.connected:
+            content = (
+                f"{desk.name} cannot answer with a model. Claude is offline. "
+                "This line is not a model reply. "
+                "Ask “What are you working on?” for a line labelled from local records. "
+                "No order is sent."
+            )
+            meta["model"] = "disconnected"
+            meta["language"] = "en"
+            return Reply(
+                _cut(content),
+                "reply",
+                "scripted",
+                [Citation(source="roster", ref=code, label=desk.summary)],
+                meta,
+            )
+        spoken = speak(code)
+        meta["model"] = spoken.claude
+        meta["language"] = "en"
         return Reply(
-            _cut(content),
+            _cut(spoken.text),
             "reply",
-            "scripted",
+            spoken.origin,
             [Citation(source="roster", ref=code, label=desk.summary)],
             meta,
         )

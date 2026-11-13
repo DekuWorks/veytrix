@@ -87,14 +87,19 @@ export function ChatPanel({
 
   async function send(text: string) {
     const content = text.trim();
-    if (!content || !conversation || busy) {
+    if (!content || busy) {
       return;
     }
     setBusy(true);
     setFailed(null);
     setNote(null);
     try {
-      const result = await sendMessage(conversation.conversation_id, content);
+      const conv = conversation ?? (await openDirect(code));
+      if (!conversation) {
+        setConversation(conv);
+        setError(null);
+      }
+      const result = await sendMessage(conv.conversation_id, content);
       setConversation(result.conversation);
       setMessages((current) => {
         const known = new Set(current.map((m) => m.message_id));
@@ -150,19 +155,18 @@ export function ChatPanel({
         ) : null}
       </header>
       <p className="sx-note">
-        {status}. No order is sent. Replies come from local records; no language model is configured.
+        {status}. Claude is offline. A verified tag is local records, not a model. No order is sent.
       </p>
       {loading ? <p className="cx-empty">Opening the conversation…</p> : null}
       {error ? (
         <div className="cx-error" role="alert">
-          <p>Chat is unavailable. {error}</p>
+          <p>History did not load. {error} You can still type below.</p>
           <button type="button" className="vx-btn" onClick={() => void load()}>
             Retry
           </button>
         </div>
       ) : null}
-      {!loading && !error ? (
-        <>
+      <>
           <ChatThread
             label={`Transcript with ${name}`}
             messages={messages}
@@ -214,8 +218,7 @@ export function ChatPanel({
               {busy ? "Sending…" : "Send"}
             </button>
           </form>
-        </>
-      ) : null}
+      </>
     </section>
   );
 }
