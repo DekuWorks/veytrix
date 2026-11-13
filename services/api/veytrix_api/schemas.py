@@ -750,7 +750,7 @@ class AgentDesk(BaseModel):
     code: AgentCode
     display_name: str = Field(min_length=1, max_length=64)
     desk: str = Field(min_length=1, max_length=32)
-    status: Literal["disabled", "paused"]
+    status: Literal["disabled", "paused", "enabled"]
     paper_only: Literal[True]
     can_submit_orders: Literal[False]
     can_sign: Literal[False]
@@ -829,7 +829,7 @@ class DeskDetailResponse(BaseModel):
     code: AgentCode
     display_name: str = Field(min_length=1, max_length=64)
     desk: str = Field(min_length=1, max_length=32)
-    status: Literal["disabled", "paused"]
+    status: Literal["disabled", "paused", "enabled"]
     paper_only: Literal[True]
     can_submit_orders: Literal[False]
     can_sign: Literal[False]

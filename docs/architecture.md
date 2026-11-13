@@ -12,7 +12,7 @@ There is one git repository. The preview directory is a linked worktree, not a s
 
 | Tree | Path | Branch | HEAD | What it is |
 | --- | --- | --- | --- | --- |
-| Main checkout | `/Users/marcusbrown/Developer/veytrix` | `feature/phase-0-reconnaissance` | `21aab82` | Phase 0 reconnaissance plus this audit. Sanctum here is the Phaser floor. This code rejects registry `status = enabled`. |
+| Main checkout | `/Users/marcusbrown/Developer/veytrix` | `feature/phase-0-reconnaissance` | `2c16a05` plus the registry-read change | Phase 0 docs, the runtime seam, and the Phaser floor. The API accepts registry `status` `enabled` for paper research. Trading flags stay false. Alembic files on this branch still end at `0010`. |
 | Live Sanctum | `/Users/marcusbrown/Developer/veytrix-sanctum-preview` | `feature/agent-communication` | `86e9d7d`, plus uncommitted work | The sky view the browser is serving. Vite cwd is `apps/web` in this tree. The API process cwd is this tree. |
 
 `feature/phase-0-reconnaissance` has 2 commits that are not on `feature/agent-communication` (`8b581bc`, `21aab82`). `feature/agent-communication` has 5 commits that are not on the Phase 0 branch (`f9b0824`, `8a59ee2`, `2bc3b04`, `d04b5e2`, `86e9d7d`). They share history through `5ef96c6`.

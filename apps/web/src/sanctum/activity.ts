@@ -15,7 +15,7 @@ export function isDesk(value: AgentDesk): boolean {
     (AGENT_CODES as readonly string[]).includes(value.code) &&
     value.display_name.trim().length > 0 &&
     value.desk.trim().length > 0 &&
-    (value.status === "disabled" || value.status === "paused") &&
+    (value.status === "disabled" || value.status === "paused" || value.status === "enabled") &&
     value.paper_only === true &&
     value.can_submit_orders === false &&
     value.can_sign === false &&
@@ -75,7 +75,7 @@ export function poseFor(agent: AgentDesk | undefined, reachable: boolean): DeskP
   if (!reachable || !agent || !isDesk(agent)) {
     return "error";
   }
-  if (agent.status === "disabled" || agent.status === "paused") {
+  if (agent.status === "disabled" || agent.status === "paused" || agent.status === "enabled") {
     return "idle";
   }
   return "error";
@@ -123,7 +123,9 @@ export function poseFromBroadcast(payload: unknown): { code: AgentCode; pose: De
     return { code, pose: "working" };
   }
   if (
-    (fields.status === "disabled" || fields.status === "paused") &&
+    (fields.status === "disabled" ||
+      fields.status === "paused" ||
+      fields.status === "enabled") &&
     fields.execution_permitted === false &&
     fields.trading_rights === "denied"
   ) {

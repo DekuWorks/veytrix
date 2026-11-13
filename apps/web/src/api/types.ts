@@ -367,7 +367,7 @@ export type AgentDesk = {
   code: AgentCode;
   display_name: string;
   desk: string;
-  status: "disabled" | "paused";
+  status: "disabled" | "paused" | "enabled";
   paper_only: true;
   can_submit_orders: false;
   can_sign: false;
@@ -398,7 +398,7 @@ export type DeskDetail = {
   code: AgentCode;
   display_name: string;
   desk: string;
-  status: "disabled" | "paused";
+  status: "disabled" | "paused" | "enabled";
   paper_only: true;
   can_submit_orders: false;
   can_sign: false;

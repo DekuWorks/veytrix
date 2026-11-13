@@ -2,9 +2,11 @@
 
 Date: 13 November 2026. Branch: `feature/phase-0-reconnaissance`. The audit commit was `7090490`. A later commit on the same branch adds the runtime-mode seam described below. The live worktree `feature/agent-communication` at `86e9d7d` still has uncommitted files. Phases 1–10 were not rebuilt.
 
-## This increment
+## Latest increment
 
-`VEYTRIX_MODE` defaults to `development`. Live mode refuses to boot. `GET /api/v1/providers/posture` reports a mock model (`origin` `simulated`), a simulated or disconnected market view, and a broker view whose paper execution stays `disconnected` while the simulated channel stays `simulated`. Claude, Supabase, and Alpaca were not called. The preview Vite and API processes were not restarted, so port 8000 does not serve this route until that process is replaced on purpose. No migration was applied. YIELD was not inserted. `FUTURES-01` was not removed.
+The registry read path accepts `status` `enabled` as well as `disabled` and `paused`. Trading flags stay false. No Alembic revision was added or applied, because the live database is already at the preview's `0012` and this branch does not contain `0011`. F1 Skyview was not started: it lives on the other branch, and merging the two trees was not part of this change.
+
+The earlier runtime seam is unchanged: `VEYTRIX_MODE` defaults to `development`, live mode refuses to boot, and the provider posture stays simulated or disconnected. Claude, Supabase, and Alpaca were not called. YIELD was not inserted. `FUTURES-01` was not removed. Vite and the API were not restarted.
 
 Read `docs/ARCHITECTURE.md` for the two trees. Read `docs/MASTER_BUILD_PLAN.md` for task-level status. Nothing below is a claim that paper trading is in production.
 
@@ -28,7 +30,7 @@ These responded or are present in the running preview. "Working" means the behav
 | API liveness and database | `GET /api/v1/health` 200, `GET /api/v1/ready` 200, `database` `up` | Local only |
 | Paper posture | Diagnostics: `trading_mode` `paper`, `live_broker` `disabled`, `execution_permitted` false | Auth is `not_configured` |
 | Live submission evidence | `GET /api/v1/system/submission`: 0 of 8 conditions met, `live_submission_possible` false, `order_route` `absent` | Does not read the broker account |
-| Registry for paper research | Live `GET /api/v1/agents`: 10 desks, `status` `enabled`, all four trading flags false | This branch's API code returns 503 for the same rows. See Broken. |
+| Registry for paper research | Live `GET /api/v1/agents`: 10 desks, `status` `enabled`, all four trading flags false | This branch now accepts `enabled` on read. Trading flags stay false. No new migration was applied. The running API process was not restarted. |
 | Comms flags | `GET /api/v1/comms/flags`: chat flags on, `live_execution` false, `model` `not_configured`, `realtime` `not_configured` | Replies are not a model |
 | Inference posture | `paid_inference_enabled` false, Cursor does not run agents, Ollama off | `POST /api/v1/inference/route` was not called. The new mock seam is a different route and is not on the running process. |
 | Sky view page | Preview `SanctumPage.tsx` renders `SkyFloor` (HTML/CSS). Vite returned HTTP 200. | Browser was not driven. Not React Three Fiber. |
@@ -59,7 +61,7 @@ These responded or are present in the running preview. "Working" means the behav
 
 | Item | What happens |
 | --- | --- |
-| This branch against the live registry | `tests/test_agents_api.py::test_agents_route_reads_the_local_registry` and `test_desk_detail_reads_the_local_registry` fail. Live rows have `status` `enabled`. This branch only accepts `disabled` or `paused`, so the route returns 503. The tests were not edited. |
+| Registry migration drift | This branch's Alembic files still stop at `0010`, which creates `status IN ('disabled', 'paused')`. The live database is already at the preview's uncommitted `0012`, which allows `enabled`. This branch did not add or apply another revision, so a fresh upgrade of this branch alone still seeds `disabled`. The API accepts both. |
 | Registry versus futures posture | Agents row for `FUTURES-01` is `enabled`. `GET /api/v1/futures/posture` still says `status` `disabled` and Topstep `not_connected`. Both can be true only because the posture is hardcoded. |
 | Two branches, one database | The database is at uncommitted migration `0012`. This branch's files stop at `0010`. The preview branch's last commit is `0011` plus the untracked `0012` file. |
 | `scripts/check.sh` | Exit 1 at pytest. Ruff had already passed. Web typecheck, Vitest, build, and the secret scan were run afterwards, separately, and passed. |
@@ -67,7 +69,7 @@ These responded or are present in the running preview. "Working" means the behav
 | Auth | Not implemented. CSRF is not implemented. Rate limit is process-local. |
 | Persona names | Preview assigns Astra to `RESEARCH-01` and Dayvid to `DAY-01`. `docs/phase-0/agent-roster.md` still says those codes are unassigned. YIELD does not exist. |
 
-The 503 on this branch is fail-closed. It is not a licence to relax the schema until the preview's `0012` change is reviewed on its own branch. The running preview API is the one returning the enabled rows, and this pass did not restart it.
+`enabled` means paper research. It does not set `can_submit_orders`, `can_sign`, `can_transfer_funds`, or `holds_credentials`. A row that sets any of those still returns 503. Futures posture stays `disabled` and Topstep stays `not_connected`. The process on port 8000 was not restarted, so it still runs the preview code.
 
 ## Missing
 

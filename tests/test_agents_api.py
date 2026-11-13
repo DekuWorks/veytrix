@@ -100,6 +100,24 @@ def test_agents_route_lists_disabled_desks_and_cannot_post() -> None:
     assert set(app.openapi()["paths"]["/api/v1/agents"]) == {"get"}
 
 
+def test_enabled_desks_stay_unable_to_trade() -> None:
+    session = _RegistrySession([_desk(code, status="enabled") for code in AGENT_CODES])
+    _app, client = _client(session)
+    with client:
+        listed = client.get("/api/v1/agents")
+    assert listed.status_code == 200
+    body = listed.json()
+    assert all(row["status"] == "enabled" for row in body["agents"])
+    assert all(row["paper_only"] is True for row in body["agents"])
+    assert all(row["can_submit_orders"] is False for row in body["agents"])
+    assert all(row["can_sign"] is False for row in body["agents"])
+    assert all(row["can_transfer_funds"] is False for row in body["agents"])
+    assert all(row["holds_credentials"] is False for row in body["agents"])
+    assert body["trading_rights"] == "denied"
+    assert body["execution_permitted"] is False
+    assert body["order_submitted"] is False
+
+
 def test_agents_route_hides_a_desk_that_could_trade() -> None:
     rows = [_desk(code) for code in AGENT_CODES]
     rows[0].can_submit_orders = True
@@ -181,8 +199,12 @@ def test_agents_route_reads_the_local_registry(monkeypatch: pytest.MonkeyPatch) 
     assert listed.status_code == 200
     body = listed.json()
     assert [row["code"] for row in body["agents"]] == sorted(AGENT_CODES)
-    assert all(row["status"] == "disabled" for row in body["agents"])
+    assert all(row["status"] in {"disabled", "paused", "enabled"} for row in body["agents"])
+    assert all(row["paper_only"] is True for row in body["agents"])
     assert all(row["can_submit_orders"] is False for row in body["agents"])
+    assert all(row["can_sign"] is False for row in body["agents"])
+    assert all(row["can_transfer_funds"] is False for row in body["agents"])
+    assert all(row["holds_credentials"] is False for row in body["agents"])
     assert body["trading_rights"] == "denied"
     assert status.status_code == 200
     assert status.json()["agents_registered"] == len(AGENT_CODES)
@@ -377,10 +399,17 @@ def test_desk_detail_reads_the_local_registry(monkeypatch: pytest.MonkeyPatch) -
     assert detail.status_code == 200
     body = detail.json()
     assert body["code"] == "SUPERVISOR-01"
-    assert body["status"] == "disabled"
+    assert body["status"] in {"disabled", "paused", "enabled"}
     assert body["can_enable"] is False
     assert body["running"] is False
     assert body["can_submit_orders"] is False
+    assert body["can_sign"] is False
+    assert body["can_transfer_funds"] is False
+    assert body["holds_credentials"] is False
+    assert body["paper_only"] is True
+    assert body["trading_rights"] == "denied"
+    assert body["execution_permitted"] is False
+    assert body["order_submitted"] is False
     assert [tool["tool_name"] for tool in body["tools"]] == list(DENIED_TOOLS)
     assert all(tool["effect"] == "deny" for tool in body["tools"])
     assert "order" in body["notes"].lower()

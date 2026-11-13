@@ -572,7 +572,13 @@ class AgentRow(Base):
             ")",
             name="ck_agents_code",
         ),
-        CheckConstraint("status IN ('disabled', 'paused')", name="ck_agents_status"),
+        # `enabled` is paper research only. The trading-flag constraints below stay false.
+        # Alembic 0009 on this branch still creates the narrower check. The live database
+        # was widened by the preview revision 0012, which this branch does not replay.
+        CheckConstraint(
+            "status IN ('disabled', 'paused', 'enabled')",
+            name="ck_agents_status",
+        ),
         CheckConstraint("paper_only", name="ck_agents_paper_only"),
         CheckConstraint("can_submit_orders = false", name="ck_agents_cannot_submit"),
         CheckConstraint("can_sign = false", name="ck_agents_cannot_sign"),

@@ -65,7 +65,8 @@
           "status": {
             "enum": [
               "disabled",
-              "paused"
+              "paused",
+              "enabled"
             ],
             "title": "Status",
             "type": "string"
@@ -602,7 +603,8 @@
           "status": {
             "enum": [
               "disabled",
-              "paused"
+              "paused",
+              "enabled"
             ],
             "title": "Status",
             "type": "string"

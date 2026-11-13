@@ -31,7 +31,7 @@ function isDesk(value: AgentDesk): boolean {
     (AGENT_CODES as readonly string[]).includes(value.code) &&
     value.display_name.trim().length > 0 &&
     value.desk.trim().length > 0 &&
-    (value.status === "disabled" || value.status === "paused") &&
+    (value.status === "disabled" || value.status === "paused" || value.status === "enabled") &&
     value.paper_only === true &&
     value.can_submit_orders === false &&
     value.can_sign === false &&
