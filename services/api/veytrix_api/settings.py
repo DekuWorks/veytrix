@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from functools import lru_cache
+from typing import Literal
 from urllib.parse import urlparse
 
 from pydantic import AliasChoices, Field, SecretStr, ValidationError
@@ -17,6 +18,11 @@ LOCAL_ORIGINS = (
     "http://localhost:5173",
 )
 ALLOWED_DATABASE_HOSTS = frozenset({"127.0.0.1", "localhost", "postgres"})
+RUNTIME_MODES = ("development", "paper", "live")
+
+# Not an environment variable and not a switch. This build leaves it False.
+# Setting it True also refuses boot, so it cannot turn live mode on.
+LIVE_OWNER_AUTHORIZATION = False
 
 
 class BootRefused(RuntimeError):
@@ -102,6 +108,10 @@ class Settings(BaseSettings):
         default=SecretStr(""),
         validation_alias=AliasChoices("VEYTRIX_REALTIME_SERVER_KEY", "realtime_server_key"),
     )
+    veytrix_mode: Literal["development", "paper", "live"] = Field(
+        default="development",
+        validation_alias=AliasChoices("VEYTRIX_MODE", "veytrix_mode"),
+    )
 
 
 def assert_boot_allowed(settings: Settings) -> None:
@@ -113,6 +123,16 @@ def assert_boot_allowed(settings: Settings) -> None:
     places an order; the MAC-01 bot enforces its own live gate.
     """
 
+    if LIVE_OWNER_AUTHORIZATION:
+        raise BootRefused(
+            "Refusing to boot: the live owner authorization constant must stay false. "
+            "It is not a switch for live mode."
+        )
+    if settings.veytrix_mode == "live":
+        raise BootRefused(
+            "Refusing to boot: VEYTRIX_MODE is live. "
+            "Live mode stays disabled until a separate owner authorization."
+        )
     if settings.veytrix_enable_live_broker:
         raise BootRefused(
             "Refusing to boot: VEYTRIX_ENABLE_LIVE_BROKER is set. "

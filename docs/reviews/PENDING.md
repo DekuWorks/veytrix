@@ -166,6 +166,12 @@ Claude Code has not reviewed this repository. Codex has not written or run tests
 - Status: implemented on 9 November 2026. Codex is not installed and has not reviewed it. Do not treat this note as a closed gate. Production readiness is not met: no verified agent events, no auth, no deployment. Supabase was not provisioned.
 - Acceptance: `/sanctum` is one Phaser floor for the ten registry desks; sky, floor, pan, zoom, centre, meeting, and trading cameras do not submit an order; NPC pose comes from `GET /api/v1/agents` and stays idle while the desks are disabled and trading is denied; verified trading stays "none verified" unless a row says broker-confirmed; the local note box does not call a model; the service-role key is not read by the page; there is no order, enable, sign, withdraw, or Topstep control.
 
+## 30. Phase 0 reconnaissance (awaiting review)
+
+- Scope: `docs/phase-0/reconnaissance.md`, `docs/phase-0/agent-roster.md`, `docs/phase-0/environment.md`, `docs/reviews/phase-0-completion.md`, `tests/test_phase0_inventory.py`
+- Status: written on 9 November 2026 against `VEYTRIX_MASTER_CURSOR_TASKS.md` v1.0. Self-reviewed by the author only. Codex has not reviewed it.
+- Acceptance: the roster lists exactly the ten codes in migrations `0009` and `0010` with matching ids, display names, desks, and Sanctum tiles; Astra, Dayvid, and Atlas are not mapped to a code; the env table lists every variable the code reads and prints no value; no `VITE_` variable looks like a secret; integration statuses match the routers and tests cited; baseline metrics that were not measured say so; no runtime file changed; no order route was added; `services/ai-research/veytrix_ai/**` was not changed.
+
 ## 31. Agent communication (awaiting review)
 
 - Scope: `services/api/veytrix_api/comms/`, `services/api/veytrix_api/routers/comms.py`, `services/api/alembic/versions/20261109_0011_agent_comms.py`, `apps/web/src/comms/`, `apps/web/src/sanctum/ui/Chat*.tsx`, `ConversationMonitor.tsx`, `SkyFloor.tsx`, `tests/test_comms_*.py`

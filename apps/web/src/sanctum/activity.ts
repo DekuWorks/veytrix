@@ -75,10 +75,7 @@ export function poseFor(agent: AgentDesk | undefined, reachable: boolean): DeskP
   if (!reachable || !agent || !isDesk(agent)) {
     return "error";
   }
-  if (agent.status === "enabled") {
-    return "working";
-  }
-  if (agent.status === "disabled" || agent.status === "paused") {
+  if (agent.status === "disabled" || agent.status === "paused" || agent.status === "enabled") {
     return "idle";
   }
   return "error";
@@ -126,7 +123,9 @@ export function poseFromBroadcast(payload: unknown): { code: AgentCode; pose: De
     return { code, pose: "working" };
   }
   if (
-    (fields.status === "disabled" || fields.status === "paused") &&
+    (fields.status === "disabled" ||
+      fields.status === "paused" ||
+      fields.status === "enabled") &&
     fields.execution_permitted === false &&
     fields.trading_rights === "denied"
   ) {

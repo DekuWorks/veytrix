@@ -52,9 +52,15 @@ describe("sanctum floor", () => {
 });
 
 describe("sanctum poses", () => {
-  it("keeps a denied desk idle and treats an enabled paper desk as working", () => {
+  it("keeps a denied desk idle and does not treat an enabled registry row as working", () => {
     expect(poseFor(desk, true)).toBe("idle");
-    expect(poseFor({ ...desk, status: "enabled" }, true)).toBe("working");
+    expect(poseFor({ ...desk, status: "enabled" }, true)).toBe("idle");
+    expect(poseFromBroadcast({
+      code: "DAY-01",
+      status: "enabled",
+      execution_permitted: false,
+      trading_rights: "denied",
+    })?.pose).toBe("idle");
     expect(poseFor(desk, false)).toBe("error");
     expect(poseFor(undefined, true)).toBe("error");
   });

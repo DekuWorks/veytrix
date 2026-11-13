@@ -28,6 +28,7 @@ services:
       dockerfile: infra/docker/api.Dockerfile
     environment:
       VEYTRIX_ENV: local
+      VEYTRIX_MODE: development
       VEYTRIX_ENABLE_LIVE_BROKER: "0"
       DATABASE_URL: postgresql+psycopg://veytrix:${POSTGRES_PASSWORD:-local-dev-only}@postgres:5432/veytrix
       VEYTRIX_LOG_LEVEL: INFO

@@ -23,6 +23,7 @@ from veytrix_api.routers import (
     market,
     paper_swaps,
     portfolio,
+    providers,
     reconciliation,
     research,
     risk,
@@ -86,6 +87,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     router.include_router(strategies.router)
     router.include_router(reconciliation.router)
     router.include_router(paper_swaps.router)
+    router.include_router(providers.router)
     app.include_router(router)
 
     app.add_middleware(RateLimitMiddleware, limiter=app.state.limiter)

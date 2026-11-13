@@ -458,6 +458,62 @@
         "title": "BarsResponse",
         "type": "object"
       },
+      "BrokerView": {
+        "properties": {
+          "execution_permitted": {
+            "const": false,
+            "default": false,
+            "title": "Execution Permitted",
+            "type": "boolean"
+          },
+          "live": {
+            "const": "disabled",
+            "title": "Live",
+            "type": "string"
+          },
+          "order_submitted": {
+            "const": false,
+            "default": false,
+            "title": "Order Submitted",
+            "type": "boolean"
+          },
+          "paper": {
+            "const": "disconnected",
+            "title": "Paper",
+            "type": "string"
+          },
+          "reaches_alpaca": {
+            "const": false,
+            "default": false,
+            "title": "Reaches Alpaca",
+            "type": "boolean"
+          },
+          "reaches_mac01": {
+            "const": false,
+            "default": false,
+            "title": "Reaches Mac01",
+            "type": "boolean"
+          },
+          "reaches_swap_signing": {
+            "const": false,
+            "default": false,
+            "title": "Reaches Swap Signing",
+            "type": "boolean"
+          },
+          "simulated": {
+            "const": "simulated",
+            "title": "Simulated",
+            "type": "string"
+          }
+        },
+        "required": [
+          "simulated",
+          "paper",
+          "live"
+        ],
+        "title": "BrokerView",
+        "type": "object"
+      },
       "Citation": {
         "properties": {
           "as_of": {
@@ -2736,6 +2792,37 @@
         "title": "MarketHealthResponse",
         "type": "object"
       },
+      "MarketView": {
+        "properties": {
+          "price": {
+            "title": "Price",
+            "type": "null"
+          },
+          "source": {
+            "enum": [
+              "development_fixture",
+              "not_connected"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "simulated",
+              "disconnected",
+              "disabled"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "source"
+        ],
+        "title": "MarketView",
+        "type": "object"
+      },
       "MemberOut": {
         "properties": {
           "last_read_seq": {
@@ -3011,6 +3098,98 @@
           "meta"
         ],
         "title": "MessageOut",
+        "type": "object"
+      },
+      "ModelPosture": {
+        "properties": {
+          "connected": {
+            "const": false,
+            "default": false,
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "connectivity": {
+            "const": "not_tested",
+            "title": "Connectivity",
+            "type": "string"
+          },
+          "credential_present": {
+            "title": "Credential Present",
+            "type": "boolean"
+          },
+          "preferred_production_provider": {
+            "const": "claude",
+            "title": "Preferred Production Provider",
+            "type": "string"
+          },
+          "production_state": {
+            "const": "disconnected",
+            "title": "Production State",
+            "type": "string"
+          },
+          "provider": {
+            "const": "mock",
+            "title": "Provider",
+            "type": "string"
+          },
+          "reply_label": {
+            "const": "simulated",
+            "title": "Reply Label",
+            "type": "string"
+          },
+          "reply_origin": {
+            "const": "simulated",
+            "title": "Reply Origin",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "preferred_production_provider",
+          "production_state",
+          "credential_present",
+          "connectivity",
+          "reply_origin",
+          "reply_label"
+        ],
+        "title": "ModelPosture",
+        "type": "object"
+      },
+      "ModelReply": {
+        "properties": {
+          "connected": {
+            "const": false,
+            "default": false,
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "label": {
+            "const": "simulated",
+            "title": "Label",
+            "type": "string"
+          },
+          "origin": {
+            "const": "simulated",
+            "title": "Origin",
+            "type": "string"
+          },
+          "provider": {
+            "const": "mock",
+            "title": "Provider",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "origin",
+          "provider",
+          "label",
+          "text"
+        ],
+        "title": "ModelReply",
         "type": "object"
       },
       "Moderate": {
@@ -3853,6 +4032,60 @@
           "agents"
         ],
         "title": "PresenceResponse",
+        "type": "object"
+      },
+      "ProviderPosture": {
+        "properties": {
+          "broker": {
+            "$ref": "#/components/schemas/BrokerView"
+          },
+          "live_execution": {
+            "const": false,
+            "default": false,
+            "title": "Live Execution",
+            "type": "boolean"
+          },
+          "market": {
+            "$ref": "#/components/schemas/MarketView"
+          },
+          "mock_reply": {
+            "$ref": "#/components/schemas/ModelReply"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelPosture"
+          },
+          "order_route": {
+            "const": "absent",
+            "title": "Order Route",
+            "type": "string"
+          },
+          "runtime_mode": {
+            "enum": [
+              "development",
+              "paper"
+            ],
+            "title": "Runtime Mode",
+            "type": "string"
+          },
+          "supabase": {
+            "enum": [
+              "not_used",
+              "disconnected"
+            ],
+            "title": "Supabase",
+            "type": "string"
+          }
+        },
+        "required": [
+          "runtime_mode",
+          "supabase",
+          "order_route",
+          "model",
+          "market",
+          "broker",
+          "mock_reply"
+        ],
+        "title": "ProviderPosture",
         "type": "object"
       },
       "ReadMark": {
@@ -7707,6 +7940,27 @@
         "summary": "Delete Position",
         "tags": [
           "portfolio"
+        ]
+      }
+    },
+    "/api/v1/providers/posture": {
+      "get": {
+        "operationId": "provider_posture_api_v1_providers_posture_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderPosture"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Provider Posture",
+        "tags": [
+          "providers"
         ]
       }
     },
