@@ -1,0 +1,9 @@
+{
+  "id": "veytrix-obsidian-assistant",
+  "name": "Veytrix Obsidian Assistant",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Search pinned notes and answer from those notes. Creating, editing, and trashing ask first.",
+  "author": "DekuWorks",
+  "isDesktopOnly": true
+}
