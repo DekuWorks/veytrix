@@ -10,12 +10,18 @@ VEYTRIX_RATE_LIMIT_PER_MINUTE=360
 VEYTRIX_LOG_LEVEL=INFO
 VITE_API_BASE_URL=http://127.0.0.1:8000
 
-# Optional. Leave unset for development.
+# Optional. Leave unset for development. Placeholders only.
 # ANTHROPIC_API_KEY=
+# ANTHROPIC_MODEL=
 # ALPACA_PAPER_API_KEY=
 # ALPACA_PAPER_SECRET_KEY=
+# Paper host the CLI expects: paper-api.alpaca.markets
+# Do not set a live host.
+# VEYTRIX_REALTIME_URL=
+# VEYTRIX_REALTIME_SERVER_KEY=
 # VITE_SUPABASE_URL=
 # VITE_SUPABASE_ANON_KEY=
+# The anon key is the public browser key. Never put a service-role key in a VITE_ name.
 
 # Live stays off.
 # Do not set VEYTRIX_MODE=live.
